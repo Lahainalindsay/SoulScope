@@ -1,0 +1,21 @@
+# Python / virtualenv
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Tooling caches
+.cache/
+.mypy_cache/
+.pytest_cache/
+
+# Node/npm leftovers
+node_modules/
+
+# User-specific
+.idea/
+.vscode/
