@@ -1,11 +1,11 @@
-# soulscope/audio/voice_analysis.py
+# corescope/audio/voice_analysis.py
 
 import numpy as np
 import librosa
 import parselmouth  # Praat wrapper
 from parselmouth.praat import call
 
-from soulscope.core_frequency.models import VoiceFeatures
+from corescope.core_frequency.models import VoiceFeatures
 
 
 def load_audio_mono(path: str, target_sr: int = 16000) -> tuple[np.ndarray, int]:
