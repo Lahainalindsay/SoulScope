@@ -1,28 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import CoreFrequencyCard from "../components/CoreFrequencyCard";
+import ScanWizard from "../components/ScanWizard";
 
 export default function HomePage() {
-  const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
-
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-10 space-y-10">
-      <section>
-        <h1 className="text-3xl font-semibold">SoulScope</h1>
-        <p className="text-slate-300">
-          Placeholder UI for the Core Frequency visualizer. Wire this up to the
-          FastAPI backend to stream live results.
+    <main className="page">
+      <section className="hero">
+        <p className="hero__eyebrow">SoulScope</p>
+        <h1 className="hero__title">Guide seekers through a Core Frequency scan.</h1>
+        <p className="hero__subtitle">
+          A 6–8 minute ritual that captures physiology, voice, emotional reactivity, and recovery so
+          you can fuse it into one cohesive core frequency reading.
         </p>
+        <div className="hero__cta">
+          <span className="hero__cta-note">
+            Screened journey · PhysioTimeSeries · ReactivityMetrics · VoiceFeatures
+          </span>
+        </div>
       </section>
-
-      <CoreFrequencyCard
-        status={status}
-        onSimulate={() => {
-          setStatus("loading");
-          setTimeout(() => setStatus("done"), 1200);
-        }}
-      />
+      <ScanWizard />
     </main>
   );
 }

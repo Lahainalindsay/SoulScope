@@ -6,45 +6,52 @@ interface Props {
 }
 
 const statusCopy: Record<Status, string> = {
-  idle: "Offline",
+  idle: "Calibrating",
   loading: "Analyzing",
-  done: "Synced",
+  done: "Synchronized",
 };
+
+const statusClasses: Record<Status, string> = {
+  idle: "status-chip status-chip--idle",
+  loading: "status-chip status-chip--loading",
+  done: "status-chip status-chip--done",
+};
+
+const signalPills = ["Theta Bloom", "Heart Coherence", "Auric Shield"];
 
 export default function CoreFrequencyCard({ status, onSimulate }: Props) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-cyan-500/10 p-6">
-      <div className="flex items-center justify-between">
+    <section className="frequency-card">
+      <div className="frequency-card__header">
         <div>
-          <p className="text-sm text-slate-400 uppercase tracking-wide">
-            Core Frequency
-          </p>
-          <p className="text-4xl font-semibold mt-2 text-white">432 Hz</p>
+          <p className="hero__eyebrow">Core Frequency</p>
+          <p className="frequency-card__value">432 Hz</p>
         </div>
-        <span
-          className={`text-xs px-3 py-1 rounded-full ${
-            status === "done"
-              ? "bg-emerald-500/20 text-emerald-300"
-              : status === "loading"
-              ? "bg-amber-500/20 text-amber-200"
-              : "bg-slate-700 text-slate-300"
-          }`}
-        >
-          {statusCopy[status]}
-        </span>
+        <span className={statusClasses[status]}>{statusCopy[status]}</span>
       </div>
 
-      <p className="text-slate-300 text-sm mt-4">
-        Simulated UI placeholder. Replace with live data pulled from the
-        FastAPI backend once streaming pipeline is ready.
+      <p className="frequency-card__copy">
+        Monitoring harmonic resonance and heart–brain coherence in real time.
+        When the channel is synced, we surface the most grounded guidance for
+        your next ritual or session.
       </p>
 
-      <button
-        className="mt-6 text-sm bg-white/10 text-white px-4 py-2 rounded-lg hover:bg-white/20 transition"
-        onClick={onSimulate}
-      >
-        Simulate Analysis
-      </button>
-    </div>
+      <div className="frequency-card__controls">
+        <button
+          className="frequency-card__button"
+          onClick={onSimulate}
+          disabled={status === "loading"}
+        >
+          {status === "loading" ? "Aligning waveform…" : "Simulate analysis"}
+        </button>
+        <div className="frequency-card__signal">
+          {signalPills.map((pill) => (
+            <span className="signal-pill" key={pill}>
+              {pill}
+            </span>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
