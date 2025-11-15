@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
 
 :root {
   color-scheme: dark;
@@ -22,7 +22,9 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: var(--font-sans);
-  background: radial-gradient(circle at top, #1f1149, #020617 55%);
+  background: radial-gradient(circle at 10% 20%, rgba(250, 194, 194, 0.15), transparent 45%),
+    radial-gradient(circle at 80% 0%, rgba(122, 92, 203, 0.2), transparent 55%),
+    linear-gradient(180deg, #0c0a0f 0%, #080610 40%, #0f3d33 100%);
   color: #f8fbff;
   line-height: 1.6;
   overflow-x: hidden;
@@ -461,6 +463,7 @@ body::before {
 .marketing-card ul {
   padding-left: 1.1rem;
 }
+
 
 .spectrum-list {
   list-style: none;
