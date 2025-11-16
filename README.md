@@ -33,6 +33,10 @@ soulscope/
    ```
 3. Call the `/core-frequency` endpoint with JSON payloads (see `backend/main.py` for the schema).
 
+#### Exposing the API to the frontend
+
+The Next.js UI expects a FastAPI host. When running locally, start the backend (`uvicorn main:app --reload`) and set `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000` inside `frontend/.env.local`. In production, deploy the FastAPI app (Render, Railway, Fly.io, etc.) and set the same environment variable in Vercel so the wizard can reach the API.
+
 ### Frontend
 
 ```bash

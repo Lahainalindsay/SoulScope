@@ -1,7 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
-
-const Meyda = dynamic(async () => (await import("meyda")).default, { ssr: false });
 
 export default function Recorder() {
   const [recording, setRecording] = useState(false);
@@ -34,8 +31,8 @@ export default function Recorder() {
       audioChunks.current = [];
     };
 
-    const MeydaModule = (await import("meyda")).default;
-    analyzerRef.current = MeydaModule.createMeydaAnalyzer({
+    const { default: Meyda } = await import("meyda");
+    analyzerRef.current = Meyda.createMeydaAnalyzer({
       audioContext: audioContextRef.current,
       source: sourceRef.current,
       bufferSize: 512,
