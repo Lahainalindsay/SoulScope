@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSession, useSessionContext } from "@supabase/auth-helpers-react";
 import { supabase } from "../lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
@@ -13,24 +14,19 @@ type Scan = {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const session = useSession();
+  const { isLoading: sessionLoading } = useSessionContext();
   const [loading, setLoading] = useState(true);
   const [scans, setScans] = useState<Scan[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
+      if (!session?.user) return;
       const { data, error: scansError } = await supabase
         .from("scans")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", session.user.id)
         .order("created_at", { ascending: false })
         .limit(5);
 
@@ -42,10 +38,16 @@ export default function DashboardPage() {
       setLoading(false);
     };
 
-    fetchData();
-  }, [router]);
+    if (sessionLoading) return;
+    if (!session) {
+      router.push("/login");
+      return;
+    }
 
-  if (loading) {
+    fetchData();
+  }, [router, session, sessionLoading]);
+
+  if (loading || sessionLoading) {
     return <div className="auth-shell"><div className="auth-card">Loading dashboard...</div></div>;
   }
 
@@ -61,6 +63,11 @@ export default function DashboardPage() {
           <p className="text-gray-300">
             View your core frequency, track chakra alignment, invite friends, and manage your subscription.
           </p>
+          {session?.user?.email && (
+            <p className="mt-2 text-xs uppercase tracking-[0.2em] text-gray-400">
+              Signed in as <span className="text-cyan-200 normal-case tracking-normal">{session.user.email}</span>
+            </p>
+          )}
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">

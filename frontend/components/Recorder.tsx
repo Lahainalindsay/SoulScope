@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
+import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "../lib/supabaseClient";
 
 const chakraMap = [
@@ -32,6 +33,7 @@ export default function Recorder() {
   const frameCount = useRef(0);
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
+  const session = useSession();
 
   useEffect(() => {
     setIsClient(true);
@@ -140,15 +142,13 @@ export default function Recorder() {
       const data = await response.json();
       setAnalysis(data);
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
       let scanId: string | null = null;
-      if (user) {
+      const userId = session?.user?.id;
+      if (userId) {
         const { data: inserted, error } = await supabase
           .from("scans")
           .insert({
-            user_id: user.id,
+            user_id: userId,
             result: {
               summary,
               analysis: data,
