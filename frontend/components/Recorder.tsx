@@ -1,6 +1,5 @@
 import { useRouter } from "next/router";
-import { useRef, useState } from "react";
-import Meyda from "meyda";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 const chakraMap = [
@@ -30,8 +29,19 @@ export default function Recorder() {
   const spectrumSum = useRef<number[]>([]);
   const frameCount = useRef(0);
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    return () => {
+      analyzerRef.current?.stop();
+      audioContextRef.current?.close();
+    };
+  }, []);
 
   const startRecording = async () => {
+    if (!isClient) return;
+    const { default: Meyda } = await import("meyda");
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     audioContextRef.current = new AudioContext();
     sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
@@ -174,6 +184,10 @@ export default function Recorder() {
       setLoadingAnalysis(false);
     }
   };
+
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col items-center space-y-4">
