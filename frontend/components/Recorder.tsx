@@ -19,6 +19,8 @@ export default function Recorder() {
   const [analysis, setAnalysis] = useState<any>(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [gateVisible, setGateVisible] = useState(false);
+  const [teaserData, setTeaserData] = useState<any>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
@@ -138,7 +140,9 @@ export default function Recorder() {
       const data = await response.json();
       setAnalysis(data);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       let scanId: string | null = null;
       if (user) {
         const { data: inserted, error } = await supabase
@@ -160,26 +164,14 @@ export default function Recorder() {
       if (scanId) {
         router.push(`/results/${scanId}`);
       } else {
-        router.push({
-          pathname: "/results",
-          query: {
-            freq: summary.coreFrequency,
-            chakra: summary.coreChakra,
-            missing: JSON.stringify(summary.missing?.map((m) => m.chakra).filter(Boolean) ?? []),
-          },
-        });
+        setGateVisible(true);
+        setTeaserData(summary);
       }
     } catch (error) {
       setAnalysisError(error instanceof Error ? error.message : "Analysis failed");
       setAnalysis(null);
-      router.push({
-        pathname: "/results",
-        query: {
-          freq: summary.coreFrequency,
-          chakra: summary.coreChakra,
-          missing: JSON.stringify(summary.missing?.map((m) => m.chakra).filter(Boolean) ?? []),
-        },
-      });
+      setGateVisible(true);
+      setTeaserData(summary);
     } finally {
       setLoadingAnalysis(false);
     }
@@ -254,6 +246,22 @@ export default function Recorder() {
               <li><strong>Breathe:</strong> {analysis.suggestion?.breathe}</li>
             </ul>
           </div>
+        </div>
+      )}
+
+      {gateVisible && teaserData && (
+        <div className="mt-8 bg-gradient-to-r from-violet-900/40 to-cyan-900/30 border border-white/10 rounded-2xl p-6 text-center space-y-4">
+          <h3 className="text-2xl font-serif text-yellow-200">We detected {teaserData.missing.length || 1} energetic patterns…</h3>
+          <p className="text-sm text-gray-300">
+            Unlock your personalized resonance report with a free SoulScope account. Includes your core tone, chakra map, and integration guide.
+          </p>
+          <button
+            className="bg-gradient-to-r from-cyan-500 to-violet-600 px-6 py-2 rounded-full hover:scale-105 transition"
+            onClick={() => router.push("/login?redirect=/dashboard")}
+          >
+            Create Free Account to View Results
+          </button>
+          <p className="text-xs text-gray-500">Includes 7-day trial • Unlimited scans • Invite friends for bonus readings</p>
         </div>
       )}
     </div>

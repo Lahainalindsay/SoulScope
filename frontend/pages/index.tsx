@@ -14,14 +14,17 @@ export default function Home() {
 
         <nav className="flex justify-between items-center px-6 py-4 relative z-10">
           <h1 className="text-lg font-semibold">SoulScope™</h1>
-          <div className="space-x-4">
+          <div className="space-x-4 text-sm">
             <Link href="/scan" className="hover:text-cyan-400">
               Scan
             </Link>
             <Link href="/results/demo" className="hover:text-cyan-400">
               Results
             </Link>
-            <a href="#" className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-full text-sm">
+            <Link href="/how-it-works" className="hover:text-cyan-400">
+              How It Works
+            </Link>
+            <a href="#" className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-full">
               Log In
             </a>
           </div>
@@ -59,6 +62,20 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="relative z-10 px-6 py-16 max-w-4xl mx-auto bg-white/5 border border-white/10 rounded-2xl text-center space-y-4">
+          <h3 className="text-2xl font-semibold text-cyan-300">Trust Your Tech</h3>
+          <p className="text-gray-300">
+            Your phone is already a powerful biometric scanner. SoulScope extracts meaningful data using your built-in microphone and camera — the same way high-end devices do with external sensors.
+          </p>
+          <div className="grid md:grid-cols-2 gap-3 text-left text-sm text-gray-300">
+            <div>✅ High-resolution microphones and optical sensors</div>
+            <div>✅ Frequent firmware updates for better signal handling</div>
+            <div>✅ Real-time analysis with advanced AI</div>
+            <div>✅ No Bluetooth interference — just signal → scan → results</div>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">You’re not just matching dedicated devices — you’re democratizing sacred tech.</p>
+        </section>
+
         <section className="relative z-10 px-6 py-20 bg-black bg-opacity-30 text-center">
           <h3 className="text-2xl mb-4">Be the First to Get Scanned</h3>
           <form className="flex flex-col md:flex-row items-center justify-center gap-4 max-w-xl mx-auto">
@@ -70,7 +87,12 @@ export default function Home() {
           </form>
         </section>
 
-        <footer className="relative z-10 text-center text-gray-500 text-sm py-10">
+        <footer className="relative z-10 text-center text-gray-500 text-sm py-10 space-y-2">
+          <p>
+            <Link href="/how-it-works" className="text-cyan-300 underline hover:text-cyan-200">
+              How SoulScope Works
+            </Link>
+          </p>
           <p>
             <a href="#">Privacy</a> • <a href="#">Terms</a>
           </p>
