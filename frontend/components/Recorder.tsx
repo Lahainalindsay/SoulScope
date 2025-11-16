@@ -106,7 +106,11 @@ export default function Recorder() {
     const summary = {
       coreFrequency: Math.round(coreFreq),
       coreChakra: coreChakra?.name || "Unknown",
-      missing,
+      missing: missing.map((item) => ({
+        chakra: item.name,
+        note: item.note,
+        range: item.range,
+      })),
     };
     setResult(summary);
 
@@ -151,7 +155,7 @@ export default function Recorder() {
           query: {
             freq: summary.coreFrequency,
             chakra: summary.coreChakra,
-            missing: JSON.stringify(summary.missing.map((m) => m.chakra)),
+            missing: JSON.stringify(summary.missing?.map((m) => m.chakra).filter(Boolean) ?? []),
           },
         });
       }
@@ -163,7 +167,7 @@ export default function Recorder() {
         query: {
           freq: summary.coreFrequency,
           chakra: summary.coreChakra,
-          missing: JSON.stringify(summary.missing.map((m) => m.chakra)),
+          missing: JSON.stringify(summary.missing?.map((m) => m.chakra).filter(Boolean) ?? []),
         },
       });
     } finally {
