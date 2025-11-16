@@ -3,10 +3,9 @@ import { useRef, useState } from "react";
 type TonePlayerProps = {
   frequency: number;
   label?: string;
-  durationMs?: number;
 };
 
-export default function TonePlayer({ frequency, label, durationMs = 5000 }: TonePlayerProps) {
+export default function TonePlayer({ frequency, label }: TonePlayerProps) {
   const [playing, setPlaying] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
@@ -24,11 +23,10 @@ export default function TonePlayer({ frequency, label, durationMs = 5000 }: Tone
     audioCtxRef.current = audioCtx;
     oscillatorRef.current = oscillator;
     setPlaying(true);
-    setTimeout(() => stopTone(), durationMs);
+    setTimeout(() => stopTone(), 5000);
   };
 
   const stopTone = () => {
-    if (!playing) return;
     oscillatorRef.current?.stop();
     audioCtxRef.current?.close();
     oscillatorRef.current = null;
@@ -38,7 +36,7 @@ export default function TonePlayer({ frequency, label, durationMs = 5000 }: Tone
 
   return (
     <button
-      className="bg-cyan-700 px-4 py-2 rounded mt-2 hover:bg-cyan-500 transition disabled:opacity-40"
+      className="bg-cyan-700 px-4 py-2 rounded-full mt-3 hover:bg-cyan-500 transition disabled:opacity-40"
       onClick={startTone}
       disabled={playing}
     >

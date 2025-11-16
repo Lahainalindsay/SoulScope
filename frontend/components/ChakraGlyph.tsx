@@ -1,8 +1,8 @@
-type Props = {
+type ChakraGlyphProps = {
   chakra: string;
 };
 
-export default function ChakraGlyph({ chakra }: Props) {
+export default function ChakraGlyph({ chakra }: ChakraGlyphProps) {
   const slug = chakra.toLowerCase().replace(/\s+/g, "-");
   const src = `/chakras/${slug}.svg`;
   return (
