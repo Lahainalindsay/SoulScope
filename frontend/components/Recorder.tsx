@@ -42,6 +42,7 @@ export default function Recorder() {
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingRef = useRef(false);
 
   const cleanupAudio = () => {
     if (intervalRef.current) {
@@ -106,6 +107,7 @@ export default function Recorder() {
       const bufferLength = analyserRef.current.frequencyBinCount;
       dataArrayRef.current = new Uint8Array(bufferLength);
 
+      recordingRef.current = true;
       setRecording(true);
       intervalRef.current = setInterval(processFrequencies, 500);
       timeoutRef.current = setTimeout(() => stopRecording(), 15000);
@@ -116,7 +118,7 @@ export default function Recorder() {
   };
 
   const stopRecording = async () => {
-    if (!recording) {
+    if (!recordingRef.current) {
       cleanupAudio();
       return;
     }
@@ -128,6 +130,7 @@ export default function Recorder() {
 
     const snapshot = processFrequencies() ?? chakraActivity;
     cleanupAudio();
+    recordingRef.current = false;
     setRecording(false);
 
     const weakIndices = snapshot
