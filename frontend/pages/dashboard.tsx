@@ -40,7 +40,7 @@ export default function DashboardPage() {
 
     if (sessionLoading) return;
     if (!session) {
-      router.push("/login");
+      router.push("/auth/login");
       return;
     }
 
