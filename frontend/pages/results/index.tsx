@@ -1,80 +1,91 @@
-import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
-import TonePlayer from "../../components/TonePlayer";
-import ChakraGlyph from "../../components/ChakraGlyph";
+"use client";
+
+import { useEffect, useState } from "react";
+import ChakraVisual, { ChakraVisualData } from "../../components/ChakraVisual";
+import ChakraTonePlayer from "../../components/ChakraTonePlayer";
+import { mapFrequenciesToChakras } from "../../lib/mapFrequenciesToChakras";
+import { analyzeChakras, ChakraInterpretation } from "../../lib/interpreters/analyzeChakras";
+import { getLatestScan } from "../../lib/data/scanAPI";
 
 const chakraFreqs: Record<string, number> = {
-  Root: 264,
+  Root: 256,
   Sacral: 288,
   "Solar Plexus": 320,
-  Heart: 352,
-  Throat: 396,
-  "Third Eye": 432,
+  Heart: 341,
+  Throat: 384,
+  "Third Eye": 426.7,
   Crown: 480,
 };
 
+function getFreqForChakra(name: string) {
+  return chakraFreqs[name] ?? 432;
+}
+
 export default function ResultsPage() {
-  const router = useRouter();
-  const { freq, chakra, missing } = router.query;
-  const [missingChakras, setMissingChakras] = useState<string[]>([]);
+  const [chakraData, setChakraData] = useState<ChakraVisualData | null>(null);
+  const [analysis, setAnalysis] = useState<ChakraInterpretation[]>([]);
+  const [statusMessage, setStatusMessage] = useState("Loading your energetic signature...");
 
   useEffect(() => {
-    if (missing) {
-      try {
-        setMissingChakras(JSON.parse(missing as string));
-      } catch {
-        setMissingChakras([]);
+    async function loadData() {
+      const scan = await getLatestScan();
+      if (!scan) {
+        setStatusMessage("No scans found. Complete a Soul Resonance scan to unlock insights.");
+        return;
       }
+      if (!scan.fftData || scan.fftData.length === 0) {
+        setStatusMessage("We couldn't find frequency data for your last scan.");
+        return;
+      }
+      const mapped = mapFrequenciesToChakras(scan.fftData, scan.sampleRate ?? 22050);
+      setChakraData(mapped);
+      setAnalysis(analyzeChakras(mapped));
+      setStatusMessage("");
     }
-  }, [missing]);
+    loadData();
+  }, []);
 
-  const coreFrequency = useMemo(() => {
-    const parsed = typeof freq === "string" ? parseInt(freq, 10) : NaN;
-    return isNaN(parsed) ? null : parsed;
-  }, [freq]);
+  if (!chakraData) {
+    return <p className="mt-20 text-center text-white">{statusMessage}</p>;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0c0a1b] to-[#12121e] text-white px-6 py-20">
-      <div className="max-w-4xl mx-auto relative z-10">
-        <h1 className="text-4xl font-serif mb-6 text-center">SoulScope Scan Results</h1>
+    <div className="min-h-screen bg-gradient-to-b from-[#020205] via-[#0d091c] to-[#120b24] px-6 py-16 text-white">
+      <div className="mx-auto max-w-4xl">
+        <h1 className="text-center text-3xl font-serif tracking-wide text-amber-200">Your Chakra Scan Results</h1>
+        <p className="mt-2 text-center text-sm text-gray-300">Decoded from your most recent SoulScope voice scan.</p>
 
-        <section className="mb-12 bg-white/5 p-6 rounded-lg text-center">
-          <h2 className="text-2xl mb-2 text-yellow-300">🎯 Core Frequency</h2>
-          <p className="text-xl font-mono text-white">{freq} Hz</p>
-          <p className="text-gray-400 mt-2">
-            Chakra alignment: <span className="text-cyan-400 font-semibold">{chakra}</span>
-          </p>
-          {coreFrequency && <TonePlayer frequency={coreFrequency} label="Core Tone" />}
-          {chakra && <ChakraGlyph chakra={chakra as string} />}
-        </section>
+        <div className="mt-10 rounded-3xl border border-white/10 bg-white/5 p-6">
+          <ChakraVisual data={chakraData} />
+        </div>
 
-        <section className="mb-12 bg-white/5 p-6 rounded-lg">
-          <h2 className="text-2xl mb-2 text-pink-300">📉 Missing Chakra Tones</h2>
-          {missingChakras.length > 0 ? (
-            <ul className="space-y-2">
-              {missingChakras.map((ch, i) => {
-                const freqVal = chakraFreqs[ch] || null;
-                return (
-                  <li key={i} className="bg-white/10 px-4 py-2 rounded flex justify-between items-center">
-                    <span>{ch}</span>
-                    {freqVal && <TonePlayer frequency={freqVal} label={`${ch} Tone`} />}
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-gray-400">All chakra tone ranges were present in your voice.</p>
-          )}
-        </section>
-
-        <section className="bg-white/5 p-6 rounded-lg">
-          <h2 className="text-2xl mb-2 text-green-300">🌀 Integration Protocol</h2>
-          <ul className="list-disc ml-6 space-y-2 text-sm text-gray-300">
-            <li>🎧 Listen to {freq} Hz daily for 5 mins</li>
-            <li>💨 Use 5-5-5 breath with mantra on exhale</li>
-            <li>👁️ Visualize your {chakra} chakra opening and radiating color</li>
-          </ul>
-        </section>
+        <div className="mt-12 space-y-6">
+          {analysis.map((chakra, index) => (
+            <div key={`${chakra.chakra}-${index}`} className="rounded-3xl border border-white/5 bg-black/40 p-5 shadow-xl shadow-amber-500/5">
+              <h2 className="text-xl font-semibold text-[gold]">
+                {chakra.chakra} Chakra — <span className="capitalize">{chakra.state}</span>
+              </h2>
+              <p className="mt-1 text-sm text-gray-200 italic">{chakra.message}</p>
+              <ul className="mt-3 space-y-1 text-sm text-gray-100">
+                <li>
+                  <strong>Tone:</strong> {chakra.remedy.tone}
+                </li>
+                <li>
+                  <strong>Breath Practice:</strong> {chakra.remedy.breath}
+                </li>
+                <li>
+                  <strong>Movement:</strong> {chakra.remedy.practice}
+                </li>
+                <li>
+                  <strong>Affirmation:</strong> “{chakra.remedy.affirmation}”
+                </li>
+              </ul>
+              <div className="mt-4">
+                <ChakraTonePlayer chakra={chakra.chakra} frequency={getFreqForChakra(chakra.chakra)} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

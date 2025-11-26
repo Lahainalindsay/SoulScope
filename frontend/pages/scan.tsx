@@ -1,57 +1,130 @@
-import dynamic from "next/dynamic";
 import Head from "next/head";
-import Link from "next/link";
-import FaceSensor from "../components/FaceSensor";
+import { useState } from "react";
+import { Recorder } from "../components/Recorder";
+import { FaceReader, FaceReading } from "../components/FaceReader";
+import { supabase } from "../lib/supabaseClient";
 
-const Recorder = dynamic(() => import("../components/Recorder"), { ssr: false });
+interface ScanResult {
+  chakraScores: Record<string, number>;
+  summary: string;
+  face?: FaceReading;
+}
 
 export default function ScanPage() {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [scanResult, setScanResult] = useState<any | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [faceReading, setFaceReading] = useState<FaceReading | null>(null);
+  const cameraActive = isRecording || isAnalyzing;
+
+  const handleAudioComplete = async (blob: Blob) => {
+    console.log("🚀 handleScanComplete starting", blob);
+    try {
+      setScanError(null);
+      setScanResult(null);
+      setIsAnalyzing(true);
+
+      const { data, error: fnError } = await supabase.functions.invoke<{
+        chakraScores?: Record<string, number>;
+        summary?: string;
+      }>("analyze-voice", {
+        body: blob,
+      });
+
+      if (fnError) {
+        console.error("analyze-voice error", fnError);
+        setScanError("Voice analysis failed. Please try again.");
+        setIsAnalyzing(false);
+        return;
+      }
+
+      const combined: ScanResult = {
+        chakraScores: data?.chakraScores ?? {},
+        summary: data?.summary ?? "Scan complete.",
+        face: faceReading ?? undefined,
+      };
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.error("No auth user", userError);
+        setScanError("You must be signed in to save scans.");
+        setScanResult(combined);
+        setIsAnalyzing(false);
+        return;
+      }
+
+      const { data: scan, error: scanError } = await supabase
+        .from("scans")
+        .insert({
+          user_id: user.id,
+          result: combined,
+        })
+        .select()
+        .single();
+
+      console.log("🧾 scan insert result", { scan, scanError });
+
+      if (scanError) {
+        console.error("scan insert error", scanError);
+        setScanError("Failed to save scan, but here is the analysis.");
+        setScanResult(combined);
+        setIsAnalyzing(false);
+        return;
+      }
+
+      setScanResult(scan);
+    } catch (err) {
+      console.error("handleAudioComplete error", err);
+      setScanError("Unexpected error during scan.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleFaceResult = (reading: FaceReading) => {
+    console.log("📷 face reading:", reading);
+    setFaceReading(reading);
+  };
+
   return (
     <>
       <Head>
         <title>SoulScope Scan – Speak Your Frequency</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
+      <div className="min-h-screen bg-gradient-to-b from-black to-[#0d0e1a] px-6 py-12 text-white">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-6">
+          <h1 className="text-3xl font-serif">Core Tone Scan</h1>
+          <p className="max-w-xs text-center text-sm text-gray-400">Tap start, look into the camera, and speak freely for 15 seconds.</p>
 
-      <div className="relative min-h-screen bg-gradient-to-b from-black to-[#0d0e1a] text-white">
-        <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/7/7f/Sri_Yantra_svg.svg')] bg-center bg-no-repeat bg-contain opacity-[0.015] pointer-events-none z-0" />
+          <Recorder
+            durationMs={15000}
+            onComplete={handleAudioComplete}
+            onRecordingStateChange={(recording) => {
+              setIsRecording(recording);
+              if (recording) {
+                setFaceReading(null);
+              }
+            }}
+          />
 
-        <main className="relative z-10 px-6 py-20 max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-serif mb-4">Speak Into The Mirror</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              We blend vocal FFT analysis with sacred geometry, face sensors, and breath rhythm to read your energetic signature.
-            </p>
-          </div>
+          <FaceReader active={cameraActive} onResult={handleFaceResult} />
 
-          <div className="bg-white/5 text-left text-sm text-gray-300 rounded-2xl border border-white/5 p-5 mb-8">
-            <h4 className="text-lg text-yellow-300 mb-2">Before You Begin</h4>
-            <p>For the clearest scan:</p>
-            <ul className="list-disc ml-5 mt-2 space-y-1">
-              <li>Find a quiet space.</li>
-              <li>Silence notifications.</li>
-              <li>Take a deep breath and center yourself.</li>
-            </ul>
-            <p className="text-xs text-gray-500 mt-3">
-              This isn’t just about tech — it’s about tuning into yourself. The clearer the signal you send, the clearer the mirror we return.
-            </p>
-            <p className="text-xs text-cyan-300 mt-2 underline">
-              <Link href="/how-it-works">Learn how we capture your signal →</Link>
-            </p>
-          </div>
+          {isAnalyzing && <p className="text-sm text-indigo-400">Analyzing your voice and energy…</p>}
+          {scanError && <p className="text-sm text-red-400">{scanError}</p>}
 
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white/5 rounded-2xl p-6 shadow-2xl border border-white/10">
-              <h3 className="text-xl font-semibold mb-2">🎙 Voice Resonance</h3>
-              <p className="text-sm text-gray-400 mb-4">Speak freely. Your tone, timbre, and hidden frequencies become your map.</p>
-              <Recorder />
+          {scanResult && (
+            <div className="mt-4 w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-4 text-sm">
+              <h2 className="mb-2 font-semibold">Your scan</h2>
+              <pre className="whitespace-pre-wrap text-xs text-gray-200">{JSON.stringify(scanResult, null, 2)}</pre>
             </div>
-
-            <FaceSensor />
-          </div>
-
-          <p className="text-sm text-gray-500 mt-10 text-center italic">Biometric scan runs entirely on-device.</p>
-        </main>
+          )}
+        </div>
       </div>
     </>
   );
