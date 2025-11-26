@@ -32,9 +32,12 @@ export const Recorder: React.FC<RecorderProps> = ({ durationMs = 15000, onComple
         if (event.data.size > 0) chunksRef.current.push(event.data);
       };
 
-      mediaRecorder.onerror = (event) => {
+      mediaRecorder.onerror = (event: any) => {
         console.error("MediaRecorder error", event);
-        setError(event.error?.message ?? "Recorder error");
+        const message = event?.error?.message ?? event?.message ?? "Recorder error";
+        setError(message);
+        setIsRecording(false);
+        setHasFinished(false);
       };
 
       mediaRecorder.onstop = () => {
