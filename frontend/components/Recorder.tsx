@@ -1,14 +1,20 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
 
 type RecorderProps = {
   durationMs?: number;
   onComplete?: (blob: Blob) => void;
-  onRecordingStateChange?: (recording: boolean) => void;
+  onRecordingStateChange?: (isRecording: boolean) => void;
+  hideTrigger?: boolean;
 };
 
-export const Recorder: React.FC<RecorderProps> = ({ durationMs = 15000, onComplete, onRecordingStateChange }) => {
+export type RecorderHandle = {
+  start: () => void;
+};
+
+const Recorder = forwardRef<RecorderHandle, RecorderProps>(
+  ({ durationMs = 15000, onComplete, onRecordingStateChange, hideTrigger = false }, ref) => {
   const [isRecording, setIsRecording] = useState(false);
   const [hasFinished, setHasFinished] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +23,6 @@ export const Recorder: React.FC<RecorderProps> = ({ durationMs = 15000, onComple
   const chunksRef = useRef<BlobPart[]>([]);
 
   const startRecording = async () => {
-    console.log("🎙 startRecording called");
     try {
       setError(null);
       setHasFinished(false);
@@ -38,6 +43,7 @@ export const Recorder: React.FC<RecorderProps> = ({ durationMs = 15000, onComple
         setError(message);
         setIsRecording(false);
         setHasFinished(false);
+        onRecordingStateChange?.(false);
       };
 
       mediaRecorder.onstop = () => {
@@ -61,24 +67,40 @@ export const Recorder: React.FC<RecorderProps> = ({ durationMs = 15000, onComple
           mediaRecorderRef.current.stop();
         }
       }, durationMs);
-    } catch (err) {
+    } catch (err: any) {
       console.error("startRecording error:", err);
-      setError(err instanceof Error ? err.message : "Failed to access microphone");
+      setError(err?.message ?? "Failed to access microphone");
       setIsRecording(false);
       setHasFinished(false);
       onRecordingStateChange?.(false);
     }
   };
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      start: () => {
+        if (!isRecording) {
+          startRecording();
+        }
+      },
+    }),
+    [isRecording]
+  );
+
   return (
     <div className="flex flex-col items-center gap-2">
-      <button type="button" onClick={startRecording} disabled={isRecording} className="rounded-full border px-4 py-2">
-        {isRecording ? "Listening…" : "Start scan"}
-      </button>
+      {!hideTrigger && (
+        <button type="button" onClick={startRecording} disabled={isRecording} className="rounded-full border px-4 py-2">
+          {isRecording ? "Listening…" : "Start scan"}
+        </button>
+      )}
 
       {isRecording && <p className="text-xs text-gray-500">Speak freely for 15 seconds…</p>}
       {hasFinished && !isRecording && <p className="text-xs text-emerald-500">Recording complete. Analyzing…</p>}
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
-};
+});
+
+export default Recorder;

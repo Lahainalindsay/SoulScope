@@ -1,84 +1,85 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useSession, useSessionContext } from "@supabase/auth-helpers-react";
-import { useState } from "react";
+import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
-
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/scan", label: "Scan" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/how-it-works", label: "How It Works" },
-];
+import { useEffect, useState } from "react";
 
 export default function Navbar() {
-  const session = useSession();
-  const { isLoading } = useSessionContext();
-  const pathname = usePathname();
+  const [email, setEmail] = useState<string | null>(null);
   const router = useRouter();
-  const [signingOut, setSigningOut] = useState(false);
 
-  // Hide the nav on API routes only; normal pages should show it.
-  if (pathname?.startsWith("/api")) {
-    return null;
-  }
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user?.email) setEmail(data.user.email);
+    });
+  }, []);
 
   const handleSignOut = async () => {
-    setSigningOut(true);
-    try {
-      await supabase.auth.signOut();
-      router.replace("/");
-    } finally {
-      setSigningOut(false);
-    }
+    await supabase.auth.signOut();
+    router.push("/login");
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#07060d]/80 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4 text-sm text-white">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="font-serif text-lg tracking-wide text-cyan-200">
-            SoulScope
-          </Link>
-          <nav className="hidden gap-4 md:flex">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`transition hover:text-cyan-300 ${pathname === link.href ? "text-cyan-200" : "text-gray-300"}`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-        <div className="flex items-center gap-3 text-xs">
-          {session && !isLoading ? (
-            <>
-              <span className="hidden rounded-full border border-white/15 bg-white/5 px-3 py-1 text-gray-200 md:inline-flex">
-                {session.user.email}
-              </span>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 px-4 py-2 text-white transition hover:scale-105"
-                disabled={signingOut}
-              >
-                {signingOut ? "Signing out…" : "Sign Out"}
-              </button>
-            </>
-          ) : (
-            <Link
-              href="/auth/login"
-              className="rounded-full border border-white/20 px-4 py-2 text-gray-200 transition hover:text-cyan-300"
-            >
-              Sign In
-            </Link>
-          )}
-        </div>
+    <nav
+      style={{
+        width: "100%",
+        padding: "14px 24px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        background: "rgba(0,0,0,0.15)",
+        backdropFilter: "blur(8px)",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+      }}
+    >
+      <Link href="/" style={{ textDecoration: "none" }}>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: 22,
+            fontWeight: 700,
+            letterSpacing: "0.04em",
+            background: "linear-gradient(90deg, #ec4899, #6366f1)",
+            WebkitBackgroundClip: "text",
+            color: "transparent",
+          }}
+        >
+          SoulScope™
+        </h1>
+      </Link>
+
+      <div style={{ display: "flex", gap: 20, alignItems: "center", fontSize: 14 }}>
+        <Link href="/scan" style={{ color: "#e5e7eb", textDecoration: "none" }}>
+          Scan
+        </Link>
+        <Link href="/results" style={{ color: "#e5e7eb", textDecoration: "none" }}>
+          Results
+        </Link>
+        <Link href="/how" style={{ color: "#e5e7eb", textDecoration: "none" }}>
+          How It Works
+        </Link>
+
+        {email && (
+          <button
+            onClick={handleSignOut}
+            style={{
+              marginLeft: 12,
+              padding: "6px 14px",
+              borderRadius: 8,
+              border: "1px solid rgba(255,255,255,0.2)",
+              background: "rgba(255,255,255,0.05)",
+              color: "#f1f1f1",
+              cursor: "pointer",
+            }}
+          >
+            Sign Out
+          </button>
+        )}
       </div>
-    </header>
+    </nav>
   );
 }

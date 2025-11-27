@@ -1,4 +1,4 @@
-import { Recorder } from "./Recorder";
+import Recorder from "./Recorder";
 
 export default function SpeakScanPage() {
   return (

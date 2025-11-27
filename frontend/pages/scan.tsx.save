@@ -1,0 +1,132 @@
+import Head from "next/head";
+import { useCallback, useState } from "react";
+import Recorder from "../components/Recorder";
+import { FaceReader, FaceReading } from "../components/FaceReader";
+import { supabase } from "../lib/supabaseClient";
+
+interface ScanResult {
+  chakraScores: Record<string, number>;
+  summary: string;
+  face?: FaceReading;
+}
+
+export default function ScanPage() {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [scanResult, setScanResult] = useState<any | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [faceReading, setFaceReading] = useState<FaceReading | null>(null);
+  const cameraActive = isRecording || isAnalyzing;
+
+  const handleAudioComplete = async (blob: Blob) => {
+    console.log("🎧 handleAudioComplete called, size:", blob.size);
+    try {
+      setScanError(null);
+      setScanResult(null);
+      setIsAnalyzing(true);
+
+      const { data, error: fnError } = await supabase.functions.invoke<{
+        chakraScores?: Record<string, number>;
+        summary?: string;
+      }>("analyze-voice", {
+        body: blob,
+      });
+
+      console.log("analyze-voice response:", { data, fnError });
+
+      if (fnError) {
+        console.error("analyze-voice error", fnError);
+        setScanError(`Voice analysis failed: ${fnError.message ?? "Unknown error"}`);
+        return;
+      }
+
+      const combined: ScanResult = {
+        chakraScores: data?.chakraScores ?? {},
+        summary: data?.summary ?? "Scan complete.",
+        face: faceReading ?? undefined,
+      };
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      console.log("auth.getUser:", { user, userError });
+
+      if (userError || !user) {
+        console.error("No auth user", userError);
+        setScanError("You must be signed in to save scans. Showing analysis only.");
+        setScanResult(combined);
+        return;
+      }
+
+     const { data: scan, error: scanError } = await supabase
+        .from("scans")
+        .insert({
+          user_id: user.id,
+          result: combined,
+        })
+        .select()
+        .single();
+
+      console.log("scan insert result:", { scan, scanError });
+
+      if (scanError) {
+        console.error("scan insert error", scanError);
+        setScanError(`Could not save scan: ${scanError.message ?? "Unknown error"}`);
+        setScanResult(combined);
+        return;
+      }
+
+      setScanResult(scan);
+    } catch (err) {
+      console.error("🔥 unexpected scan error", err);
+      setScanError(`Unexpected error during scan: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleFaceResult = useCallback((reading: FaceReading) => {
+    console.log("📷 face reading:", reading);
+    setFaceReading(reading);
+  }, []);
+
+  return (
+    <>
+      <Head>
+        <title>SoulScope Scan – Speak Your Frequency</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+      <div className="min-h-screen bg-gradient-to-b from-black to-[#0d0e1a] px-6 py-12 text-white">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-6">
+          <h1 className="text-3xl font-serif">Core Tone Scan</h1>
+          <p className="max-w-xs text-center text-sm text-gray-400">Tap start, look into the camera, and speak freely for 15 seconds.</p>
+
+          <Recorder
+            durationMs={15000}
+            onComplete={handleAudioComplete}
+            onRecordingStateChange={(recording) => {
+              setIsRecording(recording);
+              if (recording) {
+                setFaceReading(null);
+              }
+            }}
+          />
+
+          <FaceReader active={cameraActive} onResult={handleFaceResult} />
+
+          {isAnalyzing && <p className="text-sm text-indigo-400">Analyzing your voice and energy…</p>}
+          {scanError && <p className="text-sm text-red-400">{scanError}</p>}
+
+          {scanResult && (
+            <div className="mt-4 w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-4 text-sm">
+              <h2 className="mb-2 font-semibold">Your scan</h2>
+              <pre className="whitespace-pre-wrap text-xs text-gray-200">{JSON.stringify(scanResult, null, 2)}</pre>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}

@@ -18,7 +18,12 @@ export const FaceReader: React.FC<FaceReaderProps> = ({ active, onResult }) => {
   const rafRef = useRef<number | null>(null);
   const timeoutRef = useRef<number | null>(null);
   const hasEmittedRef = useRef(false);
+  const onResultRef = useRef(onResult);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    onResultRef.current = onResult;
+  }, [onResult]);
 
   useEffect(() => {
     if (!active) {
@@ -72,7 +77,7 @@ export const FaceReader: React.FC<FaceReaderProps> = ({ active, onResult }) => {
             return;
           }
           hasEmittedRef.current = true;
-          onResult?.({
+          onResultRef.current?.({
             emotion: "calm",
             focusScore: 0.8,
           });
@@ -104,7 +109,7 @@ export const FaceReader: React.FC<FaceReaderProps> = ({ active, onResult }) => {
       }
       hasEmittedRef.current = false;
     };
-  }, [active, onResult]);
+  }, [active]);
 
   return (
     <div className="flex flex-col items-center gap-2">
