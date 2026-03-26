@@ -1,183 +1,179 @@
-# Supabase CLI
+# SoulScope
 
-[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=main)](https://coveralls.io/github/supabase/cli?branch=main) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
-](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
+SoulScope is a voice-based reflection and resonance app. It guides users through a spoken scan, analyzes vocal pitch and note energy, and returns a personalized results experience built around soul tone, voice mandala, note expression, and grouped vocal-tone patterns.
 
-[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
+## Overview
 
-This repository contains all the functionality for Supabase CLI.
+The project currently includes:
 
-- [x] Running Supabase locally
-- [x] Managing database migrations
-- [x] Creating and deploying Supabase Functions
-- [x] Generating types directly from your database schema
-- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
+- a Next.js frontend for the homepage, scan flow, and results UI
+- a FastAPI backend for session, sensor, and fusion endpoints
+- Supabase project files for migrations and function scaffolding
+- browser-based voice analysis using Web Audio and Meyda
 
-## Getting started
+## Features
 
-### Install the CLI
+- redesigned homepage and onboarding flow
+- guided multi-prompt voice scan
+- browser-side audio analysis
+- local fallback results when capture quality is weak
+- soul tone card with playable reference tone
+- voice mandala visualization
+- note key with note frequencies and expression descriptions
+- grouped results for base tone, emotional tone, and future tone
 
-Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
+## Project Structure
+
+```text
+soulscope/
+├── backend/
+├── frontend/
+├── scripts/
+├── start-dev.sh
+└── supabase/
+```
+
+## Local Setup
+
+### Requirements
+
+- Node.js 18+
+- Python 3.11+
+- npm
+
+### Frontend
 
 ```bash
-npm i supabase --save-dev
+cd frontend
+npm install
 ```
 
-To install the beta release channel:
+Create `frontend/.env.local` if needed:
 
 ```bash
-npm i supabase@beta --save-dev
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
-When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
+If you are using Supabase locally, keep your public Supabase env vars in this file as well.
 
-```
-NODE_OPTIONS=--no-experimental-fetch yarn add supabase
-```
+### Backend
 
-> **Note**
-For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
-
-<details>
-  <summary><b>macOS</b></summary>
-
-  Available via [Homebrew](https://brew.sh). To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To install the beta release channel:
-  
-  ```sh
-  brew install supabase/tap/supabase-beta
-  brew link --overwrite supabase-beta
-  ```
-  
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-</details>
-
-<details>
-  <summary><b>Windows</b></summary>
-
-  Available via [Scoop](https://scoop.sh). To install:
-
-  ```powershell
-  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-  scoop install supabase
-  ```
-
-  To upgrade:
-
-  ```powershell
-  scoop update supabase
-  ```
-</details>
-
-<details>
-  <summary><b>Linux</b></summary>
-
-  Available via [Homebrew](https://brew.sh) and Linux packages.
-
-  #### via Homebrew
-
-  To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-
-  #### via Linux packages
-
-  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
-
-  ```sh
-  sudo apk add --allow-untrusted <...>.apk
-  ```
-
-  ```sh
-  sudo dpkg -i <...>.deb
-  ```
-
-  ```sh
-  sudo rpm -i <...>.rpm
-  ```
-
-  ```sh
-  sudo pacman -U <...>.pkg.tar.zst
-  ```
-</details>
-
-<details>
-  <summary><b>Other Platforms</b></summary>
-
-  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
-
-  ```sh
-  go install github.com/supabase/cli@latest
-  ```
-
-  Add a symlink to the binary in `$PATH` for easier access:
-
-  ```sh
-  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
-  ```
-
-  This works on other non-standard Linux distros.
-</details>
-
-<details>
-  <summary><b>Community Maintained Packages</b></summary>
-
-  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
-  To install in your working directory:
-
-  ```bash
-  pkgx install supabase
-  ```
-
-  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
-</details>
-
-### Run the CLI
+From the repo root:
 
 ```bash
-supabase bootstrap
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
 ```
 
-Or using npx:
+## Run Locally
+
+### One-command startup
 
 ```bash
-npx supabase bootstrap
+./start-dev.sh
 ```
 
-The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
+This starts:
 
-## Docs
+- frontend at `http://localhost:3000`
+- backend at `http://localhost:8000`
 
-Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
+### Manual startup
 
-## Breaking changes
+Backend:
 
-We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
-
-However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
-
-## Developing
-
-To run from source:
-
-```sh
-# Go >= 1.22
-go run . help
+```bash
+cd backend
+source ../.venv/bin/activate
+PYTHONPATH=. uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+Frontend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+## How The Scan Works
+
+1. The user enters the guided scan.
+2. The app records spoken prompt responses.
+3. Answers are stored locally in browser session helpers.
+4. The analyzing step runs voice-spectrum analysis in the browser.
+5. Results are saved locally and optionally to Supabase.
+6. The user is routed to the results page.
+
+If the signal is weak, SoulScope can still complete the flow with a fallback result instead of dead-ending.
+
+## Results Experience
+
+The results flow currently includes:
+
+- a soul tone summary card
+- a playable tone button
+- the voice mandala
+- note-by-note expression cards
+- grouped prompt-tone summaries
+
+Main files:
+
+- `frontend/pages/results/index.tsx`
+- `frontend/pages/results/[id].tsx`
+- `frontend/components/ResonanceResultsDashboard.tsx`
+- `frontend/components/NoteAuraMap.tsx`
+
+## Voice Analysis
+
+Voice analysis is centered in:
+
+- `frontend/lib/voiceSpectrum.ts`
+
+Current processing includes:
+
+- frame-based audio decoding
+- RMS, spectral centroid, flatness, and zero-crossing analysis
+- pitch tracking when available
+- spectral fallback when pitch tracking is weak
+- note-energy mapping across the 12 chromatic notes
+- merged analysis across multiple prompts
+
+## Backend
+
+The FastAPI backend in `backend/main.py` currently exposes APIs for:
+
+- sensor/session readiness checks
+- phase startup
+- voice clip persistence
+- physio ingestion
+- reactivity updates
+- scan finalization through `corescope`
+
+The current user-facing voice scan results are primarily driven by the frontend analysis layer.
+
+## Helpful Commands
+
+Type check:
+
+```bash
+cd frontend
+./node_modules/.bin/tsc --noEmit
+```
+
+Production build:
+
+```bash
+cd frontend
+npm run build
+```
+
+## Notes
+
+- The repo includes a large set of checked-in image and reference assets.
+- Scan quality still depends heavily on microphone capture quality and environment noise.
+- Supabase is used when available, but local fallback behavior is supported.
+
+## License
+
+See `LICENSE`.
