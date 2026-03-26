@@ -1,0 +1,437 @@
+.page {
+  min-height: 100vh;
+  color: #f8fbff;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(34, 211, 238, 0.14), transparent 24%),
+    radial-gradient(circle at 100% 12%, rgba(52, 211, 153, 0.12), transparent 24%),
+    linear-gradient(180deg, #040813 0%, #081120 48%, #050914 100%);
+}
+
+.gridOverlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.28;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+.shell {
+  position: relative;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+}
+
+.hero,
+.summaryCard,
+.metricCard,
+.quickCard,
+.planSection,
+.stateCard,
+.footerNote {
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+.hero {
+  padding: 36px;
+  background:
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 30%),
+    linear-gradient(145deg, rgba(7, 16, 31, 0.95), rgba(8, 19, 40, 0.78));
+}
+
+.heroMain {
+  max-width: 860px;
+}
+
+.eyebrow,
+.cardLabel,
+.quickLabel,
+.planEyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+.eyebrow {
+  color: rgba(103, 232, 249, 0.82);
+}
+
+.title {
+  margin: 16px 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(40px, 6vw, 68px);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+}
+
+.lead {
+  max-width: 760px;
+  margin: 20px 0 0;
+  font-size: 18px;
+  line-height: 1.85;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 0 22px;
+  border-radius: 20px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.primaryButton {
+  background: linear-gradient(90deg, #67e8f9, #34d399);
+  color: #04111f;
+  box-shadow: 0 20px 50px rgba(34, 211, 238, 0.22);
+}
+
+.secondaryButton {
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(0, 0.58fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.summaryCard,
+.metricCard,
+.quickCard,
+.planSection,
+.stateCard,
+.footerNote {
+  padding: 26px;
+}
+
+.cardLabel,
+.quickLabel,
+.planEyebrow {
+  color: rgba(148, 163, 184, 0.72);
+}
+
+.cardValue {
+  margin: 14px 0 0;
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: 1.04;
+}
+
+.cardText {
+  margin: 14px 0 0;
+  font-size: 15px;
+  line-height: 1.8;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.metricValue {
+  display: block;
+  margin-top: 14px;
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1;
+}
+
+.quickReadGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.quickDeficient {
+  box-shadow: inset 0 0 0 1px rgba(251, 146, 60, 0.1);
+}
+
+.quickExcess {
+  box-shadow: inset 0 0 0 1px rgba(244, 63, 94, 0.1);
+}
+
+.quickText {
+  margin: 16px 0 0;
+  font-size: 18px;
+  line-height: 1.7;
+  color: #ffffff;
+}
+
+.planSection {
+  margin-top: 24px;
+}
+
+.rangeSection {
+  margin-top: 24px;
+  padding: 28px;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+.rangeHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 0.7fr);
+  gap: 18px;
+  align-items: end;
+}
+
+.rangeTitle {
+  margin: 12px 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.04;
+}
+
+.rangeLead {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.8;
+  color: rgba(226, 232, 240, 0.76);
+}
+
+.rangeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.rangeCard {
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 20px;
+}
+
+.rangeLabel {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(103, 232, 249, 0.82);
+}
+
+.rangeCardTitle {
+  margin: 14px 0 0;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.rangePrompt {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.76;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.rangeMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.rangePill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.74);
+}
+
+.rangeScores {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.rangeScoreCard {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(5, 11, 22, 0.52);
+  padding: 14px;
+}
+
+.rangeScoreTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rangeScoreNote {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.rangeScoreValue {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.rangeScoreTrack {
+  height: 8px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.92);
+}
+
+.rangeScoreFill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.rangeEmpty {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.72);
+}
+
+.planHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.planTitle {
+  margin: 12px 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.02;
+}
+
+.planGrid {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.planCard {
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 20px;
+}
+
+.planText {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.85;
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.stateCard {
+  margin-top: 24px;
+  font-size: 16px;
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.stateError {
+  border-color: rgba(244, 63, 94, 0.26);
+  color: #fecdd3;
+}
+
+.footerNote {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.footerAction {
+  margin-top: 10px;
+}
+
+@media (max-width: 1080px) {
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .quickReadGrid,
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .planHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rangeHeader,
+  .rangeGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .shell {
+    padding: 28px 14px 60px;
+  }
+
+  .hero,
+  .summaryCard,
+  .metricCard,
+  .quickCard,
+  .planSection,
+  .stateCard,
+  .footerNote {
+    border-radius: 28px;
+    padding: 22px;
+  }
+
+  .title {
+    font-size: 42px;
+  }
+
+  .lead,
+  .quickText {
+    font-size: 15px;
+  }
+
+  .rangeSection {
+    padding: 22px;
+    border-radius: 28px;
+  }
+
+  .rangeScores {
+    grid-template-columns: 1fr;
+  }
+}

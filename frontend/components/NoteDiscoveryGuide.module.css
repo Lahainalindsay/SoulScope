@@ -1,0 +1,165 @@
+.section {
+  margin-top: 24px;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.12), transparent 30%),
+    linear-gradient(145deg, rgba(7, 16, 31, 0.95), rgba(8, 19, 40, 0.78));
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+  padding: 28px;
+}
+
+.eyebrow,
+.cardEyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(125, 211, 252, 0.78);
+}
+
+.title {
+  margin: 12px 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1.04;
+}
+
+.lead {
+  max-width: 760px;
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.8;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.coreCard {
+  margin-top: 22px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 24px;
+}
+
+.coreTop {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(220px, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.noteBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #04111f;
+}
+
+.coreNoteTitle {
+  margin: 14px 0 0;
+  font-size: clamp(26px, 3vw, 38px);
+  line-height: 1.06;
+}
+
+.theme {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.8;
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 12px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.88);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.noteCard {
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 22px;
+}
+
+.noteHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.miniBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: #04111f;
+  font-weight: 700;
+}
+
+.cardTitle {
+  margin: 6px 0 0;
+  font-size: 24px;
+}
+
+.cardSub {
+  margin: 8px 0 0;
+  color: rgba(226, 232, 240, 0.78);
+  line-height: 1.7;
+}
+
+.lists {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.groupLabel {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.list {
+  margin: 0;
+  padding-left: 18px;
+  color: rgba(226, 232, 240, 0.86);
+}
+
+.list li + li {
+  margin-top: 8px;
+}
+
+@media (max-width: 960px) {
+  .coreTop,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

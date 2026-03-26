@@ -2,46 +2,48 @@
 
 import Head from "next/head";
 import Link from "next/link";
+import { RESEARCH_REFERENCES, VALIDATION_NOTE } from "../lib/scanProtocol";
+import styles from "./HowItWorks.module.css";
 
 const steps = [
   {
-    title: "1. Voice Resonance Capture",
+    title: "Composite voice capture",
     description:
-      "You speak freely into the mic for 15 seconds. We analyze your waveform, timbre, and hidden harmonic bands to detect your core frequency and missing tones.",
+      "You complete three guided prompts. SoulScope captures spontaneous, structured, and reflective speech so the readout is based on more than one speaking mode.",
     details: [
-      "FFT spectrum analysis (Meyda) to map tone intensity vs frequency",
-      "Micro-formant detection reveals emotional states & blockages",
-      "Sacred geometry filters match your voice to chakra nodes",
+      "Three prompts are merged into one composite result",
+      "The protocol samples baseline speech, sequencing, and emotional inflection",
+      "You control when to move forward, so the recording is not rushed",
     ],
   },
   {
-    title: "2. Face & Breath Sensor",
+    title: "Spectrum measurement",
     description:
-      "Using your front camera, we read micro-expressions, pupil dilation, skin tone, and breath motion to understand your nervous system baseline.",
+      "Each response is processed with on-device speech spectrum analysis to measure how energy is distributed across 12 equal-tempered note classes in the speaking range.",
     details: [
-      "Facial landmark tracking with MediaPipe (beta)",
-      "Skin tone variance = circulation & stress indicators",
-      "Chest/throat movement detection gives breath cadence",
+      "FFT-based note-class energy mapping from C through B",
+      "Centroid, flatness, RMS, zero-crossing, and note-class energy add tone context",
+      "The system flags low-support and overloaded regions across the full sample",
     ],
   },
   {
-    title: "3. AI Energetic Mapping",
+    title: "Pattern interpretation",
     description:
-      "Our AI blends voice + face data to pinpoint your core chakra alignment, shadow signatures, and energetic drift.",
+      "Measured voice patterns are translated into a practical readout centered on support, clarity, projection, fatigue, tension, and vocal load, then interpreted through the SoulScope note model.",
     details: [
-      "Core frequency → chakra map",
-      "Missing tones → emotional interpretation",
-      "Breath & face cues → sympathetic vs parasympathetic state",
+      "Low note energy can suggest reduced support, damping, or vocal reserve",
+      "High-load note energy can suggest compensation, pressure, or overuse",
+      "The measured layer stays separate from the proprietary note-meaning and chakra overlays",
     ],
   },
   {
-    title: "4. Personalized Integration Plan",
+    title: "Rebalancing guidance",
     description:
-      "You receive a tailored ritual: sound frequencies, breath patterns, vision glyphs, and suggested micro-practices to restore your resonance.",
+      "The result is paired with simple next steps that target the weak regions and calm the overloaded ones.",
     details: [
-      "Custom tone pack (play directly in results)",
-      "5-5-5 breath guidance with mantras",
-      "Chakra glyphs & visualization prompts",
+      "Listening tone suggestions and reference tone playback",
+      "Breath, resonance, projection, and recovery drills",
+      "Retesting helps you track whether the spectrum becomes more even over time",
     ],
   },
 ];
@@ -50,50 +52,81 @@ export default function HowItWorks() {
   return (
     <>
       <Head>
-        <title>How SoulScope Works – Sacred Tech Guide</title>
+        <title>How SoulScope Works</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-      <div className="relative min-h-screen bg-gradient-to-b from-[#0c0a1b] to-[#14141f] text-white px-6 py-16">
-        <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/7/7f/Sri_Yantra_svg.svg')] bg-center bg-no-repeat bg-contain opacity-[0.02] pointer-events-none z-0" />
-        <div className="relative z-10 max-w-4xl mx-auto space-y-12">
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-serif">How SoulScope Works</h1>
-            <p className="text-gray-300">
-              Sacred geometry + AI → A mirror of your energetic truth. Here’s how we turn your phone into a full-spectrum resonance scanner.
-            </p>
-            <Link href="/scan" className="text-cyan-400 underline hover:text-cyan-300 text-sm">
-              Start a scan now →
-            </Link>
-          </div>
 
-          {steps.map((step) => (
-            <section key={step.title} className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-3">
-              <h2 className="text-2xl text-yellow-200">{step.title}</h2>
-              <p className="text-gray-300">{step.description}</p>
-              <ul className="list-disc ml-5 text-sm text-gray-400 space-y-1">
-                {step.details.map((detail) => (
-                  <li key={detail}>{detail}</li>
-                ))}
-              </ul>
-            </section>
-          ))}
-
-          <section className="bg-black bg-opacity-30 border border-white/10 rounded-2xl p-6 space-y-4">
-            <h3 className="text-xl text-cyan-300">Trust Your Tech</h3>
-            <p className="text-gray-300">
-              Your phone’s microphone, camera, and sensors are as precise as many dedicated devices. We process the signals locally using advanced AI.
+      <div className={styles.page}>
+        <div className={styles.gridOverlay} />
+        <main className={styles.shell}>
+          <section className={styles.hero}>
+            <p className={styles.eyebrow}>How It Works</p>
+            <h1 className={styles.title}>Measured voice analysis with a clear wellness frame.</h1>
+            <p className={styles.lead}>
+              SoulScope treats the voice as a measurable signal. The product experience is atmospheric,
+              but the scan itself is built around speech spectrum analysis, note-region energy, tone
+              quality features, and guided speech tasks.
             </p>
-            <ul className="grid md:grid-cols-2 gap-2 text-sm text-gray-400">
-              <li>✅ High-resolution microphones & optics</li>
-              <li>✅ Frequent firmware updates</li>
-              <li>✅ Real-time FFT + facial landmarks</li>
-              <li>✅ No Bluetooth interference</li>
-            </ul>
-            <p className="text-xs text-gray-500">
-              Environment matters — quiet space, notifications off, breath centered. The clearer the signal you send, the clearer the mirror we return.
+            <div className={styles.actions}>
+              <Link href="/scan" className={styles.primaryButton}>
+                Start Scan
+              </Link>
+            </div>
+          </section>
+
+          <section className={styles.stepGrid}>
+            {steps.map((step, index) => (
+              <article key={step.title} className={styles.stepCard}>
+                <span className={styles.stepNumber}>0{index + 1}</span>
+                <h2 className={styles.stepTitle}>{step.title}</h2>
+                <p className={styles.stepDescription}>{step.description}</p>
+                <ul className={styles.detailList}>
+                  {step.details.map((detail) => (
+                    <li key={detail} className={styles.detailItem}>
+                      {detail}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </section>
+
+          <section className={styles.frameCard}>
+            <p className={styles.sectionEyebrow}>How the result is framed</p>
+            <h2 className={styles.sectionTitle}>Measured pattern first. Meaning second.</h2>
+            <p className={styles.frameText}>
+              The report starts with measured voice data: spectrum balance, note-region emphasis,
+              resonance behavior, and energy distribution. That measured layer is then interpreted through
+              the SoulScope proprietary note system, which connects note patterns to emotional themes,
+              physical correlates, and rebalancing practices.
             </p>
           </section>
-        </div>
+
+          <section className={styles.researchCard}>
+            <p className={styles.sectionEyebrow}>Research Context</p>
+            <h2 className={styles.sectionTitle}>The evidence base behind the framing.</h2>
+            <p className={styles.validationNote}>{VALIDATION_NOTE}</p>
+            <div className={styles.referenceGrid}>
+              {RESEARCH_REFERENCES.map((reference) => (
+                <a
+                  key={reference.url}
+                  href={reference.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={styles.referenceCard}
+                >
+                  <span className={styles.referenceType}>{reference.type}</span>
+                  <h3 className={styles.referenceTitle}>{reference.title}</h3>
+                  <p className={styles.referenceNote}>{reference.note}</p>
+                </a>
+              ))}
+            </div>
+            <p className={styles.disclaimer}>
+              SoulScope is not a medical device. It is for education and self-observation and should not
+              replace professional evaluation or treatment.
+            </p>
+          </section>
+        </main>
       </div>
     </>
   );

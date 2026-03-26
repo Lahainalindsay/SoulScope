@@ -1,0 +1,210 @@
+.section {
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.08), transparent 26%),
+    linear-gradient(180deg, rgba(7, 16, 31, 0.94), rgba(7, 15, 28, 0.82));
+  backdrop-filter: blur(18px);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.36);
+  padding: 30px;
+}
+
+.header {
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgba(103, 232, 249, 0.78);
+}
+
+.title {
+  margin: 12px 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.02;
+}
+
+.subtitle {
+  max-width: 760px;
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.75;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.tableShell {
+  overflow-x: auto;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.table th,
+.table td {
+  padding: 16px 18px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.table th {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.table td {
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(226, 232, 240, 0.84);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table td:first-child {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.sectionBlock,
+.findingsCard {
+  margin-top: 24px;
+}
+
+.blockHeader {
+  margin-bottom: 16px;
+}
+
+.blockEyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(96, 165, 250, 0.82);
+}
+
+.blockTitle,
+.cardTitle {
+  margin: 10px 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(22px, 3vw, 32px);
+  line-height: 1.06;
+}
+
+.blockText,
+.cardText {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgba(226, 232, 240, 0.76);
+}
+
+.dualGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.organGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.infoCard,
+.findingsCard {
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 28%),
+    rgba(255, 255, 255, 0.03);
+  padding: 22px;
+}
+
+.cautionCard {
+  border-radius: 28px;
+  border: 1px solid rgba(251, 191, 36, 0.16);
+  background:
+    radial-gradient(circle at top left, rgba(251, 191, 36, 0.08), transparent 28%),
+    rgba(255, 255, 255, 0.03);
+  padding: 22px;
+}
+
+.chartCard {
+  position: relative;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background:
+    radial-gradient(circle at top left, rgba(16, 185, 129, 0.08), transparent 28%),
+    rgba(255, 255, 255, 0.03);
+  padding: 22px;
+}
+
+.lockedBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  background: rgba(250, 204, 21, 0.1);
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(254, 240, 138, 0.92);
+}
+
+.chartFrame {
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.chartImage {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.findingsList {
+  margin: 16px 0 0;
+  padding-left: 18px;
+  color: rgba(226, 232, 240, 0.84);
+}
+
+.findingsList li + li {
+  margin-top: 10px;
+}
+
+@media (max-width: 720px) {
+  .section {
+    padding: 22px;
+    border-radius: 28px;
+  }
+
+  .dualGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .organGrid {
+    grid-template-columns: 1fr;
+  }
+}

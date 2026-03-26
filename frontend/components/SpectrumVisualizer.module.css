@@ -1,0 +1,230 @@
+.section {
+  position: relative;
+  overflow: hidden;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(7, 16, 31, 0.94), rgba(7, 15, 28, 0.82));
+  backdrop-filter: blur(18px);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.36);
+  padding: 30px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgba(103, 232, 249, 0.78);
+}
+
+.title {
+  margin: 12px 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.02;
+}
+
+.subtitle {
+  max-width: 760px;
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.75;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.legendPill,
+.bandBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.badgePrimary {
+  color: #bbf7d0;
+  border: 1px solid rgba(74, 222, 128, 0.28);
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.badgeBalanced {
+  color: #bae6fd;
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.badgeDeficient {
+  color: #fdba74;
+  border: 1px solid rgba(251, 146, 60, 0.24);
+  background: rgba(251, 146, 60, 0.1);
+}
+
+.badgeExcess {
+  color: #fda4af;
+  border: 1px solid rgba(244, 63, 94, 0.24);
+  background: rgba(244, 63, 94, 0.1);
+}
+
+.bandList {
+  display: grid;
+  gap: 16px;
+}
+
+.bandCard {
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 22px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.bandPrimary {
+  box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.08);
+}
+
+.bandBalanced {
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.06);
+}
+
+.bandDeficient {
+  box-shadow: inset 0 0 0 1px rgba(251, 146, 60, 0.08);
+}
+
+.bandExcess {
+  box-shadow: inset 0 0 0 1px rgba(244, 63, 94, 0.08);
+}
+
+.bandTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.bandTitle {
+  margin: 0;
+  font-size: 24px;
+}
+
+.bandRange {
+  margin: 8px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.72);
+}
+
+.bandMeta {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.bandPercent {
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.barTrack {
+  height: 14px;
+  margin-top: 18px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.barFill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 180ms ease;
+}
+
+.fillPrimary {
+  background: linear-gradient(90deg, rgba(74, 222, 128, 0.2), #22c55e);
+  box-shadow: 0 0 24px rgba(34, 197, 94, 0.4);
+}
+
+.fillBalanced {
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.18), #38bdf8);
+  box-shadow: 0 0 22px rgba(56, 189, 248, 0.34);
+}
+
+.fillDeficient {
+  background: linear-gradient(90deg, rgba(251, 146, 60, 0.16), #fb923c);
+  box-shadow: 0 0 22px rgba(251, 146, 60, 0.34);
+}
+
+.fillExcess {
+  background: linear-gradient(90deg, rgba(244, 63, 94, 0.16), #f43f5e);
+  box-shadow: 0 0 22px rgba(244, 63, 94, 0.34);
+}
+
+.bandBody {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.bandText,
+.bandHint {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.bandHint strong {
+  color: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .legend {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .section {
+    padding: 22px;
+  }
+
+  .bandCard {
+    padding: 18px;
+  }
+
+  .bandTop {
+    flex-direction: column;
+  }
+
+  .bandMeta {
+    justify-items: start;
+  }
+}

@@ -26,6 +26,8 @@ export const FaceReader: React.FC<FaceReaderProps> = ({ active, onResult }) => {
   }, [onResult]);
 
   useEffect(() => {
+    const video = videoRef.current;
+
     if (!active) {
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
@@ -35,8 +37,8 @@ export const FaceReader: React.FC<FaceReaderProps> = ({ active, onResult }) => {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
+      if (video) {
+        video.srcObject = null;
       }
       if (timeoutRef.current !== null) {
         clearTimeout(timeoutRef.current);
@@ -58,13 +60,13 @@ export const FaceReader: React.FC<FaceReaderProps> = ({ active, onResult }) => {
 
         streamRef.current = stream;
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
+        if (video) {
+          video.srcObject = stream;
+          await video.play();
         }
 
         const analyzeFrame = () => {
-          if (!videoRef.current) return;
+          if (!video) return;
         };
 
         const loop = () => {
@@ -100,8 +102,8 @@ export const FaceReader: React.FC<FaceReaderProps> = ({ active, onResult }) => {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
+      if (video) {
+        video.srcObject = null;
       }
       if (timeoutRef.current !== null) {
         clearTimeout(timeoutRef.current);

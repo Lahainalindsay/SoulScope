@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import styles from "./TonePlayer.module.css";
 
 type TonePlayerProps = {
   frequency: number;
@@ -10,22 +11,6 @@ export default function TonePlayer({ frequency, label }: TonePlayerProps) {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
 
-  const startTone = () => {
-    if (playing) return;
-    const audioCtx = new AudioContext();
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    oscillator.start();
-    audioCtxRef.current = audioCtx;
-    oscillatorRef.current = oscillator;
-    setPlaying(true);
-    setTimeout(() => stopTone(), 5000);
-  };
-
   const stopTone = () => {
     oscillatorRef.current?.stop();
     audioCtxRef.current?.close();
@@ -34,12 +19,27 @@ export default function TonePlayer({ frequency, label }: TonePlayerProps) {
     setPlaying(false);
   };
 
+  const startTone = () => {
+    if (playing) return;
+    const audioCtx = new AudioContext();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    oscillator.start();
+
+    audioCtxRef.current = audioCtx;
+    oscillatorRef.current = oscillator;
+    setPlaying(true);
+    window.setTimeout(() => stopTone(), 5000);
+  };
+
   return (
-    <button
-      className="bg-cyan-700 px-4 py-2 rounded-full mt-3 hover:bg-cyan-500 transition disabled:opacity-40"
-      onClick={startTone}
-      disabled={playing}
-    >
+    <button className={styles.button} onClick={startTone} disabled={playing}>
       {playing ? "Playing..." : `Play ${label || `${frequency} Hz`}`}
     </button>
   );
