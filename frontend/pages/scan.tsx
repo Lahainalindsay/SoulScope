@@ -44,25 +44,23 @@ export default function ScanIntroPage() {
             <div className={styles.heroPanel}>
               <p className={styles.eyebrow}>SoulScope Guided Scan</p>
               <h1 className={styles.title}>Your voice carries more than words.</h1>
-              <p className={styles.lead}>Let&apos;s take a look at what it&apos;s revealing.</p>
-              <div className={styles.agentStub}>
-                <button type="button" className={styles.agentPlay} aria-label="Agent voice playback preview">
-                  <span className={styles.agentPlayIcon} />
-                </button>
-                <div className={styles.agentWave}>
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
+              <p className={styles.lead}>
+                Find a quiet space, face the camera, and answer each prompt out loud.
+              </p>
+              <div className={styles.instructionsCard}>
+                <p className={styles.instructionsTitle}>Before you begin</p>
+                <div className={styles.protocolBody}>
+                  <p className={styles.protocolLine}>You will have 3 seconds to read each question before recording begins.</p>
+                  <p className={styles.protocolLine}>You will then have 10 seconds to answer each question out loud.</p>
+                  <p className={styles.protocolLine}>On the first question, hold still while the camera captures a short baseline read.</p>
+                  <p className={styles.protocolLine}>Speak naturally. There is no right or wrong way to answer.</p>
                 </div>
-                <span className={styles.agentLabel}>Agent intro</span>
               </div>
               <div className={styles.protocolBody}>
                 <p className={styles.protocolLine}>Find a quiet space.</p>
                 <p className={styles.protocolLine}>Speak naturally when prompted.</p>
                 <p className={styles.protocolLine}>All responses are spoken.</p>
-                <p className={styles.protocolLine}>This takes less than a minute.</p>
+                <p className={styles.protocolLine}>Keep your face visible to the camera during the scan.</p>
               </div>
 
               <div className={styles.actions}>
@@ -79,7 +77,7 @@ export default function ScanIntroPage() {
                 </button>
               </div>
               <p className={styles.actionNote}>
-                Just speak naturally. There&apos;s no right or wrong way to answer.
+                Each prompt starts after a short reading pause, then records for 10 seconds.
               </p>
             </div>
           </section>

@@ -29,6 +29,7 @@ export type VoiceDynamics = {
   analyzedDurationMs: number;
   voicedDurationMs: number;
   silenceDurationMs: number;
+  activeFrameRatio: number;
   voicedFrameRatio: number;
   voicedFrameCount: number;
   pitchFrameCount: number;
@@ -44,6 +45,9 @@ export type VoiceDynamics = {
   pitchRangeSemitones: number;
   pitchStability: number;
   pitchClarity: number;
+  clippingFrameRatio: number;
+  captureQuality: "poor" | "fair" | "good";
+  captureRecommendation: string;
   primaryNoteSource: "tracked-pitch" | "spectral-fallback";
 };
 
@@ -70,6 +74,22 @@ export type VoiceAnalysisResult = {
   };
   protocolNotes?: {
     overview: string[];
+    camera?: {
+      blinkRatePerMin: number;
+      facialTension: number;
+      eyeDilationProxy: number;
+      eyeOpenness: number;
+      trackingConfidence: number;
+      framesAnalyzed: number;
+    };
+    cameraBaseline?: {
+      blinkRatePerMin: number;
+      facialTension: number;
+      eyeDilationProxy: number;
+      eyeOpenness: number;
+      trackingConfidence: number;
+      framesAnalyzed: number;
+    };
     prompts: {
       id: string;
       title: string;
@@ -77,6 +97,14 @@ export type VoiceAnalysisResult = {
       prompt: string;
       rationale: string;
       durationMs?: number;
+      camera?: {
+        blinkRatePerMin: number;
+        facialTension: number;
+        eyeDilationProxy: number;
+        eyeOpenness: number;
+        trackingConfidence: number;
+        framesAnalyzed: number;
+      };
       primaryNote?: string;
       noteScores?: {
         note: string;
@@ -395,6 +423,10 @@ function summarizeFindings(
     `Voiced signal covered ${Math.round(voiceDynamics.voicedFrameRatio * 100)}% of analyzable frames, with ${voiceDynamics.pauseCount} natural pause${voiceDynamics.pauseCount === 1 ? "" : "s"} between speaking runs.`
   );
 
+  findings.push(
+    `Capture quality reads ${voiceDynamics.captureQuality}, based on active signal ${Math.round(voiceDynamics.activeFrameRatio * 100)}%, voiced confidence ${Math.round(voiceDynamics.pitchClarity * 100)}%, and clipping ${Math.round(voiceDynamics.clippingFrameRatio * 100)}%.`
+  );
+
   if (voiceDynamics.medianPitchHz) {
     findings.push(
       `Tracked pitch centered near ${voiceDynamics.medianPitchHz} Hz in octave ${voiceDynamics.dominantOctave ?? "?"}, with a ${voiceDynamics.pitchRangeHz} Hz / ${voiceDynamics.pitchRangeSemitones} semitone working range and ${Math.round(voiceDynamics.pitchStability * 100)}% stability.`
@@ -501,6 +533,7 @@ export async function analyzeVoiceSpectrum(blob: Blob): Promise<VoiceAnalysisRes
     let frameCount = 0;
     let activeFrameCount = 0;
     let voicedFrameCount = 0;
+    let clippingFrameCount = 0;
     let pitchClarityTotal = 0;
     const voicedFlags: boolean[] = [];
     const trackedPitches: number[] = [];
@@ -527,6 +560,14 @@ export async function analyzeVoiceSpectrum(blob: Blob): Promise<VoiceAnalysisRes
       frameCount += 1;
 
       const frameRms = features.rms ?? 0;
+      let framePeak = 0;
+      for (let i = 0; i < frame.length; i += 1) {
+        framePeak = Math.max(framePeak, Math.abs(frame[i] ?? 0));
+      }
+      if (framePeak >= 0.985) {
+        clippingFrameCount += 1;
+      }
+
       if (frameRms < MIN_VOICED_FRAME_RMS) {
         voicedFlags.push(false);
         continue;
@@ -689,10 +730,30 @@ export async function analyzeVoiceSpectrum(blob: Blob): Promise<VoiceAnalysisRes
     const pitchStability = hasTrackedPitch
       ? clamp01(1 - Math.sqrt(pitchVariance) / Math.max(medianPitchHz ?? 1, 1))
       : 0;
+    const activeFrameRatio = clamp01(activeFrameCount / Math.max(frameCount, 1));
+    const clippingFrameRatio = clamp01(clippingFrameCount / Math.max(frameCount, 1));
+    const averagePitchClarity = round(
+      trackedPitches.length ? pitchClarityTotal / trackedPitches.length : 0,
+      3
+    );
+    const captureQualityScore =
+      activeFrameRatio * 0.45 +
+      clamp01(analysisFrameCount / Math.max(frameCount * 0.45, 1)) * 0.25 +
+      averagePitchClarity * 0.2 +
+      (1 - clippingFrameRatio) * 0.1;
+    const captureQuality =
+      captureQualityScore >= 0.72 ? "good" : captureQualityScore >= 0.48 ? "fair" : "poor";
+    const captureRecommendation =
+      captureQuality === "good"
+        ? "Signal quality was solid enough for a confident voice read."
+        : captureQuality === "fair"
+        ? "Signal quality was usable, but a quieter room and steadier speaking volume would improve confidence."
+        : "Signal quality was weak. Move closer to the microphone, reduce room noise, and speak continuously for a stronger result.";
     const voiceDynamics: VoiceDynamics = {
       analyzedDurationMs: round(frameCount * frameDurationMs),
       voicedDurationMs: round(analysisFrameCount * frameDurationMs),
       silenceDurationMs: round(Math.max(0, (frameCount - analysisFrameCount) * frameDurationMs)),
+      activeFrameRatio,
       voicedFrameRatio: clamp01(analysisFrameCount / Math.max(frameCount, 1)),
       voicedFrameCount: analysisFrameCount,
       pitchFrameCount: trackedPitches.length,
@@ -711,10 +772,10 @@ export async function analyzeVoiceSpectrum(blob: Blob): Promise<VoiceAnalysisRes
       pitchRangeHz,
       pitchRangeSemitones,
       pitchStability: round(pitchStability, 3),
-      pitchClarity: round(
-        trackedPitches.length ? pitchClarityTotal / trackedPitches.length : 0,
-        3
-      ),
+      pitchClarity: averagePitchClarity,
+      clippingFrameRatio,
+      captureQuality,
+      captureRecommendation,
       primaryNoteSource: hasTrackedPitch && !useBroadSpectrumFallback ? "tracked-pitch" : "spectral-fallback",
     };
     const coreFrequencyHz = Math.round(
@@ -836,6 +897,21 @@ export function mergeVoiceAnalyses(results: VoiceAnalysisResult[]): VoiceAnalysi
     (sum, result) => sum + (result.voiceDynamics?.pauseCount ?? 0),
     0
   );
+  const weightedDurationValue = (
+    key:
+      | "activeFrameRatio"
+      | "voicedFrameRatio"
+      | "clippingFrameRatio"
+  ) => {
+    if (!analyzedDurationMs) return 0;
+    return (
+      results.reduce((sum, result) => {
+        const weight = result.voiceDynamics?.analyzedDurationMs ?? 0;
+        const value = result.voiceDynamics?.[key] ?? 0;
+        return sum + value * weight;
+      }, 0) / analyzedDurationMs
+    );
+  };
   const weightedPitchValue = (
     key:
       | "medianPitchHz"
@@ -860,6 +936,7 @@ export function mergeVoiceAnalyses(results: VoiceAnalysisResult[]): VoiceAnalysi
     analyzedDurationMs: round(analyzedDurationMs),
     voicedDurationMs: round(voicedDurationMs),
     silenceDurationMs: round(silenceDurationMs),
+    activeFrameRatio: round(weightedDurationValue("activeFrameRatio"), 3),
     voicedFrameRatio: clamp01(voicedDurationMs / Math.max(analyzedDurationMs, 1)),
     voicedFrameCount,
     pitchFrameCount,
@@ -885,6 +962,19 @@ export function mergeVoiceAnalyses(results: VoiceAnalysisResult[]): VoiceAnalysi
     pitchRangeSemitones: round(weightedPitchValue("pitchRangeSemitones"), 1),
     pitchStability: round(weightedPitchValue("pitchStability"), 3),
     pitchClarity: round(weightedPitchValue("pitchClarity"), 3),
+    clippingFrameRatio: round(weightedDurationValue("clippingFrameRatio"), 3),
+    captureQuality:
+      weightedDurationValue("activeFrameRatio") >= 0.72 && weightedPitchValue("pitchClarity") >= 0.7
+        ? "good"
+        : weightedDurationValue("activeFrameRatio") >= 0.48
+        ? "fair"
+        : "poor",
+    captureRecommendation:
+      weightedDurationValue("activeFrameRatio") >= 0.72 && weightedPitchValue("pitchClarity") >= 0.7
+        ? "Signal quality was solid enough for a confident voice read."
+        : weightedDurationValue("activeFrameRatio") >= 0.48
+        ? "Signal quality was usable, but a quieter room and steadier speaking volume would improve confidence."
+        : "Signal quality was weak. Move closer to the microphone, reduce room noise, and speak continuously for a stronger result.",
     primaryNoteSource: results.some(
       (result) => result.voiceDynamics?.primaryNoteSource === "tracked-pitch"
     )

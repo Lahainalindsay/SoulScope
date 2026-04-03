@@ -182,6 +182,34 @@
   margin-top: 24px;
 }
 
+.combinedSection {
+  margin-top: 24px;
+  padding: 30px;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.1), transparent 26%),
+    linear-gradient(145deg, rgba(7, 16, 31, 0.95), rgba(8, 19, 40, 0.78));
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+.combinedTitle {
+  margin: 12px 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.04;
+}
+
+.combinedText {
+  margin: 18px 0 0;
+  max-width: 980px;
+  font-size: 17px;
+  line-height: 1.9;
+  color: rgba(226, 232, 240, 0.84);
+  white-space: pre-line;
+}
+
 .rangeSection {
   margin-top: 24px;
   padding: 28px;
@@ -318,6 +346,110 @@
 .rangeEmpty {
   font-size: 13px;
   color: rgba(148, 163, 184, 0.72);
+}
+
+.cameraSection {
+  margin-top: 24px;
+  padding: 28px;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+.cameraHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 0.8fr);
+  gap: 18px;
+  align-items: end;
+}
+
+.cameraLead {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.8;
+  color: rgba(226, 232, 240, 0.76);
+}
+
+.cameraMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.cameraMetricCard,
+.cameraQuickCard,
+.cameraRangeCard,
+.cameraPromptCard {
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 20px;
+}
+
+.cameraQuickGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.cameraRanges {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.cameraRangeStats,
+.cameraPromptStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.cameraPromptList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.cameraPromptTitle {
+  margin: 12px 0 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+@media (max-width: 1100px) {
+  .summaryGrid,
+  .cameraMetricGrid,
+  .cameraRanges {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cameraHeader,
+  .cameraPromptList {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .quickReadGrid,
+  .rangeGrid,
+  .rangeScores,
+  .cameraMetricGrid,
+  .cameraQuickGrid,
+  .cameraRanges,
+  .cameraPromptList {
+    grid-template-columns: 1fr;
+  }
 }
 
 .planHeader {

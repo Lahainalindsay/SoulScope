@@ -5,6 +5,8 @@ import { supabase } from "../../lib/supabaseClient";
 import { buildCymaticReference } from "../../lib/cymatics";
 import {
   type GuidedScanAnswer,
+  getGuidedScanCameraBaseline,
+  getGuidedScanCameraCaptures,
   getGuidedScanAnswers,
   getGuidedScanStartedAt,
   resetGuidedScanSession,
@@ -55,8 +57,36 @@ async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label:
   });
 }
 
+function averageCameraMetrics(
+  captures: ReturnType<typeof getGuidedScanCameraCaptures>
+) {
+  if (!captures.length) {
+    return null;
+  }
+
+  const totalFrames = captures.reduce((sum, capture) => sum + Math.max(1, capture.framesAnalyzed), 0);
+  const weightedAverage = (
+    selector: (capture: (typeof captures)[number]) => number
+  ) =>
+    captures.reduce(
+      (sum, capture) => sum + selector(capture) * Math.max(1, capture.framesAnalyzed),
+      0
+    ) / totalFrames;
+
+  return {
+    blinkRatePerMin: Number(weightedAverage((capture) => capture.blinkRatePerMin).toFixed(1)),
+    facialTension: Number(weightedAverage((capture) => capture.facialTension).toFixed(3)),
+    eyeDilationProxy: Number(weightedAverage((capture) => capture.eyeDilationProxy).toFixed(3)),
+    eyeOpenness: Number(weightedAverage((capture) => capture.eyeOpenness).toFixed(3)),
+    trackingConfidence: Number(weightedAverage((capture) => capture.trackingConfidence).toFixed(3)),
+    framesAnalyzed: captures.reduce((sum, capture) => sum + capture.framesAnalyzed, 0),
+  };
+}
+
 function buildFallbackResult(
   answers: GuidedScanAnswer[],
+  cameraCaptures: ReturnType<typeof getGuidedScanCameraCaptures>,
+  cameraBaseline: ReturnType<typeof getGuidedScanCameraBaseline>,
   reason?: string
 ): SavedScanResult {
   const fallbackNote = "F#";
@@ -106,6 +136,7 @@ function buildFallbackResult(
       analyzedDurationMs: Math.round(totalDurationMs),
       voicedDurationMs: 0,
       silenceDurationMs: Math.round(totalDurationMs),
+      activeFrameRatio: 0,
       voicedFrameRatio: 0,
       voicedFrameCount: 0,
       pitchFrameCount: 0,
@@ -121,11 +152,17 @@ function buildFallbackResult(
       pitchRangeSemitones: 0,
       pitchStability: 0,
       pitchClarity: 0,
+      clippingFrameRatio: 0,
+      captureQuality: "poor",
+      captureRecommendation:
+        "Signal quality was weak. Move closer to the microphone, reduce room noise, and speak continuously for a stronger result.",
       primaryNoteSource: "spectral-fallback",
     },
     cymaticReference: buildCymaticReference(noteProfile.note),
     protocolNotes: {
       overview: SCAN_OVERVIEW_LINES,
+      camera: averageCameraMetrics(cameraCaptures) ?? undefined,
+      cameraBaseline: cameraBaseline ?? undefined,
       prompts: GUIDED_SCAN_QUESTIONS.map((question, index) => ({
         id: question.id,
         title: question.title,
@@ -133,6 +170,16 @@ function buildFallbackResult(
         prompt: question.prompt,
         rationale: question.rationale,
         durationMs: answers[index]?.durationMs,
+        camera: cameraCaptures[index]
+          ? {
+              blinkRatePerMin: cameraCaptures[index].blinkRatePerMin,
+              facialTension: cameraCaptures[index].facialTension,
+              eyeDilationProxy: cameraCaptures[index].eyeDilationProxy,
+              eyeOpenness: cameraCaptures[index].eyeOpenness,
+              trackingConfidence: cameraCaptures[index].trackingConfidence,
+              framesAnalyzed: cameraCaptures[index].framesAnalyzed,
+            }
+          : undefined,
       })),
     },
     researchBasis: {
@@ -154,6 +201,8 @@ export default function ScanAnalyzingPage() {
 
     const run = async () => {
       const answers = await getGuidedScanAnswers();
+      const cameraCaptures = getGuidedScanCameraCaptures();
+      const cameraBaseline = getGuidedScanCameraBaseline();
       if (!answers.length) {
         void router.replace("/scan");
         return;
@@ -181,6 +230,8 @@ export default function ScanAnalyzingPage() {
               cymaticReference: buildCymaticReference(merged.noteInterpretation?.primaryNote),
               protocolNotes: {
                 overview: SCAN_OVERVIEW_LINES,
+                camera: averageCameraMetrics(cameraCaptures) ?? undefined,
+                cameraBaseline: cameraBaseline ?? undefined,
                 prompts: GUIDED_SCAN_QUESTIONS.map((question, index) => ({
                   id: question.id,
                   title: question.title,
@@ -188,6 +239,16 @@ export default function ScanAnalyzingPage() {
                   prompt: question.prompt,
                   rationale: question.rationale,
                   durationMs: answers[index]?.durationMs,
+                  camera: cameraCaptures[index]
+                    ? {
+                        blinkRatePerMin: cameraCaptures[index].blinkRatePerMin,
+                        facialTension: cameraCaptures[index].facialTension,
+                        eyeDilationProxy: cameraCaptures[index].eyeDilationProxy,
+                        eyeOpenness: cameraCaptures[index].eyeOpenness,
+                        trackingConfidence: cameraCaptures[index].trackingConfidence,
+                        framesAnalyzed: cameraCaptures[index].framesAnalyzed,
+                      }
+                    : undefined,
                   primaryNote: promptAnalyses[index]?.noteInterpretation?.primaryNote,
                   noteScores:
                     promptAnalyses[index]?.noteEnergies?.map((entry) => ({
@@ -204,6 +265,8 @@ export default function ScanAnalyzingPage() {
             }
           : buildFallbackResult(
               answers,
+              cameraCaptures,
+              cameraBaseline,
               analysisFailure?.reason instanceof Error
                 ? analysisFailure.reason.message
                 : "Not enough prompt responses were analyzable for the full scan."

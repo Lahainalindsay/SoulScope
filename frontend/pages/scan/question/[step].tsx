@@ -2,18 +2,22 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import CymaticSigil from "../../../components/CymaticSigil";
+import FaceReader, { type FaceReading } from "../../../components/FaceReader";
 import Recorder, { type RecorderHandle, type RecorderSignalSample } from "../../../components/Recorder";
 import {
   ensureGuidedScanSession,
   getGuidedScanProgress,
   saveGuidedScanAnswer,
+  saveGuidedScanCameraBaseline,
+  saveGuidedScanCameraCapture,
 } from "../../../lib/guidedScanSession";
 import { GUIDED_SCAN_QUESTIONS } from "../../../lib/scanProtocol";
 import styles from "./GuidedScanQuestion.module.css";
 
 type PendingAction = "next" | "finish" | null;
-const AUTO_RECORDING_MS = 9000;
-const AUTO_START_DELAY_MS = 700;
+const AUTO_RECORDING_MS = 10000;
+const AUTO_START_DELAY_MS = 3000;
+const CAMERA_BASELINE_MS = 3000;
 
 function signalClass(dbfs: number) {
   if (dbfs < -58) return styles.statusWarn;
@@ -32,10 +36,12 @@ export default function GuidedScanQuestionPage() {
   const recorderRef = useRef<RecorderHandle | null>(null);
   const recordingStartedAtRef = useRef<number>(0);
   const pendingActionRef = useRef<PendingAction>(null);
+  const cameraSummaryRef = useRef<FaceReading | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [liveSample, setLiveSample] = useState<RecorderSignalSample | null>(null);
+  const [cameraMetrics, setCameraMetrics] = useState<FaceReading | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [hasCompletedRecording, setHasCompletedRecording] = useState(false);
   const [isAutoStarting, setIsAutoStarting] = useState(true);
@@ -49,6 +55,18 @@ export default function GuidedScanQuestionPage() {
   const questionIndex = step - 1;
   const question = GUIDED_SCAN_QUESTIONS[questionIndex];
   const isLastQuestion = questionIndex === GUIDED_SCAN_QUESTIONS.length - 1;
+  const isCalibrating = step === 1 && !isRecording && isAutoStarting;
+
+  const handleCameraSummaryChange = (reading: FaceReading | null) => {
+    cameraSummaryRef.current = reading;
+  };
+
+  const handleCalibrationComplete = (reading: FaceReading | null) => {
+    if (!reading || step !== 1) {
+      return;
+    }
+    saveGuidedScanCameraBaseline(reading);
+  };
 
   useEffect(() => {
     pendingActionRef.current = null;
@@ -57,6 +75,8 @@ export default function GuidedScanQuestionPage() {
     setError(null);
     setElapsedSeconds(0);
     setLiveSample(null);
+    setCameraMetrics(null);
+    cameraSummaryRef.current = null;
     setHasCompletedRecording(false);
     setIsAutoStarting(true);
   }, [step]);
@@ -97,7 +117,7 @@ export default function GuidedScanQuestionPage() {
       setError(null);
       setIsAutoStarting(false);
       recorderRef.current?.start();
-    }, AUTO_START_DELAY_MS);
+    }, step === 1 ? CAMERA_BASELINE_MS : AUTO_START_DELAY_MS);
 
     return () => window.clearTimeout(timer);
   }, [isLastQuestion, question, router.isReady, step]);
@@ -106,6 +126,9 @@ export default function GuidedScanQuestionPage() {
     const durationMs = Math.max(0, Date.now() - recordingStartedAtRef.current);
     try {
       await saveGuidedScanAnswer(questionIndex, blob, durationMs);
+      if (cameraSummaryRef.current) {
+        saveGuidedScanCameraCapture(questionIndex, cameraSummaryRef.current);
+      }
       setHasCompletedRecording(true);
     } catch (saveError) {
       console.error("Failed to persist guided scan answer", saveError);
@@ -150,7 +173,7 @@ export default function GuidedScanQuestionPage() {
               <p className={styles.eyebrow}>{stepLabel}</p>
               <h1 className={styles.title}>Just speak naturally.</h1>
               <p className={styles.subtitle}>
-                Just speak naturally. There&apos;s no right or wrong way to answer.
+                Read the question first. Recording starts 3 seconds later and runs for 10 seconds.
               </p>
             </div>
             <div className={`${styles.statusPill} ${signalClass(liveSample?.dbfs ?? -120)}`}>
@@ -202,20 +225,70 @@ export default function GuidedScanQuestionPage() {
                     </div>
                   </div>
 
-                  <div className={styles.controlRow}>
-                    <div className={styles.recordMeta}>
+                <div className={styles.controlRow}>
+                  <div className={styles.recordMeta}>
                       <div className={styles.timeBadge}>{elapsedSeconds}s</div>
                       <p className={styles.ctaHint}>
                         {isAutoStarting
-                          ? "Get ready. Recording starts automatically."
+                          ? step === 1
+                            ? "Hold steady and read the question. Camera baseline and recording start in 3 seconds."
+                            : "Get ready. Recording starts automatically."
                           : isRecording
-                          ? "Speak naturally. We will move to the next prompt automatically."
+                          ? "You have 10 seconds. Speak naturally and keep your face in frame."
                           : hasCompletedRecording
                           ? "Response captured. Loading the next prompt."
                           : "Preparing your microphone."}
                       </p>
-                    </div>
                   </div>
+                </div>
+
+                <div className={styles.cameraGrid}>
+                  <div className={styles.cameraPanel}>
+                    <div className={styles.cameraHeader}>
+                      <div>
+                        <p className={styles.sectionLabel}>Camera read</p>
+                        <p className={styles.cameraNote}>
+                          Blink rate and facial tension are measured directly from landmarks. Eye
+                          dilation is a webcam proxy, not a clinical pupil measurement.
+                        </p>
+                      </div>
+                    </div>
+                    <FaceReader
+                      active={router.isReady}
+                      tracking={isRecording}
+                      calibrating={isCalibrating}
+                      onMetricsChange={setCameraMetrics}
+                      onSummaryChange={handleCameraSummaryChange}
+                      onCalibrationComplete={handleCalibrationComplete}
+                    />
+                  </div>
+                  <div className={styles.cameraMetrics}>
+                    <article className={styles.cameraMetricCard}>
+                      <span className={styles.cameraMetricLabel}>Blink rate</span>
+                      <strong className={styles.cameraMetricValue}>
+                        {cameraMetrics ? `${cameraMetrics.blinkRatePerMin}/min` : "—"}
+                      </strong>
+                    </article>
+                    <article className={styles.cameraMetricCard}>
+                      <span className={styles.cameraMetricLabel}>Facial tension</span>
+                      <strong className={styles.cameraMetricValue}>
+                        {cameraMetrics ? `${Math.round(cameraMetrics.facialTension * 100)}%` : "—"}
+                      </strong>
+                    </article>
+                    <article className={styles.cameraMetricCard}>
+                      <span className={styles.cameraMetricLabel}>Eye dilation proxy</span>
+                      <strong className={styles.cameraMetricValue}>
+                        {cameraMetrics ? `${Math.round(cameraMetrics.eyeDilationProxy * 100)}%` : "—"}
+                      </strong>
+                    </article>
+                    <article className={styles.cameraMetricCard}>
+                      <span className={styles.cameraMetricLabel}>Tracking confidence</span>
+                      <strong className={styles.cameraMetricValue}>
+                        {cameraMetrics ? `${Math.round(cameraMetrics.trackingConfidence * 100)}%` : "—"}
+                      </strong>
+                    </article>
+                  </div>
+                </div>
 
                   {error ? <p className={styles.errorText}>{error}</p> : null}
                 </div>

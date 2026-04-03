@@ -6,6 +6,7 @@ import { useSession, useSessionContext } from "@supabase/auth-helpers-react";
 import { supabase } from "../lib/supabaseClient";
 import { getLocalDevSession, LOCAL_SCAN_LIST_KEY } from "../lib/localSession";
 import { NOTE_ORDER, getSoulScopeNoteColor } from "../lib/noteSystem";
+import { type NoteEnergyResult } from "../lib/voiceSpectrum";
 import styles from "./History.module.css";
 
 type SpectrumBand = {
@@ -21,6 +22,11 @@ type ScanRow = {
     dominantBandLabel?: string;
     coreFrequencyHz?: number;
     spectrumBands?: SpectrumBand[];
+    noteInterpretation?: {
+      primaryNote?: string;
+    };
+    noteEnergies?: NoteEnergyResult[];
+    resonanceScore?: number;
   };
 };
 
@@ -53,6 +59,24 @@ function buildSeries(scans: ScanRow[], label: (typeof BAND_LABELS)[number]) {
       return `${index === 0 ? "M" : "L"} ${x},${y}`;
     })
     .join(" ");
+}
+
+function getBandValue(scan: ScanRow, label: string) {
+  return (
+    scan.result.spectrumBands?.find((band) => band.label === label)?.relativeEnergy ??
+    scan.result.noteEnergies?.find((band) => band.note === label)?.relativeEnergy ??
+    0
+  );
+}
+
+function average(values: number[]) {
+  if (!values.length) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function round(value: number, digits = 0) {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
 }
 
 export default function HistoryPage() {
@@ -111,6 +135,50 @@ export default function HistoryPage() {
 
   const latest = scans[0];
   const chartScans = useMemo(() => scans.slice().reverse().slice(-12), [scans]);
+  const trendSummary = useMemo(() => {
+    if (!chartScans.length) {
+      return null;
+    }
+
+    const ordered = chartScans.slice();
+    const first = ordered[0];
+    const last = ordered[ordered.length - 1];
+    const latestDominant =
+      last.result.noteInterpretation?.primaryNote ?? last.result.dominantBandLabel ?? "Unknown";
+    const earliestDominant =
+      first.result.noteInterpretation?.primaryNote ?? first.result.dominantBandLabel ?? "Unknown";
+
+    const noteDeltas = BAND_LABELS.map((label) => ({
+      label,
+      first: getBandValue(first, label),
+      last: getBandValue(last, label),
+      delta: getBandValue(last, label) - getBandValue(first, label),
+      average: average(ordered.map((scan) => getBandValue(scan, label))),
+    }))
+      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+    const rising = noteDeltas.filter((entry) => entry.delta > 0.015).slice(0, 3);
+    const falling = noteDeltas.filter((entry) => entry.delta < -0.015).slice(0, 3);
+    const mostStable = [...noteDeltas]
+      .sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta))
+      .slice(0, 3);
+
+    const resonanceValues = ordered
+      .map((scan) => scan.result.resonanceScore)
+      .filter((value): value is number => typeof value === "number");
+    const resonanceAverage = resonanceValues.length ? round(average(resonanceValues) * 100) : null;
+
+    return {
+      totalScans: scans.length,
+      windowCount: ordered.length,
+      latestDominant,
+      earliestDominant,
+      resonanceAverage,
+      rising,
+      falling,
+      mostStable,
+    };
+  }, [chartScans, scans.length]);
 
   return (
     <div className={styles.page}>
@@ -120,8 +188,9 @@ export default function HistoryPage() {
           <p className={styles.eyebrow}>History</p>
           <h1 className={styles.title}>Track how your voice pattern changes over time.</h1>
           <p className={styles.lead}>
-            Retests matter. This page gives you a clean record of prior scans and a simple trend view for
-            the 12 note-class energy bands.
+            Retests matter. This view now tracks your last 12 scans, highlights which note energies are
+            strengthening or fading, and gives you a clearer sense of whether your vocal pattern is staying
+            stable or shifting over time.
           </p>
           <div className={styles.heroActions}>
             <Link href="/scan" className={styles.primaryButton}>
@@ -159,7 +228,28 @@ export default function HistoryPage() {
                   <div>
                     <p className={styles.sectionEyebrow}>12-scan trend</p>
                     <h2 className={styles.chartTitle}>Note movement over time.</h2>
+                    <p className={styles.chartLead}>
+                      Each line tracks one note-class energy band across your latest 12 saved scans.
+                    </p>
                   </div>
+                  {trendSummary ? (
+                    <div className={styles.chartStats}>
+                      <div className={styles.chartStat}>
+                        <span className={styles.chartStatLabel}>Saved scans</span>
+                        <strong className={styles.chartStatValue}>{trendSummary.totalScans}</strong>
+                      </div>
+                      <div className={styles.chartStat}>
+                        <span className={styles.chartStatLabel}>Trend window</span>
+                        <strong className={styles.chartStatValue}>{trendSummary.windowCount}</strong>
+                      </div>
+                      <div className={styles.chartStat}>
+                        <span className={styles.chartStatLabel}>Avg resonance</span>
+                        <strong className={styles.chartStatValue}>
+                          {trendSummary.resonanceAverage !== null ? `${trendSummary.resonanceAverage}%` : "—"}
+                        </strong>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className={styles.chartShell}>
@@ -174,6 +264,19 @@ export default function HistoryPage() {
                         className={styles.chartLine}
                       />
                     ))}
+                    {Array.from({ length: Math.max(chartScans.length, 2) }).map((_, index) => {
+                      const x = (index / Math.max(chartScans.length - 1, 1)) * 100;
+                      return (
+                        <line
+                          key={`v-${index}`}
+                          x1={x}
+                          x2={x}
+                          y1="0"
+                          y2="100"
+                          className={styles.chartAxisLine}
+                        />
+                      );
+                    })}
                     {BAND_LABELS.map((label) => (
                       <path
                         key={label}
@@ -186,6 +289,19 @@ export default function HistoryPage() {
                     ))}
                   </svg>
                 </div>
+
+                {chartScans.length ? (
+                  <div className={styles.chartTimeline}>
+                    {chartScans.map((scan, index) => (
+                      <span key={`${scan.id ?? scan.created_at}-${index}`} className={styles.timelineTick}>
+                        {new Date(scan.created_at).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
 
                 <div className={styles.legend}>
                   {BAND_LABELS.map((label) => (
@@ -202,6 +318,49 @@ export default function HistoryPage() {
                     </span>
                   ))}
                 </div>
+
+                {trendSummary ? (
+                  <div className={styles.trendInsightGrid}>
+                    <article className={styles.trendInsightCard}>
+                      <p className={styles.insightLabel}>Overall direction</p>
+                      <h3 className={styles.insightTitle}>
+                        {trendSummary.earliestDominant} to {trendSummary.latestDominant}
+                      </h3>
+                      <p className={styles.insightText}>
+                        Your oldest scan in this window centered around {trendSummary.earliestDominant}, while the
+                        most recent scan centers around {trendSummary.latestDominant}.
+                      </p>
+                    </article>
+                    <article className={styles.trendInsightCard}>
+                      <p className={styles.insightLabel}>Rising bands</p>
+                      <p className={styles.insightText}>
+                        {trendSummary.rising.length
+                          ? trendSummary.rising
+                              .map((entry) => `${entry.label} (+${round(entry.delta * 100, 1)}%)`)
+                              .join(" · ")
+                          : "No strong upward shifts stand out across this 12-scan window."}
+                      </p>
+                    </article>
+                    <article className={styles.trendInsightCard}>
+                      <p className={styles.insightLabel}>Fading bands</p>
+                      <p className={styles.insightText}>
+                        {trendSummary.falling.length
+                          ? trendSummary.falling
+                              .map((entry) => `${entry.label} (${round(entry.delta * 100, 1)}%)`)
+                              .join(" · ")
+                          : "No strong downward shifts stand out across this 12-scan window."}
+                      </p>
+                    </article>
+                    <article className={styles.trendInsightCard}>
+                      <p className={styles.insightLabel}>Most stable</p>
+                      <p className={styles.insightText}>
+                        {trendSummary.mostStable
+                          .map((entry) => `${entry.label} (${round(entry.average * 100, 1)}% avg)`)
+                          .join(" · ")}
+                      </p>
+                    </article>
+                  </div>
+                ) : null}
               </article>
             </section>
 
@@ -221,6 +380,27 @@ export default function HistoryPage() {
                         {scan.result.dominantBandLabel ?? "Unknown"} • {scan.result.coreFrequencyHz ?? "—"} Hz
                       </h3>
                       <p className={styles.historySummary}>{scan.result.summary}</p>
+                      {scan.result.noteEnergies?.length ? (
+                        <div className={styles.historyPills}>
+                          {scan.result.noteEnergies
+                            .slice()
+                            .sort((a, b) => b.relativeEnergy - a.relativeEnergy)
+                            .slice(0, 3)
+                            .map((entry) => (
+                              <span
+                                key={`${scan.id ?? scan.created_at}-${entry.note}`}
+                                className={styles.historyPill}
+                                style={{
+                                  borderColor: `${getSoulScopeNoteColor(entry.note)}44`,
+                                  color: getSoulScopeNoteColor(entry.note),
+                                  background: `${getSoulScopeNoteColor(entry.note)}12`,
+                                }}
+                              >
+                                {entry.note} {round(entry.relativeEnergy * 100, 1)}%
+                              </span>
+                            ))}
+                        </div>
+                      ) : null}
                       <div className={styles.historyDate}>{new Date(scan.created_at).toLocaleString()}</div>
                     </div>
                     <Link href={scan.id ? `/results/${scan.id}` : "/results"} className={styles.secondaryButton}>

@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ResonanceResultsDashboard from "../../components/ResonanceResultsDashboard";
 import TonePlayer from "../../components/TonePlayer";
+import { buildCameraInsights } from "../../lib/cameraInsights";
+import { buildCombinedResultNarrative } from "../../lib/combinedResults";
 import { getSoulScopeNoteColor } from "../../lib/noteSystem";
 import { supabase } from "../../lib/supabaseClient";
 import { type SpectrumBandResult, type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
@@ -214,6 +216,19 @@ export default function ResultsPage() {
     () => (scan?.protocolNotes?.prompts?.length ? buildPromptToneGroups(scan.protocolNotes.prompts) : []),
     [scan]
   );
+  const cameraInsights = useMemo(
+    () =>
+      buildCameraInsights(
+        scan?.protocolNotes?.camera,
+        scan?.protocolNotes?.cameraBaseline,
+        scan?.protocolNotes?.prompts
+      ),
+    [scan]
+  );
+  const combinedNarrative = useMemo(
+    () => (scan ? buildCombinedResultNarrative(scan) : null),
+    [scan]
+  );
 
   const primaryConcern = missingBands[0] ?? null;
   const primaryExcess = excessBands[0] ?? null;
@@ -227,6 +242,13 @@ export default function ResultsPage() {
 
         {scan ? (
           <>
+            {combinedNarrative ? (
+              <section className={styles.combinedSection}>
+                <p className={styles.sectionEyebrow}>Combined Result</p>
+                <h2 className={styles.rangeTitle}>Voice and face are telling the same story.</h2>
+                <p className={styles.combinedText}>{combinedNarrative}</p>
+              </section>
+            ) : null}
             <section className={styles.hero}>
               <div className={styles.heroMain}>
                 <p className={styles.eyebrow}>Composite Voiceprint</p>
@@ -277,6 +299,14 @@ export default function ResultsPage() {
                       {scan.voiceDynamics?.pauseCount ?? "—"}
                     </strong>
                   </div>
+                  {scan.protocolNotes?.camera ? (
+                    <div className={styles.snapshotCard}>
+                      <span className={styles.snapshotMetricLabel}>Camera read</span>
+                      <strong className={styles.snapshotMetricValue}>
+                        {scan.protocolNotes.camera.blinkRatePerMin}/min
+                      </strong>
+                    </div>
+                  ) : null}
                 </div>
                 {scan.coreFrequencyHz ? (
                   <div className={styles.toneWrap}>
@@ -384,6 +414,81 @@ export default function ResultsPage() {
                       </article>
                     );
                   })}
+                </div>
+              </section>
+            ) : null}
+            {cameraInsights ? (
+              <section className={styles.cameraSection}>
+                <div className={styles.cameraHeader}>
+                  <div>
+                    <p className={styles.sectionEyebrow}>Camera Read</p>
+                    <h2 className={styles.rangeTitle}>{cameraInsights.headline}</h2>
+                  </div>
+                  <p className={styles.cameraLead}>{cameraInsights.summary}</p>
+                </div>
+
+                <div className={styles.cameraMetricGrid}>
+                  <article className={styles.cameraMetricCard}>
+                    <span className={styles.snapshotMetricLabel}>Blink rate</span>
+                    <strong className={styles.snapshotMetricValue}>
+                      {scan.protocolNotes?.camera?.blinkRatePerMin}/min
+                    </strong>
+                  </article>
+                  <article className={styles.cameraMetricCard}>
+                    <span className={styles.snapshotMetricLabel}>Facial tension</span>
+                    <strong className={styles.snapshotMetricValue}>
+                      {Math.round((scan.protocolNotes?.camera?.facialTension ?? 0) * 100)}%
+                    </strong>
+                  </article>
+                  <article className={styles.cameraMetricCard}>
+                    <span className={styles.snapshotMetricLabel}>Eye openness</span>
+                    <strong className={styles.snapshotMetricValue}>
+                      {Math.round((scan.protocolNotes?.camera?.eyeOpenness ?? 0) * 100)}%
+                    </strong>
+                  </article>
+                  <article className={styles.cameraMetricCard}>
+                    <span className={styles.snapshotMetricLabel}>Dilation proxy</span>
+                    <strong className={styles.snapshotMetricValue}>
+                      {Math.round((scan.protocolNotes?.camera?.eyeDilationProxy ?? 0) * 100)}%
+                    </strong>
+                  </article>
+                </div>
+
+                <div className={styles.cameraQuickGrid}>
+                  {cameraInsights.findings.slice(0, 4).map((finding) => (
+                    <article key={finding} className={styles.cameraQuickCard}>
+                      <p className={styles.focusText}>{finding}</p>
+                    </article>
+                  ))}
+                </div>
+
+                <div className={styles.cameraRanges}>
+                  {cameraInsights.rangeSummaries.map((range) => (
+                    <article key={range.key} className={styles.cameraRangeCard}>
+                      <span className={styles.rangeLabel}>{range.label}</span>
+                      <div className={styles.cameraPromptStats}>
+                        <span>{range.blinkRatePerMin}/min blinks</span>
+                        <span>{Math.round(range.facialTension * 100)}% tension</span>
+                        <span>{Math.round(range.eyeOpenness * 100)}% openness</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <div className={styles.cameraPromptList}>
+                  {cameraInsights.promptMetrics.map((prompt) => (
+                    <article key={prompt.id} className={styles.cameraPromptCard}>
+                      <div>
+                        <span className={styles.rangeLabel}>{prompt.rangeLabel ?? "Prompt"}</span>
+                        <h3 className={styles.cameraPromptTitle}>{prompt.title}</h3>
+                      </div>
+                      <div className={styles.cameraPromptStats}>
+                        <span>{prompt.camera.blinkRatePerMin}/min</span>
+                        <span>{Math.round(prompt.camera.facialTension * 100)}% tension</span>
+                        <span>{Math.round(prompt.camera.eyeOpenness * 100)}% openness</span>
+                      </div>
+                    </article>
+                  ))}
                 </div>
               </section>
             ) : null}

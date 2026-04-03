@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ResonanceResultsDashboard from "../../components/ResonanceResultsDashboard";
+import { buildCameraInsights } from "../../lib/cameraInsights";
+import { buildCombinedResultNarrative } from "../../lib/combinedResults";
 import { getSoulScopeNoteColor } from "../../lib/noteSystem";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { type SpectrumBandResult, type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
@@ -228,6 +230,19 @@ export default function ResultsPage() {
     () => (latest?.protocolNotes?.prompts?.length ? buildPromptToneGroups(latest.protocolNotes.prompts) : []),
     [latest]
   );
+  const cameraInsights = useMemo(
+    () =>
+      buildCameraInsights(
+        latest?.protocolNotes?.camera,
+        latest?.protocolNotes?.cameraBaseline,
+        latest?.protocolNotes?.prompts
+      ),
+    [latest]
+  );
+  const combinedNarrative = useMemo(
+    () => (latest ? buildCombinedResultNarrative(latest) : null),
+    [latest]
+  );
 
   return (
     <div className={styles.page}>
@@ -250,6 +265,13 @@ export default function ResultsPage() {
 
         {!loading && !error && latest ? (
           <>
+            {combinedNarrative ? (
+              <section className={styles.combinedSection}>
+                <p className={styles.planEyebrow}>Combined Result</p>
+                <h2 className={styles.combinedTitle}>Voice and face are telling the same story.</h2>
+                <p className={styles.combinedText}>{combinedNarrative}</p>
+              </section>
+            ) : null}
             <section className={styles.summaryGrid}>
               <article className={styles.summaryCard}>
                 <span className={styles.cardLabel}>Dominant note</span>
@@ -281,6 +303,18 @@ export default function ResultsPage() {
                     : "Spectrum"}
                 </strong>
               </article>
+              {latest.protocolNotes?.camera ? (
+                <article className={styles.metricCard}>
+                  <span className={styles.cardLabel}>Camera read</span>
+                  <strong className={styles.metricValue}>
+                    {latest.protocolNotes.camera.blinkRatePerMin}/min
+                  </strong>
+                  <p className={styles.cardText}>
+                    Tension {Math.round(latest.protocolNotes.camera.facialTension * 100)}% · Eye
+                    dilation proxy {Math.round(latest.protocolNotes.camera.eyeDilationProxy * 100)}%
+                  </p>
+                </article>
+              ) : null}
               <article className={styles.metricCard}>
                 <span className={styles.cardLabel}>Voiced signal</span>
                 <strong className={styles.metricValue}>
@@ -371,6 +405,81 @@ export default function ResultsPage() {
                       </article>
                     );
                   })}
+                </div>
+              </section>
+            ) : null}
+            {cameraInsights ? (
+              <section className={styles.cameraSection}>
+                <div className={styles.cameraHeader}>
+                  <div>
+                    <p className={styles.planEyebrow}>Camera Read</p>
+                    <h2 className={styles.rangeTitle}>{cameraInsights.headline}</h2>
+                  </div>
+                  <p className={styles.cameraLead}>{cameraInsights.summary}</p>
+                </div>
+
+                <div className={styles.cameraMetricGrid}>
+                  <article className={styles.cameraMetricCard}>
+                    <span className={styles.cardLabel}>Blink rate</span>
+                    <strong className={styles.metricValue}>
+                      {latest?.protocolNotes?.camera?.blinkRatePerMin}/min
+                    </strong>
+                  </article>
+                  <article className={styles.cameraMetricCard}>
+                    <span className={styles.cardLabel}>Facial tension</span>
+                    <strong className={styles.metricValue}>
+                      {Math.round((latest?.protocolNotes?.camera?.facialTension ?? 0) * 100)}%
+                    </strong>
+                  </article>
+                  <article className={styles.cameraMetricCard}>
+                    <span className={styles.cardLabel}>Eye openness</span>
+                    <strong className={styles.metricValue}>
+                      {Math.round((latest?.protocolNotes?.camera?.eyeOpenness ?? 0) * 100)}%
+                    </strong>
+                  </article>
+                  <article className={styles.cameraMetricCard}>
+                    <span className={styles.cardLabel}>Dilation proxy</span>
+                    <strong className={styles.metricValue}>
+                      {Math.round((latest?.protocolNotes?.camera?.eyeDilationProxy ?? 0) * 100)}%
+                    </strong>
+                  </article>
+                </div>
+
+                <div className={styles.cameraQuickGrid}>
+                  {cameraInsights.findings.slice(0, 4).map((finding) => (
+                    <article key={finding} className={styles.cameraQuickCard}>
+                      <p className={styles.cardText}>{finding}</p>
+                    </article>
+                  ))}
+                </div>
+
+                <div className={styles.cameraRanges}>
+                  {cameraInsights.rangeSummaries.map((range) => (
+                    <article key={range.key} className={styles.cameraRangeCard}>
+                      <span className={styles.rangeLabel}>{range.label}</span>
+                      <div className={styles.cameraRangeStats}>
+                        <span>{range.blinkRatePerMin}/min blinks</span>
+                        <span>{Math.round(range.facialTension * 100)}% tension</span>
+                        <span>{Math.round(range.eyeOpenness * 100)}% openness</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <div className={styles.cameraPromptList}>
+                  {cameraInsights.promptMetrics.map((prompt) => (
+                    <article key={prompt.id} className={styles.cameraPromptCard}>
+                      <div>
+                        <span className={styles.rangeLabel}>{prompt.rangeLabel ?? "Prompt"}</span>
+                        <h3 className={styles.cameraPromptTitle}>{prompt.title}</h3>
+                      </div>
+                      <div className={styles.cameraPromptStats}>
+                        <span>{prompt.camera.blinkRatePerMin}/min</span>
+                        <span>{Math.round(prompt.camera.facialTension * 100)}% tension</span>
+                        <span>{Math.round(prompt.camera.eyeOpenness * 100)}% openness</span>
+                      </div>
+                    </article>
+                  ))}
                 </div>
               </section>
             ) : null}
