@@ -6,10 +6,13 @@ import ResonanceResultsDashboard from "../../components/ResonanceResultsDashboar
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { LOCAL_SCAN_KEY } from "../../lib/localSession";
 import { buildSoulScopeReport, type SoulScopeReport } from "../../lib/buildSoulScopeReport";
+import { persistCanonicalReport } from "../../lib/reportPersistence";
+import { saveFavoriteStory } from "../../lib/reportPersistence";
 import { type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
 import styles from "./ResultsIndex.module.css";
 
 type ScanResult = VoiceAnalysisResult & {
+  id?: string;
   face?: {
     emotion: string;
     focusScore: number;
@@ -82,7 +85,7 @@ export default function ResultsPage() {
         const { data, error: scanError } = await withTimeout(
           supabase
             .from("scans")
-            .select("result")
+            .select("id, result")
             .eq("user_id", userData.user.id)
             .order("id", { ascending: false })
             .limit(1)
@@ -107,7 +110,7 @@ export default function ResultsPage() {
           return;
         }
 
-        setLatest(data.result as ScanResult);
+        setLatest({ id: data.id, ...(data.result as VoiceAnalysisResult) });
       } catch (err) {
         console.error("Fatal error loading results", err);
         const localLatest = loadLocalLatest();
@@ -130,6 +133,24 @@ export default function ResultsPage() {
     () => storyCandidates.find((candidate) => candidate.style === selectedStoryStyle) ?? storyCandidates[0] ?? null,
     [storyCandidates, selectedStoryStyle]
   );
+
+  useEffect(() => {
+    if (!report || !latest?.id) return;
+
+    void (async () => {
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData?.user) return;
+        await persistCanonicalReport(supabase, {
+          scanId: latest.id as string,
+          userId: userData.user.id,
+          report,
+        });
+      } catch (persistError) {
+        console.error("Failed to backfill canonical resonance report", persistError);
+      }
+    })();
+  }, [latest?.id, report]);
 
   useEffect(() => {
     if (!storyCandidates.length) return;
@@ -164,6 +185,23 @@ export default function ResultsPage() {
     } catch {
       // ignore storage failures
     }
+
+    if (!selected || !latest?.id) return;
+    void (async () => {
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData?.user) return;
+        await saveFavoriteStory(supabase, {
+          scanId: latest.id as string,
+          userId: userData.user.id,
+          style: selected.style,
+          title: selected.title,
+          summary: selected.summary,
+        });
+      } catch (persistError) {
+        console.error("Failed to persist story preference", persistError);
+      }
+    })();
   };
 
   return (

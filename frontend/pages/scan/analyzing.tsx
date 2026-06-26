@@ -17,6 +17,8 @@ import {
   mergeVoiceAnalyses,
   type VoiceAnalysisResult,
 } from "../../lib/voiceSpectrum";
+import { buildSoulScopeReport } from "../../lib/buildSoulScopeReport";
+import { persistCanonicalReport } from "../../lib/reportPersistence";
 import { LOCAL_SCAN_KEY, LOCAL_SCAN_LIST_KEY } from "../../lib/localSession";
 import {
   GUIDED_SCAN_QUESTIONS,
@@ -352,6 +354,17 @@ export default function ScanAnalyzingPage() {
             if (insertResponse.error || !insertResponse.data) {
               console.error("Failed to insert guided scan row", insertResponse.error);
               return;
+            }
+
+            try {
+              const report = buildSoulScopeReport(result as VoiceAnalysisResult);
+              await persistCanonicalReport(supabase, {
+                scanId: insertResponse.data.id,
+                userId: userData.user.id,
+                report,
+              });
+            } catch (persistError) {
+              console.error("Failed to persist canonical resonance report", persistError);
             }
 
             if (typeof window !== "undefined") {

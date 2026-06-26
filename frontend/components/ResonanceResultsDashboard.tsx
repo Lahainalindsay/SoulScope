@@ -9,6 +9,11 @@ type ResonanceResultsDashboardProps = {
   selectedStoryStyle?: "Direct" | "Supportive" | "Insight" | null;
 };
 
+function safeLines(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
+
 export default function ResonanceResultsDashboard({
   report,
   hiddenNotes = [],
@@ -23,12 +28,32 @@ export default function ResonanceResultsDashboard({
     <section className={styles.section}>
       <section className={styles.heroCard}>
         <div className={styles.heroCopy}>
-          <p className={styles.eyebrow}>Current Story</p>
+          <p className={styles.eyebrow}>Primary Pattern</p>
           <h2 className={styles.title}>{report.primaryPattern.name}</h2>
           <p className={styles.lead}>{report.primaryPattern.theme}</p>
           <p className={styles.noteText}>{report.primaryPattern.explanation}</p>
         </div>
       </section>
+
+      {report.supportingPattern || report.emergingPattern ? (
+        <section className={styles.patternStrip}>
+          {report.supportingPattern ? (
+            <article className={styles.patternCard}>
+              <p className={styles.noteStatus}>Supporting Pattern</p>
+              <h3 className={styles.patternTitle}>{report.supportingPattern.name}</h3>
+              <p className={styles.patternTheme}>{report.supportingPattern.theme}</p>
+            </article>
+          ) : null}
+
+          {report.emergingPattern ? (
+            <article className={styles.patternCard}>
+              <p className={styles.noteStatus}>Emerging Pattern</p>
+              <h3 className={styles.patternTitle}>{report.emergingPattern.name}</h3>
+              <p className={styles.patternTheme}>{report.emergingPattern.theme}</p>
+            </article>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className={styles.notesSection}>
         <div className={styles.notesHeader}>
@@ -61,13 +86,13 @@ export default function ResonanceResultsDashboard({
                 <h3 className={styles.noteName}>{candidate.title}</h3>
                 <p className={styles.noteTheme}>{candidate.summary}</p>
                 <p className={styles.noteExpression}>
-                  Strongest available resources: {candidate.strongestResources.join(" • ")}
+                  Strongest available resources: {safeLines(candidate.strongestResources).join(" • ")}
                 </p>
                 <p className={styles.noteExpression}>
-                  Areas working hardest: {candidate.areasWorkingHard.join(" • ")}
+                  Areas working hardest: {safeLines(candidate.areasWorkingHard).join(" • ")}
                 </p>
                 <p className={styles.noteExpression}>
-                  Areas asking for support: {candidate.areasAskingForSupport.join(" • ")}
+                  Areas asking for support: {safeLines(candidate.areasAskingForSupport).join(" • ")}
                 </p>
               </article>
             );
@@ -78,52 +103,111 @@ export default function ResonanceResultsDashboard({
       <section className={styles.notesSection}>
         <div className={styles.notesHeader}>
           <div>
-            <p className={styles.eyebrow}>Your Resonance Map</p>
-            <h2 className={styles.mapTitle}>What this scan is saying together</h2>
+            <p className={styles.eyebrow}>Current Story</p>
+            <h2 className={styles.mapTitle}>What this may be reflecting right now</h2>
             <p className={styles.lead}>
-              The cards below translate the current scan into human-centered domains. They are grouped from
-              the same underlying data, not separate conclusions.
+              The cards below translate the same scan into lived experience. They are not competing truths;
+              they are different ways of reading one result.
             </p>
           </div>
         </div>
 
+        <div className={styles.storyGrid}>
+          <article className={styles.storyCard}>
+            <p className={styles.noteStatus}>What this may feel like</p>
+            <ul className={styles.storyList}>
+              {safeLines(report.primaryPattern.whatThisMayFeelLike).map((item) => (
+                <li key={item} className={styles.storyItem}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </article>
+
+          <article className={styles.storyCard}>
+            <p className={styles.noteStatus}>What is supporting the system</p>
+            <ul className={styles.storyList}>
+              {safeLines(report.primaryPattern.supportiveFactors).map((item) => (
+                <li key={item} className={styles.storyItem}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </article>
+
+          <article className={styles.storyCard}>
+            <p className={styles.noteStatus}>What is working hardest</p>
+            <ul className={styles.storyList}>
+              {safeLines(report.primaryPattern.whatIsWorkingHardest).map((item) => (
+                <li key={item} className={styles.storyItem}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </article>
+
+          <article className={styles.storyCard}>
+            <p className={styles.noteStatus}>What deserves attention first</p>
+            <p className={styles.noteText}>{report.primaryPattern.whatNeedsAttention}</p>
+          </article>
+        </div>
+      </section>
+
+      <section className={styles.notesSection}>
+        <div className={styles.notesHeader}>
+          <div>
+            <p className={styles.eyebrow}>Human-Centered Domains</p>
+            <h2 className={styles.mapTitle}>What this means in daily life</h2>
+          </div>
+        </div>
+
         <div className={styles.domainGrid}>
-          {report.domainResults.map((domain) => (
-            <article key={domain.title} className={styles.domainCard}>
-              <div className={styles.noteTop}>
-                <div>
-                  <p className={styles.noteStatus}>{domain.title}</p>
-                  <h3 className={styles.domainState}>{domain.functionalState}</h3>
+          {(report.domainResults ?? []).map((domain) => {
+            const couldExpressAs = safeLines(domain.thisCouldExpressAs);
+            const alsoShowUpAs = safeLines(domain.itCanAlsoShowUpAs);
+
+            return (
+              <article key={domain.title} className={styles.domainCard}>
+                <div className={styles.noteTop}>
+                  <div>
+                    <p className={styles.noteStatus}>{domain.title}</p>
+                    <h3 className={styles.domainState}>{domain.functionalState}</h3>
+                  </div>
+                  <span className={styles.domainActivity}>{domain.activityLevel}</span>
                 </div>
-                <span className={styles.domainActivity}>{domain.activityLevel}</span>
-              </div>
-              <p className={styles.domainPattern}>{domain.currentPattern}</p>
 
-              <div className={styles.domainSection}>
-                <p className={styles.domainSectionLabel}>This Could Express As</p>
-                <ul className={styles.domainList}>
-                  {domain.thisCouldExpressAs.map((line) => (
-                    <li key={line} className={styles.domainListItem}>
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                <p className={styles.domainPattern}>{domain.currentPattern}</p>
 
-              <div className={styles.domainSection}>
-                <p className={styles.domainSectionLabel}>It Can Also Show Up As</p>
-                <ul className={styles.domainList}>
-                  {domain.itCanAlsoShowUpAs.map((line) => (
-                    <li key={line} className={styles.domainListItem}>
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                {couldExpressAs.length > 0 ? (
+                  <div className={styles.domainSection}>
+                    <p className={styles.domainSectionLabel}>This Could Express As</p>
+                    <ul className={styles.domainList}>
+                      {couldExpressAs.map((line) => (
+                        <li key={line} className={styles.domainListItem}>
+                          {line}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
 
-              <p className={styles.domainReframe}>{domain.supportiveReframe}</p>
-            </article>
-          ))}
+                {alsoShowUpAs.length > 0 ? (
+                  <div className={styles.domainSection}>
+                    <p className={styles.domainSectionLabel}>It Can Also Show Up As</p>
+                    <ul className={styles.domainList}>
+                      {alsoShowUpAs.map((line) => (
+                        <li key={line} className={styles.domainListItem}>
+                          {line}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                <p className={styles.domainReframe}>{domain.supportiveReframe}</p>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -152,7 +236,7 @@ export default function ResonanceResultsDashboard({
             <article className={styles.technicalCard}>
               <p className={styles.sectionLabel}>What Influenced This Observation</p>
               <ul className={styles.technicalList}>
-                {report.evidence.topNotes.length ? (
+                {(report.evidence.topNotes ?? []).length ? (
                   report.evidence.topNotes.map((entry) => (
                     <li key={`${entry.note}-${entry.score}`}>
                       {entry.note} {entry.score}% ({entry.system})
@@ -167,7 +251,7 @@ export default function ResonanceResultsDashboard({
             <article className={styles.technicalCard}>
               <p className={styles.sectionLabel}>Evidence</p>
               <ul className={styles.technicalList}>
-                {report.evidence.dimensions.length ? (
+                {(report.evidence.dimensions ?? []).length ? (
                   report.evidence.dimensions.map((dimension) => (
                     <li key={dimension.name}>
                       {dimension.name} - {dimension.band} - {dimension.interpretation}

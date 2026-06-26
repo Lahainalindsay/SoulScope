@@ -963,6 +963,20 @@ function buildDomainCopy(title: UserResultDomainName, tone: ReturnType<typeof to
   }
 }
 
+function normalizeDomainCopy(copy: {
+  currentPattern: string;
+  thisCouldExpressAs?: string[];
+  itCanAlsoShowUpAs?: string[];
+  supportiveReframe?: string;
+}) {
+  return {
+    currentPattern: copy.currentPattern,
+    thisCouldExpressAs: Array.isArray(copy.thisCouldExpressAs) ? copy.thisCouldExpressAs.filter(Boolean) : [],
+    itCanAlsoShowUpAs: Array.isArray(copy.itCanAlsoShowUpAs) ? copy.itCanAlsoShowUpAs.filter(Boolean) : [],
+    supportiveReframe: typeof copy.supportiveReframe === "string" ? copy.supportiveReframe : "",
+  };
+}
+
 function buildDomainNarrative(scan: VoiceAnalysisResult, definition: DomainDefinition): UserResultDomain {
   const scoreValue = buildUserResultDomainScore(scan, definition.notes);
   const stats = getDomainSignalStats(scan, definition.notes);
@@ -972,7 +986,7 @@ function buildDomainNarrative(scan: VoiceAnalysisResult, definition: DomainDefin
     supportCount: stats.underactive + stats.balanced,
     dominantMode: definition.mode,
   });
-  const copy = buildDomainCopy(definition.title, toneFromState(functionalState));
+  const copy = normalizeDomainCopy(buildDomainCopy(definition.title, toneFromState(functionalState)));
 
   return {
     title: definition.title,

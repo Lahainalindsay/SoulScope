@@ -4,6 +4,13 @@
   margin-top: 24px;
 }
 
+.patternStrip,
+.storyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
 .heroCard,
 .mapSection,
 .noteCard {
@@ -136,6 +143,14 @@
     rgba(255, 255, 255, 0.04);
 }
 
+.patternCard,
+.storyCard {
+  padding: 20px;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .domainCard {
   padding: 22px;
   border-radius: 28px;
@@ -209,6 +224,19 @@
   color: rgba(226, 232, 240, 0.78);
 }
 
+.patternTitle {
+  margin: 10px 0 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.patternTheme {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(226, 232, 240, 0.78);
+}
+
 .noteText {
   font-size: 15px;
   line-height: 1.8;
@@ -236,12 +264,20 @@
 }
 
 .domainList,
+.storyList,
 .technicalList {
   margin: 10px 0 0;
   padding-left: 18px;
 }
 
 .domainListItem {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.storyItem {
   margin-top: 6px;
   font-size: 14px;
   line-height: 1.7;
@@ -336,6 +372,11 @@
   }
 
   .topNotesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .patternStrip,
+  .storyGrid {
     grid-template-columns: 1fr;
   }
 

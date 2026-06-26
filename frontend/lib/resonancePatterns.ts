@@ -97,6 +97,26 @@ function clampScore(value: number) {
   return Math.max(0, Math.min(1, value));
 }
 
+function summarizeDomainRoles(domainResults: UserResultDomain[]) {
+  const resources = domainResults
+    .filter((domain) => domain.functionalState === "Highly Engaged" || domain.functionalState === "Readily Available")
+    .sort((a, b) => b.score - a.score);
+  const workingHard = domainResults
+    .filter((domain) => domain.functionalState === "Working Hard" || domain.functionalState === "Under Pressure")
+    .sort((a, b) => b.score - a.score);
+  const askingSupport = domainResults
+    .filter((domain) => domain.functionalState === "Asking for Support" || domain.functionalState === "Recovering" || domain.functionalState === "Less Accessible")
+    .sort((a, b) => a.score - b.score);
+
+  return {
+    resources,
+    workingHard,
+    askingSupport,
+    dominantResource: resources[0],
+    dominantLoad: workingHard[0] ?? askingSupport[0],
+  };
+}
+
 const PATTERN_LIBRARY: PatternDefinition[] = [
   {
     id: "overextended-achiever",
@@ -312,31 +332,67 @@ function rankPatterns(scan: VoiceAnalysisResult) {
     .sort((a, b) => b.confidence - a.confidence);
 }
 
-function buildStoryCandidates(primary: PatternMatch): UserResultStoryCandidate[] {
+function buildStoryCandidates(report: {
+  primaryPattern: PatternMatch;
+  supportingPattern?: PatternMatch;
+  emergingPattern?: PatternMatch;
+  domainResults: UserResultDomain[];
+}): UserResultStoryCandidate[] {
+  const { dominantResource, dominantLoad, resources, workingHard, askingSupport } = summarizeDomainRoles(
+    report.domainResults
+  );
+  const loadTitle = dominantLoad?.title ?? report.primaryPattern.name;
+  const resourceTitle = dominantResource?.title;
+
   return [
     {
       style: "Direct",
-      title: primary.name,
-      summary: primary.explanation,
-      strongestResources: primary.supportiveFactors,
-      areasWorkingHard: primary.whatIsWorkingHardest,
-      areasAskingForSupport: [primary.whatNeedsAttention],
+      title:
+        loadTitle === "Recovery & Restoration"
+          ? "Recovery may not be keeping pace with demand."
+          : loadTitle === "Communication & Clarity"
+          ? "Communication appears active but under strain."
+          : loadTitle === "Focus & Mental Load"
+          ? "Mental load is asking for more space."
+          : `${loadTitle} appears to be working harder than usual.`,
+      summary: `${report.primaryPattern.explanation} ${dominantLoad ? `The clearest friction is showing up in ${dominantLoad.title.toLowerCase()}.` : "The scan suggests the main pattern is still centered on how effort and recovery are interacting."}`,
+      strongestResources: resources.slice(0, 2).map((domain) => domain.title),
+      areasWorkingHard: workingHard.slice(0, 2).map((domain) => domain.title),
+      areasAskingForSupport: askingSupport.slice(0, 2).map((domain) => domain.title),
     },
     {
       style: "Supportive",
-      title: `${primary.name} — Supportive Framing`,
-      summary: `${primary.theme} This pattern often appears when a system is still trying to function well while asking for a different kind of support.`,
-      strongestResources: primary.supportiveFactors,
-      areasWorkingHard: primary.whatIsWorkingHardest,
-      areasAskingForSupport: [primary.whatNeedsAttention],
+      title:
+        resourceTitle === "Connection & Support"
+          ? "Your system is carrying more than it shows."
+          : resourceTitle === "Direction & Adaptability"
+          ? "You are moving forward while carrying tension."
+          : resourceTitle === "Communication & Clarity"
+          ? "There is capacity here, but it is being used."
+          : "Strength is present, but so is strain.",
+      summary:
+        report.supportingPattern?.theme ??
+        `You are still showing up, and several areas remain available. ${dominantLoad ? `${dominantLoad.title} appears to be carrying more than usual` : "Some parts of the system still need more space"} while the stronger domains continue to help keep you moving.`,
+      strongestResources: resources.slice(0, 2).map((domain) => domain.title),
+      areasWorkingHard: workingHard.slice(0, 2).map((domain) => domain.title),
+      areasAskingForSupport: askingSupport.slice(0, 2).map((domain) => domain.title),
     },
     {
       style: "Insight",
-      title: `${primary.name} — Reflective Framing`,
-      summary: `Your current scan most closely resembles ${primary.name}. The deeper story here is not simply about strong or weak scores, but about how effort, recovery, and responsiveness are interacting right now.`,
-      strongestResources: primary.supportiveFactors,
-      areasWorkingHard: primary.whatIsWorkingHardest,
-      areasAskingForSupport: [primary.whatNeedsAttention],
+      title:
+        dominantLoad?.title === "Recovery & Restoration" || dominantLoad?.title === "Focus & Mental Load"
+          ? "Capability and restoration are currently out of balance."
+          : dominantLoad?.title === "Communication & Clarity"
+          ? "Communication is active, but effortful."
+          : resourceTitle === "Direction & Adaptability" && dominantLoad?.title === "Connection & Support"
+          ? "Support and momentum are out of sync."
+          : "The challenge is load, not lack of ability.",
+      summary:
+        report.emergingPattern?.explanation ??
+        `The dominant pattern is imbalance between output and restoration: ${resources.length ? resources.map((domain) => domain.title).slice(0, 2).join(" and ") : "your stronger domains"} remain usable, while ${workingHard.length ? workingHard.map((domain) => domain.title).slice(0, 2).join(" and ") : "several other areas"} are spending more energy than usual.`,
+      strongestResources: resources.slice(0, 2).map((domain) => domain.title),
+      areasWorkingHard: workingHard.slice(0, 2).map((domain) => domain.title),
+      areasAskingForSupport: askingSupport.slice(0, 2).map((domain) => domain.title),
     },
   ];
 }
@@ -345,44 +401,47 @@ export function buildSoulScopeReport(scan: VoiceAnalysisResult): SoulScopeReport
   const dimensions = buildSystemDimensions(scan);
   const domainResults = buildUserResultDomains(scan);
   const ranked = rankPatterns(scan);
+  const primaryRank = ranked[0];
+  const supportingRank = ranked[1];
+  const emergingRank = ranked[2];
 
   const primaryPattern: PatternMatch = {
-    id: ranked[0].id,
-    name: ranked[0].name,
-    theme: ranked[0].theme,
-    explanation: ranked[0].explanation,
-    whatThisMayFeelLike: ranked[0].whatThisMayFeelLike,
-    supportiveFactors: ranked[0].supportiveFactors,
-    whatIsWorkingHardest: ranked[0].whatIsWorkingHardest,
-    whatNeedsAttention: ranked[0].whatNeedsAttention,
-    confidence: ranked[0].confidence,
+    id: primaryRank.id,
+    name: primaryRank.name,
+    theme: primaryRank.theme,
+    explanation: primaryRank.explanation,
+    whatThisMayFeelLike: primaryRank.whatThisMayFeelLike,
+    supportiveFactors: primaryRank.supportiveFactors,
+    whatIsWorkingHardest: primaryRank.whatIsWorkingHardest,
+    whatNeedsAttention: primaryRank.whatNeedsAttention,
+    confidence: primaryRank.confidence,
   };
 
-  const supporting = ranked[1]?.confidence > 0.2
+  const supporting = supportingRank?.confidence > 0.2
     ? {
-        id: ranked[1].id,
-        name: ranked[1].name,
-        theme: ranked[1].theme,
-        explanation: ranked[1].explanation,
-        whatThisMayFeelLike: ranked[1].whatThisMayFeelLike,
-        supportiveFactors: ranked[1].supportiveFactors,
-        whatIsWorkingHardest: ranked[1].whatIsWorkingHardest,
-        whatNeedsAttention: ranked[1].whatNeedsAttention,
-        confidence: ranked[1].confidence,
+        id: supportingRank.id,
+        name: supportingRank.name,
+        theme: supportingRank.theme,
+        explanation: supportingRank.explanation,
+        whatThisMayFeelLike: supportingRank.whatThisMayFeelLike,
+        supportiveFactors: supportingRank.supportiveFactors,
+        whatIsWorkingHardest: supportingRank.whatIsWorkingHardest,
+        whatNeedsAttention: supportingRank.whatNeedsAttention,
+        confidence: supportingRank.confidence,
       }
     : undefined;
 
-  const emerging = ranked[2]?.confidence > 0.15
+  const emerging = emergingRank?.confidence > 0.15
     ? {
-        id: ranked[2].id,
-        name: ranked[2].name,
-        theme: ranked[2].theme,
-        explanation: ranked[2].explanation,
-        whatThisMayFeelLike: ranked[2].whatThisMayFeelLike,
-        supportiveFactors: ranked[2].supportiveFactors,
-        whatIsWorkingHardest: ranked[2].whatIsWorkingHardest,
-        whatNeedsAttention: ranked[2].whatNeedsAttention,
-        confidence: ranked[2].confidence,
+        id: emergingRank.id,
+        name: emergingRank.name,
+        theme: emergingRank.theme,
+        explanation: emergingRank.explanation,
+        whatThisMayFeelLike: emergingRank.whatThisMayFeelLike,
+        supportiveFactors: emergingRank.supportiveFactors,
+        whatIsWorkingHardest: emergingRank.whatIsWorkingHardest,
+        whatNeedsAttention: emergingRank.whatNeedsAttention,
+        confidence: emergingRank.confidence,
       }
     : undefined;
 
@@ -391,7 +450,12 @@ export function buildSoulScopeReport(scan: VoiceAnalysisResult): SoulScopeReport
     supportingPattern: supporting,
     emergingPattern: emerging,
     domainResults,
-    storyCandidates: buildStoryCandidates(primaryPattern),
+    storyCandidates: buildStoryCandidates({
+      primaryPattern,
+      supportingPattern: supporting,
+      emergingPattern: emerging,
+      domainResults,
+    }),
     evidence: {
       noteEnergies: scan.noteEnergies ?? [],
       topNotes: topSignals(scan),

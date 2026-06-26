@@ -6,6 +6,8 @@ import Link from "next/link";
 import ResonanceResultsDashboard from "../../components/ResonanceResultsDashboard";
 import { supabase } from "../../lib/supabaseClient";
 import { buildSoulScopeReport, type SoulScopeReport } from "../../lib/buildSoulScopeReport";
+import { persistCanonicalReport } from "../../lib/reportPersistence";
+import { saveFavoriteStory } from "../../lib/reportPersistence";
 import { type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
 import styles from "./ResultDetail.module.css";
 
@@ -92,6 +94,24 @@ export default function ResultDetailPage() {
   );
 
   useEffect(() => {
+    if (!report || typeof id !== "string") return;
+
+    void (async () => {
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData?.user) return;
+        await persistCanonicalReport(supabase, {
+          scanId: id,
+          userId: userData.user.id,
+          report,
+        });
+      } catch (persistError) {
+        console.error("Failed to backfill canonical resonance report", persistError);
+      }
+    })();
+  }, [id, report]);
+
+  useEffect(() => {
     if (!storyCandidates.length || typeof id !== "string") return;
 
     const storageKey = `${STORY_PREFERENCE_PREFIX}${id}`;
@@ -126,6 +146,23 @@ export default function ResultDetailPage() {
     } catch {
       // ignore storage failures
     }
+
+    if (!selected) return;
+    void (async () => {
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData?.user) return;
+        await saveFavoriteStory(supabase, {
+          scanId: id,
+          userId: userData.user.id,
+          style: selected.style,
+          title: selected.title,
+          summary: selected.summary,
+        });
+      } catch (persistError) {
+        console.error("Failed to persist story preference", persistError);
+      }
+    })();
   };
 
   return (
