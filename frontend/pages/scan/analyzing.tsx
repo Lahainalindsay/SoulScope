@@ -386,7 +386,7 @@ export default function ScanAnalyzingPage() {
           }
         })();
 
-        void router.replace("/results");
+        void router.replace("/dashboard");
       } catch (analysisError) {
         console.error("Guided scan analysis failed", analysisError);
         setError(
@@ -403,7 +403,7 @@ export default function ScanAnalyzingPage() {
   return (
     <>
       <Head>
-        <title>Building Insights | SoulScope</title>
+        <title>Building Your Pattern Report | SoulScope</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -412,7 +412,7 @@ export default function ScanAnalyzingPage() {
         <main className={styles.shell}>
           <section className={styles.panel}>
             <article className={styles.heroCard}>
-              <p className={styles.eyebrow}>Building Insights</p>
+              <p className={styles.eyebrow}>Building Pattern Report</p>
               <h1 className={styles.title}>Mapping your current resonance…</h1>
               <p className={styles.lead}>
                 Translating your voice patterns into a whole-self view of clarity, expression, load,
@@ -445,7 +445,7 @@ export default function ScanAnalyzingPage() {
                 </div>
                 <div className={styles.progressCard}>
                   <span className={styles.cardLabel}>Step 3</span>
-                  <strong className={styles.progressValue}>Insights</strong>
+                  <strong className={styles.progressValue}>Pattern Report</strong>
                   <p className={styles.progressText}>
                     Translating complex voice data into language you can use.
                   </p>

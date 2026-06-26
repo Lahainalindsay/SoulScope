@@ -87,7 +87,7 @@ export default function ResultDetailPage() {
   }, [id]);
 
   const report = useMemo(() => (scan ? buildSoulScopeReport(scan) : null), [scan]);
-  const storyCandidates = report?.storyCandidates ?? [];
+  const storyCandidates = useMemo(() => report?.storyCandidates ?? [], [report]);
   const selectedStory = useMemo(
     () => storyCandidates.find((candidate) => candidate.style === selectedStoryStyle) ?? storyCandidates[0] ?? null,
     [storyCandidates, selectedStoryStyle]
@@ -169,7 +169,7 @@ export default function ResultDetailPage() {
     <div className={styles.page}>
       <div className={styles.gridOverlay} />
       <main className={styles.shell}>
-        {loading ? <div className={styles.stateCard}>Retrieving your resonance insights...</div> : null}
+        {loading ? <div className={styles.stateCard}>Retrieving your latest insight...</div> : null}
         {!loading && error ? <div className={`${styles.stateCard} ${styles.stateError}`}>{error}</div> : null}
         {!loading && !error && !report ? (
           <div className={styles.stateCard}>No insight found for this report.</div>
@@ -187,12 +187,12 @@ export default function ResultDetailPage() {
             <section className={styles.footerNote}>
               <p>
                 SoulScope uses voice as the sensing mechanism and translates observed tendencies into a
-                whole-self Resonance Report.
+                private human pattern interpretation.
               </p>
               <p>{scan?.caution}</p>
               <div className={styles.footerAction}>
                 <Link href="/scan" className={styles.primaryButton}>
-                  Run New Resonance Scan
+                  Start New Scan
                 </Link>
               </div>
             </section>

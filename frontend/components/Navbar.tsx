@@ -10,8 +10,7 @@ import styles from "./Navbar.module.css";
 
 const NAV_ITEMS = [
   { href: "/scan", label: "Resonance Scan" },
-  { href: "/results", label: "Insights" },
-  { href: "/history", label: "Trends" },
+  { href: "/dashboard", label: "Pattern History" },
   { href: "/how-it-works", label: "How it works" },
 ];
 
@@ -53,13 +52,15 @@ export default function Navbar() {
           <div className={styles.mark}>S</div>
           <div>
             <p className={styles.brandTitle}>SoulScope™</p>
-            <p className={styles.brandSub}>Whole-Self Resonance Analysis</p>
+            <p className={styles.brandSub}>Private Human Pattern Interpretation</p>
           </div>
         </Link>
 
         <div className={styles.links}>
           {NAV_ITEMS.map((item) => {
-            const isActive = router.pathname === item.href || router.pathname.startsWith(`${item.href}/`);
+            const isDashboardHistory =
+              item.href === "/dashboard" && (router.pathname === "/dashboard" || router.pathname === "/history");
+            const isActive = isDashboardHistory || router.pathname === item.href || router.pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
