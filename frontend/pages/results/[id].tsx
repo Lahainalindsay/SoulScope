@@ -172,7 +172,7 @@ export default function ResultDetailPage() {
         {loading ? <div className={styles.stateCard}>Retrieving your latest insight...</div> : null}
         {!loading && error ? <div className={`${styles.stateCard} ${styles.stateError}`}>{error}</div> : null}
         {!loading && !error && !report ? (
-          <div className={styles.stateCard}>No insight found for this report.</div>
+          <div className={styles.stateCard}>No pattern report found for this scan.</div>
         ) : null}
 
         {!loading && !error && report ? (
@@ -187,7 +187,7 @@ export default function ResultDetailPage() {
             <section className={styles.footerNote}>
               <p>
                 SoulScope uses voice as the sensing mechanism and translates observed tendencies into a
-                private human pattern interpretation.
+                private human pattern interpretation system.
               </p>
               <p>{scan?.caution}</p>
               <div className={styles.footerAction}>

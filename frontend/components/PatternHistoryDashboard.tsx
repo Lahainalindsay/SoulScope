@@ -206,6 +206,7 @@ export default function PatternHistoryDashboard() {
   }, [preferences, scans]);
 
   const latestEntry = historyEntries[0] ?? null;
+  const heroTitle = latestEntry?.report.primaryPattern.name ?? "Your Pattern History";
   const primaryCta = latestEntry?.scan.id
     ? { href: `/results/${latestEntry.scan.id}`, label: "Open Latest Insight" }
     : { href: "/scan", label: "Start New Scan" };
@@ -263,7 +264,7 @@ export default function PatternHistoryDashboard() {
       <main className={styles.shell}>
         <section className={styles.hero}>
           <p className={styles.eyebrow}>Dashboard</p>
-          <h1 className={styles.title}>Your Pattern History</h1>
+          <h1 className={styles.title}>{heroTitle}</h1>
           <p className={styles.lead}>
             One scan. One coherent interpretation. Review the pattern your system is expressing, and follow
             how it changes over time.
@@ -291,7 +292,7 @@ export default function PatternHistoryDashboard() {
                 <p className={styles.latestText}>{latestEntry.selectedSummary}</p>
                 <div className={styles.metaRow}>
                   <span className={styles.metaItem}>
-                    Preferred reading <strong>{latestEntry.selectedStyle ?? "Direct"}</strong>
+                    Summary style <strong>{latestEntry.selectedStyle ?? "Direct"}</strong>
                   </span>
                   <span className={styles.metaItem}>
                     Pattern <strong>{latestEntry.report.primaryPattern.name}</strong>
@@ -299,7 +300,7 @@ export default function PatternHistoryDashboard() {
                   <span className={styles.metaItem}>{new Date(latestEntry.scan.created_at).toLocaleString()}</span>
                 </div>
                 <p className={styles.historySummary}>
-                  Supporting signal reference:{" "}
+                  Supporting marker:{" "}
                   {latestEntry.scan.result.noteInterpretation?.primaryNote ?? latestEntry.scan.result.dominantBandLabel ?? "—"}
                 </p>
                 <Link href={latestEntry.scan.id ? `/results/${latestEntry.scan.id}` : "/dashboard"} className={styles.primaryButton}>
@@ -453,7 +454,7 @@ export default function PatternHistoryDashboard() {
               <div className={styles.historyHeader}>
                 <div>
                   <p className={styles.sectionEyebrow}>Pattern History</p>
-                  <h2 className={styles.historyTitle}>Recent Patterns</h2>
+                  <h2 className={styles.historyTitle}>Pattern History</h2>
                 </div>
               </div>
 
@@ -476,7 +477,7 @@ export default function PatternHistoryDashboard() {
                               background: `${getSoulScopeNoteColor(supportingNote)}12`,
                             }}
                           >
-                            Signal reference {supportingNote}
+                            Reference marker {supportingNote}
                           </span>
                           <span className={styles.historyPill}>{entry.selectedStyle ?? "Direct"}</span>
                         </div>

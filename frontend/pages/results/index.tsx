@@ -12,7 +12,7 @@ export default function ResultsIndexPage() {
 
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "white" }}>
-      Loading dashboard...
+      Loading pattern history...
     </div>
   );
 }
