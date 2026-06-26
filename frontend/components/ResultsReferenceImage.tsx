@@ -26,8 +26,8 @@ function getToneClass(status: SpectrumBandResult["status"]) {
 
 export default function ResultsReferenceImage({
   bands,
-  title = "Frequency note reference",
-  subtitle = "Measured bands are mapped here against their approximate musical note regions.",
+  title = "Resonance Profile reference",
+  subtitle = "Measured pattern groups are mapped here against their note-based organizing model.",
 }: ResultsReferenceImageProps) {
   if (!bands.length) return null;
 
@@ -45,7 +45,7 @@ export default function ResultsReferenceImage({
         <div className={styles.imageShell}>
           <Image
             src="/soulscopetonevisual.png"
-            alt="SoulScope frequency and tone reference visual"
+            alt="SoulScope resonance profile reference visual"
             width={1200}
             height={1200}
             className={styles.image}

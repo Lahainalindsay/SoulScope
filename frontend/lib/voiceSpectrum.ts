@@ -45,6 +45,16 @@ export type VoiceDynamics = {
   pitchRangeSemitones: number;
   pitchStability: number;
   pitchClarity: number;
+  jitterLocalPct?: number;
+  shimmerLocalPct?: number;
+  harmonicToNoiseRatioDb?: number;
+  harmonicRichness?: number;
+  spectralFlatness?: number;
+  zeroCrossingRate?: number;
+  pauseDensityPerMin?: number;
+  speechRateProxyPerMin?: number;
+  formantStability?: number;
+  formantDynamics?: number;
   clippingFrameRatio: number;
   captureQuality: "poor" | "fair" | "good";
   captureRecommendation: string;
@@ -97,6 +107,7 @@ export type VoiceAnalysisResult = {
       prompt: string;
       rationale: string;
       durationMs?: number;
+      captureKind?: "sustained_vowel" | "guided_speech";
       camera?: {
         blinkRatePerMin: number;
         facialTension: number;
@@ -127,6 +138,8 @@ export type VoiceAnalysisResult = {
   chakraScores?: Record<string, number>;
   dominant?: string;
   voiceDynamics?: VoiceDynamics;
+  captureKind?: "sustained_vowel" | "guided_speech";
+  captureDurationMs?: number;
 };
 
 type RawBandConfig = {
@@ -385,6 +398,86 @@ function estimatePitchHz(
   };
 }
 
+function calculateLocalJitterPct(pitches: number[]) {
+  if (pitches.length < 3) return 0;
+  const periods = pitches.map((hz) => 1 / Math.max(hz, 1));
+  const meanPeriod = periods.reduce((sum, value) => sum + value, 0) / periods.length;
+  const meanDifference =
+    periods.slice(1).reduce((sum, value, index) => sum + Math.abs(value - (periods[index] ?? value)), 0) /
+    (periods.length - 1);
+
+  return meanPeriod > 0 ? (meanDifference / meanPeriod) * 100 : 0;
+}
+
+function calculateLocalShimmerPct(rmsValues: number[]) {
+  if (rmsValues.length < 3) return 0;
+  const meanRms = rmsValues.reduce((sum, value) => sum + value, 0) / rmsValues.length;
+  const meanDifference =
+    rmsValues.slice(1).reduce((sum, value, index) => sum + Math.abs(value - (rmsValues[index] ?? value)), 0) /
+    (rmsValues.length - 1);
+
+  return meanRms > 0 ? (meanDifference / meanRms) * 100 : 0;
+}
+
+function calculateHnrDb(clarities: number[]) {
+  if (!clarities.length) return 0;
+  const clarity = clamp01(clarities.reduce((sum, value) => sum + value, 0) / clarities.length);
+  if (clarity <= 0) return 0;
+  if (clarity >= 0.999) return 30;
+  return 10 * Math.log10(clarity / Math.max(1 - clarity, 1e-6));
+}
+
+function estimateFormantLikePeaks(amplitudeSpectrum: Float32Array, sampleRate: number, frameSize: number) {
+  const binHz = sampleRate / frameSize;
+  const ranges: [number, number][] = [
+    [300, 900],
+    [900, 2500],
+    [2500, 3500],
+  ];
+
+  return ranges.map(([lowHz, highHz]) => {
+    const lowBin = Math.max(1, Math.floor(lowHz / binHz));
+    const highBin = Math.min(amplitudeSpectrum.length - 1, Math.ceil(highHz / binHz));
+    let strongestBin = lowBin;
+    let strongestValue = 0;
+
+    for (let bin = lowBin; bin <= highBin; bin += 1) {
+      const value = amplitudeSpectrum[bin] ?? 0;
+      if (value > strongestValue) {
+        strongestValue = value;
+        strongestBin = bin;
+      }
+    }
+
+    return strongestBin * binHz;
+  });
+}
+
+function coefficientOfVariation(values: number[]) {
+  if (values.length < 2) return 0;
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  if (!mean) return 0;
+  const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
+  return Math.sqrt(variance) / mean;
+}
+
+function calculateFormantStats(formantFrames: number[][]) {
+  if (formantFrames.length < 3) {
+    return { stability: 0, dynamics: 0 };
+  }
+
+  const formantVariability = [0, 1, 2].map((index) =>
+    coefficientOfVariation(formantFrames.map((frame) => frame[index] ?? 0).filter(Boolean))
+  );
+  const averageVariability =
+    formantVariability.reduce((sum, value) => sum + value, 0) / Math.max(formantVariability.length, 1);
+
+  return {
+    stability: clamp01(1 - averageVariability * 3),
+    dynamics: clamp01(averageVariability * 4),
+  };
+}
+
 function summarizeFindings(
   dominantBand: SpectrumBandResult,
   missingBands: SpectrumBandResult[],
@@ -499,7 +592,13 @@ function buildSupportPlan(
   return plan;
 }
 
-export async function analyzeVoiceSpectrum(blob: Blob): Promise<VoiceAnalysisResult> {
+export async function analyzeVoiceSpectrum(
+  blob: Blob,
+  options: {
+    captureKind?: "sustained_vowel" | "guided_speech";
+    captureDurationMs?: number;
+  } = {}
+): Promise<VoiceAnalysisResult> {
   const AudioContextCtor =
     window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
 
@@ -539,6 +638,8 @@ export async function analyzeVoiceSpectrum(blob: Blob): Promise<VoiceAnalysisRes
     const trackedPitches: number[] = [];
     const trackedMidis: number[] = [];
     const trackedClarities: number[] = [];
+    const voicedRmsValues: number[] = [];
+    const formantFrames: number[][] = [];
 
     for (let start = 0; start + frameSize <= mono.length; start += hopSize) {
       const frame = mono.slice(start, start + frameSize);
@@ -603,6 +704,8 @@ export async function analyzeVoiceSpectrum(blob: Blob): Promise<VoiceAnalysisRes
       }
 
       voicedFrameCount += 1;
+      voicedRmsValues.push(frameRms);
+      formantFrames.push(estimateFormantLikePeaks(features.amplitudeSpectrum, decoded.sampleRate, frameSize));
 
       const trackedPitch = estimatePitchHz(frame, decoded.sampleRate);
       if (
@@ -730,8 +833,18 @@ export async function analyzeVoiceSpectrum(blob: Blob): Promise<VoiceAnalysisRes
     const pitchStability = hasTrackedPitch
       ? clamp01(1 - Math.sqrt(pitchVariance) / Math.max(medianPitchHz ?? 1, 1))
       : 0;
+    const formantStats = calculateFormantStats(formantFrames);
     const activeFrameRatio = clamp01(activeFrameCount / Math.max(frameCount, 1));
     const clippingFrameRatio = clamp01(clippingFrameCount / Math.max(frameCount, 1));
+    const voicedRunCount = voicedFlags.reduce((count, isVoiced, index) => {
+      const previousVoiced = index > 0 ? voicedFlags[index - 1] : false;
+      return isVoiced && !previousVoiced ? count + 1 : count;
+    }, 0);
+    const analyzedMinutes = (frameCount * frameDurationMs) / 60000;
+    const pauseDensityPerMin = analyzedMinutes > 0 ? pauseDurations.length / analyzedMinutes : 0;
+    const speechRateProxyPerMin = analyzedMinutes > 0 ? voicedRunCount / analyzedMinutes : 0;
+    const spectralFlatness = flatnessTotal / Math.max(analysisFrameCount, 1);
+    const zeroCrossingRate = zcrTotal / Math.max(analysisFrameCount, 1);
     const averagePitchClarity = round(
       trackedPitches.length ? pitchClarityTotal / trackedPitches.length : 0,
       3
@@ -773,6 +886,16 @@ export async function analyzeVoiceSpectrum(blob: Blob): Promise<VoiceAnalysisRes
       pitchRangeSemitones,
       pitchStability: round(pitchStability, 3),
       pitchClarity: averagePitchClarity,
+      jitterLocalPct: round(calculateLocalJitterPct(trackedPitches), 2),
+      shimmerLocalPct: round(calculateLocalShimmerPct(voicedRmsValues), 2),
+      harmonicToNoiseRatioDb: round(calculateHnrDb(trackedClarities), 1),
+      harmonicRichness: round(clamp01(1 - spectralFlatness), 3),
+      spectralFlatness: round(spectralFlatness, 3),
+      zeroCrossingRate: round(zeroCrossingRate, 3),
+      pauseDensityPerMin: round(pauseDensityPerMin, 1),
+      speechRateProxyPerMin: round(speechRateProxyPerMin, 1),
+      formantStability: round(formantStats.stability, 3),
+      formantDynamics: round(formantStats.dynamics, 3),
       clippingFrameRatio,
       captureQuality,
       captureRecommendation,
@@ -837,6 +960,8 @@ export async function analyzeVoiceSpectrum(blob: Blob): Promise<VoiceAnalysisRes
       caution:
         "These findings combine measured voice features with SoulScope's proprietary note-meaning interpretation model. They are non-diagnostic and not a medical assessment.",
       voiceDynamics,
+      captureKind: options.captureKind,
+      captureDurationMs: options.captureDurationMs,
     };
   } finally {
     void audioContext.close();
@@ -897,10 +1022,60 @@ export function mergeVoiceAnalyses(results: VoiceAnalysisResult[]): VoiceAnalysi
     (sum, result) => sum + (result.voiceDynamics?.pauseCount ?? 0),
     0
   );
+  const metricWeight = (
+    result: VoiceAnalysisResult,
+    key: string
+  ) => {
+    const kindWeight = result.captureKind === "sustained_vowel" ? 1.35 : 1;
+    if (result.captureKind === "sustained_vowel") {
+      if (
+        key === "jitterLocalPct" ||
+        key === "shimmerLocalPct" ||
+        key === "harmonicToNoiseRatioDb" ||
+        key === "pitchStability" ||
+        key === "pitchClarity" ||
+        key === "medianPitchHz" ||
+        key === "pitchRangeHz" ||
+        key === "pitchRangeSemitones" ||
+        key === "lowPitchHz" ||
+        key === "highPitchHz" ||
+        key === "medianMidi"
+      ) {
+        return kindWeight * 1.45;
+      }
+      if (key === "pauseDensityPerMin" || key === "speechRateProxyPerMin") {
+        return kindWeight * 0.75;
+      }
+      return kindWeight;
+    }
+
+    if (
+      key === "pauseDensityPerMin" ||
+      key === "speechRateProxyPerMin" ||
+      key === "voicedFrameRatio" ||
+      key === "activeFrameRatio" ||
+      key === "formantStability" ||
+      key === "formantDynamics" ||
+      key === "spectralFlatness" ||
+      key === "zeroCrossingRate"
+    ) {
+      return kindWeight * 1.2;
+    }
+
+    return kindWeight;
+  };
   const weightedDurationValue = (
     key:
       | "activeFrameRatio"
       | "voicedFrameRatio"
+      | "shimmerLocalPct"
+      | "harmonicRichness"
+      | "spectralFlatness"
+      | "zeroCrossingRate"
+      | "pauseDensityPerMin"
+      | "speechRateProxyPerMin"
+      | "formantStability"
+      | "formantDynamics"
       | "clippingFrameRatio"
   ) => {
     if (!analyzedDurationMs) return 0;
@@ -908,7 +1083,7 @@ export function mergeVoiceAnalyses(results: VoiceAnalysisResult[]): VoiceAnalysi
       results.reduce((sum, result) => {
         const weight = result.voiceDynamics?.analyzedDurationMs ?? 0;
         const value = result.voiceDynamics?.[key] ?? 0;
-        return sum + value * weight;
+        return sum + value * weight * metricWeight(result, key);
       }, 0) / analyzedDurationMs
     );
   };
@@ -922,13 +1097,15 @@ export function mergeVoiceAnalyses(results: VoiceAnalysisResult[]): VoiceAnalysi
       | "pitchRangeSemitones"
       | "pitchStability"
       | "pitchClarity"
+      | "jitterLocalPct"
+      | "harmonicToNoiseRatioDb"
   ) => {
     if (!pitchFrameCount) return 0;
     return (
       results.reduce((sum, result) => {
         const weight = result.voiceDynamics?.pitchFrameCount ?? 0;
         const value = result.voiceDynamics?.[key] ?? 0;
-        return sum + value * weight;
+        return sum + value * weight * metricWeight(result, key);
       }, 0) / pitchFrameCount
     );
   };
@@ -962,6 +1139,16 @@ export function mergeVoiceAnalyses(results: VoiceAnalysisResult[]): VoiceAnalysi
     pitchRangeSemitones: round(weightedPitchValue("pitchRangeSemitones"), 1),
     pitchStability: round(weightedPitchValue("pitchStability"), 3),
     pitchClarity: round(weightedPitchValue("pitchClarity"), 3),
+    jitterLocalPct: round(weightedPitchValue("jitterLocalPct"), 2),
+    shimmerLocalPct: round(weightedDurationValue("shimmerLocalPct"), 2),
+    harmonicToNoiseRatioDb: round(weightedPitchValue("harmonicToNoiseRatioDb"), 1),
+    harmonicRichness: round(weightedDurationValue("harmonicRichness"), 3),
+    spectralFlatness: round(weightedDurationValue("spectralFlatness"), 3),
+    zeroCrossingRate: round(weightedDurationValue("zeroCrossingRate"), 3),
+    pauseDensityPerMin: round(weightedDurationValue("pauseDensityPerMin"), 1),
+    speechRateProxyPerMin: round(weightedDurationValue("speechRateProxyPerMin"), 1),
+    formantStability: round(weightedDurationValue("formantStability"), 3),
+    formantDynamics: round(weightedDurationValue("formantDynamics"), 3),
     clippingFrameRatio: round(weightedDurationValue("clippingFrameRatio"), 3),
     captureQuality:
       weightedDurationValue("activeFrameRatio") >= 0.72 && weightedPitchValue("pitchClarity") >= 0.7

@@ -1,4 +1,5 @@
 import { getSoulScopeNoteColor } from "../lib/noteSystem";
+import { getResonanceSystemLabel } from "../lib/resonanceLanguage";
 import styles from "./PitchReferenceCard.module.css";
 
 type PitchReferenceCardProps = {
@@ -21,10 +22,6 @@ function noteToOctave(frequencyHz: number) {
   return Math.floor(Math.round(midi) / 12) - 1;
 }
 
-function nextOctaveFrequency(frequencyHz: number) {
-  return Math.round(frequencyHz * 2 * 100) / 100;
-}
-
 export default function PitchReferenceCard({
   note,
   frequencyHz,
@@ -45,15 +42,14 @@ export default function PitchReferenceCard({
   return (
     <section className={styles.card} style={{ "--accent": accent } as React.CSSProperties}>
       <div className={styles.copy}>
-        <p className={styles.eyebrow}>Pitch Reference</p>
+        <p className={styles.eyebrow}>Core Resonance Reference</p>
         <h2 className={styles.title}>
-          {noteWithOctave} at {frequencyHz.toFixed(1)} Hz
+          {getResonanceSystemLabel(note)}
         </h2>
         <p className={styles.lead}>
-          The letter tells you the note family. The number tells you the octave or register. Each
-          time the octave number goes up, the frequency doubles. So if your center is {noteWithOctave} at{" "}
-          {frequencyHz.toFixed(1)} Hz, the same note one octave up would be about{" "}
-          {nextOctaveFrequency(frequencyHz).toFixed(2)} Hz.
+          The note remains visible as an internal organizing marker, while the human-system meaning
+          stays primary. This signal may indicate which pattern is most available in the current
+          Resonance Profile.
         </p>
       </div>
 
@@ -117,8 +113,8 @@ export default function PitchReferenceCard({
         </div>
 
         <div className={styles.meta}>
-          <span className={styles.metaPill}>Core note {noteWithOctave}</span>
-          <span className={styles.metaPill}>Measured center {frequencyHz.toFixed(1)} Hz</span>
+          <span className={styles.metaPill}>Core Resonance {getResonanceSystemLabel(note)}</span>
+          <span className={styles.metaPill}>Internal note marker {noteWithOctave}</span>
           <span className={styles.metaPill}>Octave {octave}</span>
         </div>
       </div>

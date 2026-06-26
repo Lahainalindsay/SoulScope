@@ -3,32 +3,41 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { useUser } from "@supabase/auth-helpers-react";
 import { supabase } from "../lib/supabaseClient";
 import { clearLocalDevSession, getLocalDevSession } from "../lib/localSession";
 import styles from "./Navbar.module.css";
 
 const NAV_ITEMS = [
-  { href: "/scan", label: "Scan" },
-  { href: "/results", label: "Results" },
-  { href: "/history", label: "History" },
+  { href: "/scan", label: "Resonance Scan" },
+  { href: "/results", label: "Insights" },
+  { href: "/history", label: "Trends" },
   { href: "/how-it-works", label: "How it works" },
 ];
 
 export default function Navbar() {
+  const user = useUser();
   const [email, setEmail] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (data?.user?.email) {
-        setEmail(data.user.email);
-        return;
-      }
-      if (error || !data?.user) {
-        setEmail(getLocalDevSession()?.email ?? null);
-      }
+    if (user?.email) {
+      setEmail(user.email);
+      return;
+    }
+
+    supabase.auth.getUser().then(({ data }) => {
+      setEmail(data?.user?.email ?? getLocalDevSession()?.email ?? null);
     });
-  }, []);
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setEmail(session?.user?.email ?? getLocalDevSession()?.email ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [user?.email]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -44,7 +53,7 @@ export default function Navbar() {
           <div className={styles.mark}>S</div>
           <div>
             <p className={styles.brandTitle}>SoulScope™</p>
-            <p className={styles.brandSub}>Voice Frequency Profile</p>
+            <p className={styles.brandSub}>Whole-Self Resonance Analysis</p>
           </div>
         </Link>
 

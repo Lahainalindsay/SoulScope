@@ -160,6 +160,36 @@
   text-align: center;
 }
 
+.mobileGuideRow {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mobileGuideCard {
+  padding: 14px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  text-align: left;
+}
+
+.mobileGuideLabel {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.76);
+}
+
+.mobileGuideValue {
+  display: block;
+  margin-top: 10px;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
 .liveBadge {
   display: inline-flex;
   align-items: center;
@@ -463,31 +493,118 @@
 
 @media (max-width: 760px) {
   .shell {
-    padding: 28px 14px 40px;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 14px calc(36px + env(safe-area-inset-bottom, 0px));
   }
 
   .header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .statusPill {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding: 12px 14px;
+  }
+
+  .stepperRow {
+    justify-content: flex-start;
+    margin: 0 -14px 18px;
+    padding: 0 14px 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .stepperRow::-webkit-scrollbar {
+    display: none;
   }
 
   .heroInner {
-    padding: 22px;
+    padding: 18px;
   }
 
   .orbShell {
-    min-height: 320px;
+    min-height: 248px;
+    border-radius: 24px;
+  }
+
+  .orbFrame {
+    width: min(100%, 260px);
+    padding: 12px;
   }
 
   .controlRow {
     flex-direction: column;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .recordMeta {
+    width: 100%;
+    justify-items: stretch;
   }
 
   .title {
-    font-size: 36px;
+    font-size: 30px;
+    line-height: 1;
   }
 
   .subtitle {
-    font-size: 15px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .promptText {
+    font-size: 25px;
+    line-height: 1.3;
+  }
+
+  .timeBadge {
+    align-self: flex-start;
+    font-size: 20px;
+  }
+
+  .cameraPanel,
+  .cameraMetricCard {
+    border-radius: 20px;
+  }
+
+  .cameraNote,
+  .ctaHint {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 560px) {
+  .mobileGuideRow {
+    grid-template-columns: 1fr;
+  }
+
+  .heroCard {
+    border-radius: 28px;
+  }
+
+  .liveBadge {
+    align-self: stretch;
+    justify-content: center;
+  }
+
+  .promptText {
+    font-size: 22px;
+  }
+
+  .cameraGrid {
+    gap: 14px;
+  }
+
+  .cameraPanel {
+    padding: 14px;
+  }
+
+  .cameraMetrics {
+    grid-template-columns: 1fr;
   }
 }

@@ -22,72 +22,116 @@ export type RecorderHandle = {
   stop: () => void;
 };
 
-const LIVE_SIGNAL_GAIN = 3.2;
+const LIVE_SIGNAL_GAIN = 1.4;
+
+function mergeBuffers(buffers: Float32Array[], totalLength: number) {
+  const merged = new Float32Array(totalLength);
+  let offset = 0;
+
+  buffers.forEach((buffer) => {
+    merged.set(buffer, offset);
+    offset += buffer.length;
+  });
+
+  return merged;
+}
+
+function encodeWav(samples: Float32Array, sampleRate: number) {
+  const bytesPerSample = 2;
+  const blockAlign = bytesPerSample;
+  const buffer = new ArrayBuffer(44 + samples.length * bytesPerSample);
+  const view = new DataView(buffer);
+
+  const writeString = (offset: number, value: string) => {
+    for (let i = 0; i < value.length; i += 1) {
+      view.setUint8(offset + i, value.charCodeAt(i));
+    }
+  };
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + samples.length * bytesPerSample, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, 16, true);
+  writeString(36, "data");
+  view.setUint32(40, samples.length * bytesPerSample, true);
+
+  let offset = 44;
+  for (let i = 0; i < samples.length; i += 1) {
+    const sample = Math.max(-1, Math.min(1, samples[i] ?? 0));
+    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+    offset += bytesPerSample;
+  }
+
+  return new Blob([buffer], { type: "audio/wav" });
+}
 
 const Recorder = forwardRef<RecorderHandle, RecorderProps>(
   ({ durationMs, onComplete, onRecordingStateChange, hideTrigger = false, onSignalSample }, ref) => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [hasFinished, setHasFinished] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [hasFinished, setHasFinished] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
+    const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const processorRef = useRef<ScriptProcessorNode | null>(null);
+    const rafRef = useRef<number | null>(null);
+    const pcmChunksRef = useRef<Float32Array[]>([]);
+    const pcmLengthRef = useRef(0);
+    const stopTimeoutRef = useRef<number | null>(null);
+    const isRecordingRef = useRef(false);
+    const sampleRateRef = useRef(48000);
 
-  const stopSignalAnalysis = useCallback(() => {
-    if (rafRef.current) {
-      window.cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
+    const cleanup = useCallback(() => {
+      if (rafRef.current) {
+        window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
 
-    try {
+      if (stopTimeoutRef.current) {
+        window.clearTimeout(stopTimeoutRef.current);
+        stopTimeoutRef.current = null;
+      }
+
+      processorRef.current?.disconnect();
       sourceRef.current?.disconnect();
-    } catch {}
-
-    try {
       analyserRef.current?.disconnect();
-    } catch {}
+      streamRef.current?.getTracks().forEach((track) => track.stop());
 
-    sourceRef.current = null;
-    analyserRef.current = null;
+      processorRef.current = null;
+      sourceRef.current = null;
+      analyserRef.current = null;
+      streamRef.current = null;
 
-    if (audioContextRef.current) {
-      void audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-  }, []);
+      if (audioContextRef.current) {
+        void audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+    }, []);
 
-  const startSignalAnalysis = useCallback(
-    (stream: MediaStream) => {
-      if (!onSignalSample) return;
-
-      const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioCtx) return;
-
-      const audioContext = new AudioCtx();
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-
-      analyser.fftSize = 4096;
-      analyser.smoothingTimeConstant = 0.85;
-
-      source.connect(analyser);
-
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
-      sourceRef.current = source;
+    const emitLiveSignal = useCallback(() => {
+      const analyser = analyserRef.current;
+      const audioContext = audioContextRef.current;
+      if (!analyser || !audioContext || !onSignalSample) return;
 
       const freqBuffer = new Uint8Array(analyser.frequencyBinCount);
       const timeBuffer = new Uint8Array(analyser.fftSize);
 
       const tick = () => {
-        if (!analyserRef.current || !audioContextRef.current) return;
+        const liveAnalyser = analyserRef.current;
+        const liveContext = audioContextRef.current;
+        if (!liveAnalyser || !liveContext) return;
 
-        analyser.getByteFrequencyData(freqBuffer);
-        analyser.getByteTimeDomainData(timeBuffer);
+        liveAnalyser.getByteFrequencyData(freqBuffer);
+        liveAnalyser.getByteTimeDomainData(timeBuffer);
 
         let sumSquares = 0;
         for (let i = 0; i < timeBuffer.length; i += 1) {
@@ -97,10 +141,13 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(
         const rms = Math.min(1, Math.sqrt(sumSquares / timeBuffer.length) * LIVE_SIGNAL_GAIN);
         const dbfs = 20 * Math.log10(Math.max(rms, 1e-8));
 
-        const sampleRate = audioContext.sampleRate;
-        const binCount = analyser.frequencyBinCount;
+        const sampleRate = liveContext.sampleRate;
+        const binCount = liveAnalyser.frequencyBinCount;
         const nyquist = sampleRate / 2;
-        const energy = Object.fromEntries(NOTE_ORDER.map((note) => [note, 0])) as Record<(typeof NOTE_ORDER)[number], number>;
+        const energy = Object.fromEntries(NOTE_ORDER.map((note) => [note, 0])) as Record<
+          (typeof NOTE_ORDER)[number],
+          number
+        >;
 
         for (let i = 1; i < freqBuffer.length; i += 1) {
           const frequency = (i / binCount) * nyquist;
@@ -127,107 +174,136 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(
       };
 
       rafRef.current = window.requestAnimationFrame(tick);
-    },
-    [onSignalSample]
-  );
+    }, [onSignalSample]);
 
-  const startRecording = useCallback(async () => {
-    try {
-      setError(null);
-      setHasFinished(false);
+    const stopRecording = useCallback(() => {
+      if (!isRecordingRef.current) return;
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1,
-        },
-      });
-      const mediaRecorder = new MediaRecorder(stream);
-      startSignalAnalysis(stream);
+      isRecordingRef.current = false;
+      setIsRecording(false);
+      setHasFinished(true);
+      onRecordingStateChange?.(false);
 
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
+      const merged = mergeBuffers(pcmChunksRef.current, pcmLengthRef.current);
+      const blob = encodeWav(merged, sampleRateRef.current);
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunksRef.current.push(event.data);
-      };
+      cleanup();
+      pcmChunksRef.current = [];
+      pcmLengthRef.current = 0;
 
-      mediaRecorder.onerror = (event: any) => {
-        console.error("MediaRecorder error", event);
-        const message = event?.error?.message ?? event?.message ?? "Recorder error";
-        setError(message);
+      onComplete?.(blob);
+    }, [cleanup, onComplete, onRecordingStateChange]);
+
+    const startRecording = useCallback(async () => {
+      try {
+        setError(null);
+        setHasFinished(false);
+        pcmChunksRef.current = [];
+        pcmLengthRef.current = 0;
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            channelCount: 1,
+            sampleRate: 48000,
+            sampleSize: 16,
+          },
+        });
+
+        const AudioCtx =
+          window.AudioContext ||
+          (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+        if (!AudioCtx) {
+          throw new Error("This browser does not support audio capture.");
+        }
+
+        const audioContext = new AudioCtx({ sampleRate: 48000 });
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+        analyser.fftSize = 4096;
+        analyser.smoothingTimeConstant = 0.85;
+
+        source.connect(analyser);
+        source.connect(processor);
+        processor.connect(audioContext.destination);
+
+        processor.onaudioprocess = (event) => {
+          if (!isRecordingRef.current) return;
+
+          const input = event.inputBuffer.getChannelData(0);
+          const copy = new Float32Array(input.length);
+          copy.set(input);
+          pcmChunksRef.current.push(copy);
+          pcmLengthRef.current += copy.length;
+        };
+
+        streamRef.current = stream;
+        audioContextRef.current = audioContext;
+        analyserRef.current = analyser;
+        sourceRef.current = source;
+        processorRef.current = processor;
+        sampleRateRef.current = audioContext.sampleRate;
+        isRecordingRef.current = true;
+
+        setIsRecording(true);
+        onRecordingStateChange?.(true);
+        emitLiveSignal();
+
+        if (typeof durationMs === "number" && durationMs > 0) {
+          stopTimeoutRef.current = window.setTimeout(() => {
+            stopRecording();
+          }, durationMs);
+        }
+      } catch (err: any) {
+        console.error("startRecording error:", err);
+        setError(err?.message ?? "Failed to access microphone");
         setIsRecording(false);
         setHasFinished(false);
         onRecordingStateChange?.(false);
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        chunksRef.current = [];
-        stream.getTracks().forEach((track) => track.stop());
-        stopSignalAnalysis();
-
-        setIsRecording(false);
-        setHasFinished(true);
-        onRecordingStateChange?.(false);
-
-        onComplete?.(blob);
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      onRecordingStateChange?.(true);
-
-      if (typeof durationMs === "number" && durationMs > 0) {
-        setTimeout(() => {
-          if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-            mediaRecorderRef.current.stop();
-          }
-        }, durationMs);
+        cleanup();
       }
-    } catch (err: any) {
-      console.error("startRecording error:", err);
-      setError(err?.message ?? "Failed to access microphone");
-      setIsRecording(false);
-      setHasFinished(false);
-      onRecordingStateChange?.(false);
-      stopSignalAnalysis();
-    }
-  }, [durationMs, onComplete, onRecordingStateChange, startSignalAnalysis, stopSignalAnalysis]);
+    }, [cleanup, durationMs, emitLiveSignal, onRecordingStateChange, stopRecording]);
 
-  useImperativeHandle(
-    ref,
-    () => ({
-      start: () => {
-        if (!isRecording) {
-          startRecording();
-        }
-      },
-      stop: () => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-          mediaRecorderRef.current.stop();
-        }
-      },
-    }),
-    [isRecording, startRecording]
-  );
+    useImperativeHandle(
+      ref,
+      () => ({
+        start: () => {
+          if (!isRecordingRef.current) {
+            void startRecording();
+          }
+        },
+        stop: () => {
+          stopRecording();
+        },
+      }),
+      [startRecording, stopRecording]
+    );
 
-  return (
-    <div className="flex flex-col items-center gap-2">
-      {!hideTrigger && (
-        <button type="button" onClick={startRecording} disabled={isRecording} className="rounded-full border px-4 py-2">
-          {isRecording ? "Listening…" : "Start scan"}
-        </button>
-      )}
+    return (
+      <div className="flex flex-col items-center gap-2">
+        {!hideTrigger && (
+          <button
+            type="button"
+            onClick={() => void startRecording()}
+            disabled={isRecording}
+            className="rounded-full border px-4 py-2"
+          >
+            {isRecording ? "Listening…" : "Start Resonance Scan"}
+          </button>
+        )}
 
-      {isRecording && <p className="text-xs text-gray-500">Recording in progress…</p>}
-      {hasFinished && !isRecording && <p className="text-xs text-emerald-500">Recording complete. Analyzing…</p>}
-      {error && <p className="text-xs text-red-500">{error}</p>}
-    </div>
-  );
-});
+        {isRecording && <p className="text-xs text-gray-500">Recording in progress…</p>}
+        {hasFinished && !isRecording && <p className="text-xs text-emerald-500">Recording complete. Analyzing…</p>}
+        {error && <p className="text-xs text-red-500">{error}</p>}
+      </div>
+    );
+  }
+);
 
 Recorder.displayName = "Recorder";
 

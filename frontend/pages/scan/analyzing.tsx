@@ -17,7 +17,7 @@ import {
   mergeVoiceAnalyses,
   type VoiceAnalysisResult,
 } from "../../lib/voiceSpectrum";
-import { getLocalDevSession, LOCAL_SCAN_KEY, LOCAL_SCAN_LIST_KEY } from "../../lib/localSession";
+import { LOCAL_SCAN_KEY, LOCAL_SCAN_LIST_KEY } from "../../lib/localSession";
 import {
   GUIDED_SCAN_QUESTIONS,
   RESEARCH_REFERENCES,
@@ -37,6 +37,8 @@ type InsertedScanRow = {
 };
 
 const CLOUD_REQUEST_TIMEOUT_MS = 4500;
+const ANALYSIS_REQUEST_TIMEOUT_MS = 15000;
+const ENABLE_ANALYSIS_FALLBACK = false;
 
 async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string) {
   return await new Promise<T>((resolve, reject) => {
@@ -95,7 +97,7 @@ function buildFallbackResult(
 
   return {
     summary:
-      "We captured your scan, but the signal was too low for a full spectral read. This fallback result keeps the flow moving while indicating that the next scan should be recorded louder and closer to the mic.",
+      "We captured your Resonance Scan, but the signal was too low for a full pattern read. This fallback result keeps the flow moving while indicating that the next Resonance Scan should be recorded louder and closer to the mic.",
     coreFrequencyHz: 185,
     spectralCentroidHz: 980,
     resonanceScore: 0.42,
@@ -112,11 +114,11 @@ function buildFallbackResult(
     excessBands: [],
     findings: [
       "The capture reached the app, but the recorded level was too low for reliable voiced-frame analysis.",
-      "A fallback result was generated so the scan can complete instead of stalling on the analyzing screen.",
+      "A fallback result was generated so the Resonance Scan can complete instead of stalling on the analyzing screen.",
       reason ?? "Retry with the microphone closer to your mouth and speak in a steady conversational voice.",
     ],
     supportPlan: [
-      "Retry the scan in a quieter room with the microphone closer to your mouth.",
+      "Retry the Resonance Scan in a quieter room with the microphone closer to your mouth.",
       "Speak continuously for each prompt instead of pausing for long stretches.",
       "If you are using a headset or Bluetooth mic, switch to the built-in microphone for comparison.",
     ],
@@ -129,7 +131,7 @@ function buildFallbackResult(
       progression: noteProfile.progression,
     },
     methodology:
-      "Fallback completion path used when the guided scan cannot extract enough voiced signal for a full spectrum analysis.",
+      "Fallback completion path used when the Resonance Scan cannot extract enough voiced signal for a full pattern analysis.",
     caution:
       "This fallback result indicates capture quality was insufficient for the full analysis. It is not a measured voice-spectrum reading.",
     voiceDynamics: {
@@ -152,6 +154,16 @@ function buildFallbackResult(
       pitchRangeSemitones: 0,
       pitchStability: 0,
       pitchClarity: 0,
+      jitterLocalPct: 0,
+      shimmerLocalPct: 0,
+      harmonicToNoiseRatioDb: 0,
+      harmonicRichness: 0,
+      spectralFlatness: 1,
+      zeroCrossingRate: 0,
+      pauseDensityPerMin: 0,
+      speechRateProxyPerMin: 0,
+      formantStability: 0,
+      formantDynamics: 0,
       clippingFrameRatio: 0,
       captureQuality: "poor",
       captureRecommendation:
@@ -163,15 +175,16 @@ function buildFallbackResult(
       overview: SCAN_OVERVIEW_LINES,
       camera: averageCameraMetrics(cameraCaptures) ?? undefined,
       cameraBaseline: cameraBaseline ?? undefined,
-      prompts: GUIDED_SCAN_QUESTIONS.map((question, index) => ({
-        id: question.id,
-        title: question.title,
-        rangeLabel: question.rangeLabel,
-        prompt: question.prompt,
-        rationale: question.rationale,
-        durationMs: answers[index]?.durationMs,
-        camera: cameraCaptures[index]
-          ? {
+        prompts: GUIDED_SCAN_QUESTIONS.map((question, index) => ({
+          id: question.id,
+          title: question.title,
+          rangeLabel: question.rangeLabel,
+          prompt: question.prompt,
+          rationale: question.rationale,
+          durationMs: answers[index]?.durationMs,
+          captureKind: question.captureKind,
+          camera: cameraCaptures[index]
+            ? {
               blinkRatePerMin: cameraCaptures[index].blinkRatePerMin,
               facialTension: cameraCaptures[index].facialTension,
               eyeDilationProxy: cameraCaptures[index].eyeDilationProxy,
@@ -210,7 +223,16 @@ export default function ScanAnalyzingPage() {
 
       try {
         const settled = await Promise.allSettled(
-          answers.map((answer) => analyzeVoiceSpectrum(answer.blob))
+          answers.map((answer, index) =>
+            withTimeout(
+              analyzeVoiceSpectrum(answer.blob, {
+                captureKind: GUIDED_SCAN_QUESTIONS[index]?.captureKind,
+                captureDurationMs: answer.durationMs,
+              }),
+              ANALYSIS_REQUEST_TIMEOUT_MS,
+              `Voice analysis for ${answer.questionId}`
+            )
+          )
         );
         const analyses = settled
           .filter((result): result is PromiseFulfilledResult<VoiceAnalysisResult> => result.status === "fulfilled")
@@ -224,7 +246,12 @@ export default function ScanAnalyzingPage() {
         );
         const merged = analyses.length === 1 ? analyses[0] : analyses.length > 1 ? mergeVoiceAnalyses(analyses) : null;
 
-        const result: SavedScanResult = merged
+        const fallbackReason =
+          analysisFailure?.reason instanceof Error
+            ? analysisFailure.reason.message
+            : "Not enough prompt responses were analyzable for the full Resonance Scan.";
+
+        const result: SavedScanResult | null = merged
           ? {
               ...merged,
               cymaticReference: buildCymaticReference(merged.noteInterpretation?.primaryNote),
@@ -239,6 +266,7 @@ export default function ScanAnalyzingPage() {
                   prompt: question.prompt,
                   rationale: question.rationale,
                   durationMs: answers[index]?.durationMs,
+                  captureKind: question.captureKind,
                   camera: cameraCaptures[index]
                     ? {
                         blinkRatePerMin: cameraCaptures[index].blinkRatePerMin,
@@ -263,14 +291,14 @@ export default function ScanAnalyzingPage() {
               },
               created_at: new Date().toISOString(),
             }
-          : buildFallbackResult(
-              answers,
-              cameraCaptures,
-              cameraBaseline,
-              analysisFailure?.reason instanceof Error
-                ? analysisFailure.reason.message
-                : "Not enough prompt responses were analyzable for the full scan."
-            );
+          : ENABLE_ANALYSIS_FALLBACK
+          ? buildFallbackResult(answers, cameraCaptures, cameraBaseline, fallbackReason)
+          : null;
+
+        if (!result) {
+          setError(`Analysis did not produce a usable result: ${fallbackReason}`);
+          return;
+        }
 
         if (typeof window !== "undefined") {
           window.localStorage.setItem(LOCAL_SCAN_KEY, JSON.stringify(result));
@@ -282,102 +310,76 @@ export default function ScanAnalyzingPage() {
           );
         }
 
-        const localSession = getLocalDevSession();
-        const finishLocally = () => {
-          resetGuidedScanSession();
-          void router.replace("/results");
-        };
-
-        if (localSession) {
-          finishLocally();
-          return;
-        }
-
-        let userData: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"] | null = null;
-        let userError: Awaited<ReturnType<typeof supabase.auth.getUser>>["error"] | null = null;
-
-        try {
-          const authResponse = await withTimeout(
-            supabase.auth.getUser(),
-            CLOUD_REQUEST_TIMEOUT_MS,
-            "Supabase auth"
-          );
-          userData = authResponse.data;
-          userError = authResponse.error;
-        } catch (authError) {
-          console.error("Timed out loading Supabase user for guided scan", authError);
-          finishLocally();
-          return;
-        }
-
-        if (userError || !userData?.user) {
-          finishLocally();
-          return;
-        }
-
-        let insertedScan: InsertedScanRow | null = null;
-        let insertError: Error | null = null;
-
-        try {
-          const insertResponse = await withTimeout<{
-            data: InsertedScanRow | null;
-            error: Error | null;
-          }>(
-            supabase
-              .from("scans")
-              .insert({
-                user_id: userData.user.id,
-                result: {
-                  ...result,
-                  scanMeta: {
-                    startedAt: getGuidedScanStartedAt(),
-                    completedAt: new Date().toISOString(),
-                    source: "authenticated",
-                  },
-                },
-              })
-              .select("id, created_at")
-              .single(),
-            CLOUD_REQUEST_TIMEOUT_MS,
-            "Supabase scan save"
-          );
-          insertedScan = insertResponse.data;
-          insertError = insertResponse.error;
-        } catch (saveError) {
-          console.error("Timed out saving guided scan row", saveError);
-          finishLocally();
-          return;
-        }
-
-        if (insertError || !insertedScan) {
-          console.error("Failed to insert guided scan row", insertError);
-          finishLocally();
-          return;
-        }
-
-        if (typeof window !== "undefined") {
-          const savedResult = {
-            ...result,
-            id: insertedScan.id,
-            created_at: insertedScan.created_at,
-          };
-          window.localStorage.setItem(LOCAL_SCAN_KEY, JSON.stringify(savedResult));
-          const existing = window.localStorage.getItem(LOCAL_SCAN_LIST_KEY);
-          const parsed = existing ? (JSON.parse(existing) as SavedScanResult[]) : [];
-          window.localStorage.setItem(
-            LOCAL_SCAN_LIST_KEY,
-            JSON.stringify([savedResult, ...parsed.filter((scan) => scan.id !== savedResult.id)].slice(0, 10))
-          );
-        }
-
         resetGuidedScanSession();
-        void router.replace(`/results/${insertedScan.id}`);
+
+        void (async () => {
+          try {
+            const authResponse = await withTimeout(
+              supabase.auth.getUser(),
+              CLOUD_REQUEST_TIMEOUT_MS,
+              "Supabase auth"
+            );
+            const userData = authResponse.data;
+            const userError = authResponse.error;
+            if (userError || !userData?.user) {
+              console.error(userError?.message ?? "No Supabase user is signed in. Result was not saved to Supabase.");
+              return;
+            }
+
+            const insertResponse = await withTimeout<{
+              data: InsertedScanRow | null;
+              error: Error | null;
+            }>(
+              supabase
+                .from("scans")
+                .insert({
+                  user_id: userData.user.id,
+                  result: {
+                    ...result,
+                    scanMeta: {
+                      startedAt: getGuidedScanStartedAt(),
+                      completedAt: new Date().toISOString(),
+                      source: "authenticated",
+                    },
+                  },
+                })
+                .select("id, created_at")
+                .single(),
+              CLOUD_REQUEST_TIMEOUT_MS,
+              "Supabase scan save"
+            );
+
+            if (insertResponse.error || !insertResponse.data) {
+              console.error("Failed to insert guided scan row", insertResponse.error);
+              return;
+            }
+
+            if (typeof window !== "undefined") {
+              const savedResult = {
+                ...result,
+                id: insertResponse.data.id,
+                created_at: insertResponse.data.created_at,
+              };
+              window.localStorage.setItem(LOCAL_SCAN_KEY, JSON.stringify(savedResult));
+              const existing = window.localStorage.getItem(LOCAL_SCAN_LIST_KEY);
+              const parsed = existing ? (JSON.parse(existing) as SavedScanResult[]) : [];
+              window.localStorage.setItem(
+                LOCAL_SCAN_LIST_KEY,
+                JSON.stringify([savedResult, ...parsed.filter((scan) => scan.id !== savedResult.id)].slice(0, 10))
+              );
+            }
+          } catch (saveError) {
+            console.error("Background Supabase save failed", saveError);
+          }
+        })();
+
+        void router.replace("/results");
       } catch (analysisError) {
         console.error("Guided scan analysis failed", analysisError);
         setError(
           analysisError instanceof Error
             ? analysisError.message
-            : "Analysis failed. Please retry the scan."
+            : "Analysis failed. Please retry the Resonance Scan."
         );
       }
     };
@@ -388,7 +390,7 @@ export default function ScanAnalyzingPage() {
   return (
     <>
       <Head>
-        <title>Analyzing Scan | SoulScope</title>
+        <title>Building Insights | SoulScope</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -397,11 +399,11 @@ export default function ScanAnalyzingPage() {
         <main className={styles.shell}>
           <section className={styles.panel}>
             <article className={styles.heroCard}>
-              <p className={styles.eyebrow}>Analyzing</p>
-              <h1 className={styles.title}>Analyzing your resonance…</h1>
+              <p className={styles.eyebrow}>Building Insights</p>
+              <h1 className={styles.title}>Mapping your current resonance…</h1>
               <p className={styles.lead}>
-                Mapping vocal patterns, identifying dominant frequencies, and translating your
-                expression into a voice read you can actually understand.
+                Translating your voice patterns into a whole-self view of clarity, expression, load,
+                recovery, and adaptability.
               </p>
 
               <div className={styles.mapVisual}>
@@ -418,21 +420,21 @@ export default function ScanAnalyzingPage() {
                   <span className={styles.cardLabel}>Step 1</span>
                   <strong className={styles.progressValue}>Patterns</strong>
                   <p className={styles.progressText}>
-                    Mapping vocal patterns across the full speaking sample.
+                    Mapping patterns across the full speaking sample.
                   </p>
                 </div>
                 <div className={styles.progressCard}>
                   <span className={styles.cardLabel}>Step 2</span>
-                  <strong className={styles.progressValue}>Frequencies</strong>
+                  <strong className={styles.progressValue}>State</strong>
                   <p className={styles.progressText}>
-                    Identifying your dominant frequencies and pitch center.
+                    Looking for signals associated with balance, strain, and adaptation.
                   </p>
                 </div>
                 <div className={styles.progressCard}>
                   <span className={styles.cardLabel}>Step 3</span>
-                  <strong className={styles.progressValue}>Expression</strong>
+                  <strong className={styles.progressValue}>Insights</strong>
                   <p className={styles.progressText}>
-                    Translating how your resonance is being expressed.
+                    Translating complex voice data into language you can use.
                   </p>
                 </div>
               </div>
@@ -445,10 +447,10 @@ export default function ScanAnalyzingPage() {
               </div>
               <div className={styles.statusBody}>
                 <p className={styles.statusLine}>
-                  Measured layer: voiced speech only, pitch center, note balance, and the breaks between phrases.
+                  Measured layer: voice patterns, pauses, signal balance, and expression dynamics.
                 </p>
                 <p className={styles.statusLine}>
-                  SoulScope layer: your core resonance, the note map around it, and the first self-discovery readout.
+                  SoulScope layer: your Core Resonance, Resonance Map, and self-awareness readout.
                 </p>
                 {error ? <p className={`${styles.statusLine} ${styles.error}`}>{error}</p> : null}
               </div>

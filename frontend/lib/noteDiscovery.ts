@@ -49,7 +49,7 @@ const NOTE_DISCOVERY_BASE: Record<string, Omit<NoteDiscoveryProfile, "note" | "e
     chakra: "Sacral / Solar Bridge",
     senseOrgans: ["Nose", "Eyes"],
     internalOrgans: ["Diaphragm", "Adrenals", "Respiratory rhythm"],
-    underactiveEmotional: ["Rigidity", "Difficulty adapting", "Shallow emotional breathing"],
+    underactiveEmotional: ["Resistance to change", "Difficulty adapting", "Shallow emotional breathing"],
     overactiveEmotional: ["Reactive instability", "Scattered change response", "Hypervigilance"],
     underactivePhysical: ["Restricted breath", "Low prana / vitality", "Adrenal fatigue spillover"],
     overactivePhysical: ["Stress reactivity", "Sinus aggravation", "Upper abdominal holding"],
@@ -61,7 +61,7 @@ const NOTE_DISCOVERY_BASE: Record<string, Omit<NoteDiscoveryProfile, "note" | "e
     internalOrgans: ["Liver", "Stomach", "Lungs", "Will / digestion axis"],
     underactiveEmotional: ["Low joy", "Low agency", "Feeling trapped or directionless"],
     overactiveEmotional: ["Over-control", "Force", "Trying to manage reality through pressure"],
-    underactivePhysical: ["Low drive", "Nervous-type respiratory strain", "Mineral depletion patterns"],
+    underactivePhysical: ["Reduced momentum", "Nervous-type respiratory strain", "Mineral depletion patterns"],
     overactivePhysical: ["Congestion", "Bronchial load", "Asthma-like pressure or catarrh patterns"],
   },
   F: {

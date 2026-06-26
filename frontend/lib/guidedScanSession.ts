@@ -7,6 +7,7 @@ export type GuidedScanAnswer = {
   rationale: string;
   blob: Blob;
   durationMs: number;
+  captureKind: "sustained_vowel" | "guided_speech";
 };
 
 export type GuidedScanCameraCapture = {
@@ -31,6 +32,7 @@ export type GuidedScanCameraBaseline = {
 
 type GuidedScanAnswerRecord = Omit<GuidedScanAnswer, "blob"> & {
   blobKey: string;
+  captureKind?: "sustained_vowel" | "guided_speech";
 };
 
 type GuidedScanSessionState = {
@@ -240,6 +242,7 @@ export async function getGuidedScanAnswers() {
           prompt: answer.prompt,
           rationale: answer.rationale,
           durationMs: answer.durationMs,
+          captureKind: answer.captureKind ?? "guided_speech",
           blob,
         } satisfies GuidedScanAnswer;
       } catch (error) {
@@ -289,6 +292,7 @@ export async function saveGuidedScanAnswer(stepIndex: number, blob: Blob, durati
       prompt: question.prompt,
       rationale: question.rationale,
       durationMs,
+      captureKind: question.captureKind,
       blobKey,
     },
   ].sort(

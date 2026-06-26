@@ -6,6 +6,7 @@ import { useSession, useSessionContext } from "@supabase/auth-helpers-react";
 import { supabase } from "../lib/supabaseClient";
 import { getLocalDevSession, LOCAL_SCAN_LIST_KEY } from "../lib/localSession";
 import { NOTE_ORDER, getSoulScopeNoteColor } from "../lib/noteSystem";
+import { getResonanceSystemLabel } from "../lib/resonanceLanguage";
 import { type NoteEnergyResult } from "../lib/voiceSpectrum";
 import styles from "./History.module.css";
 
@@ -90,7 +91,7 @@ export default function HistoryPage() {
     const loadLocal = () => {
       const localSession = getLocalDevSession();
       if (!localSession) {
-        setError("Please sign in to view your scan history.");
+        setError("Please sign in to view your resonance trends.");
         setLoading(false);
         return;
       }
@@ -98,10 +99,11 @@ export default function HistoryPage() {
       try {
         const raw = window.localStorage.getItem(LOCAL_SCAN_LIST_KEY);
         const parsed = raw ? (JSON.parse(raw) as ScanRow[]) : [];
+        setError(null);
         setScans(parsed);
       } catch (localError) {
         console.error("Failed to load local scan history", localError);
-        setError("Could not load local scan history.");
+        setError("Could not load local resonance trends.");
       } finally {
         setLoading(false);
       }
@@ -123,6 +125,7 @@ export default function HistoryPage() {
       if (fetchError) {
         setError(fetchError.message);
       } else {
+        setError(null);
         setScans(data ?? []);
       }
 
@@ -185,57 +188,56 @@ export default function HistoryPage() {
       <div className={styles.gridOverlay} />
       <main className={styles.shell}>
         <section className={styles.hero}>
-          <p className={styles.eyebrow}>History</p>
-          <h1 className={styles.title}>Track how your voice pattern changes over time.</h1>
+          <p className={styles.eyebrow}>Trends</p>
+          <h1 className={styles.title}>Your Resonance Trends</h1>
           <p className={styles.lead}>
-            Retests matter. This view now tracks your last 12 scans, highlights which note energies are
-            strengthening or fading, and gives you a clearer sense of whether your vocal pattern is staying
-            stable or shifting over time.
+            Explore how patterns have shifted across time. Trends can reveal areas of growth, recovery,
+            resilience, adaptation, and sustained load.
           </p>
           <div className={styles.heroActions}>
             <Link href="/scan" className={styles.primaryButton}>
-              Run New Scan
+              Run New Resonance Scan
             </Link>
             <Link href="/results" className={styles.secondaryButton}>
-              Latest Result
+              Latest Insights
             </Link>
           </div>
         </section>
 
-        {loading ? <div className={styles.stateCard}>Loading history...</div> : null}
+        {loading ? <div className={styles.stateCard}>Loading trends...</div> : null}
         {error ? <div className={`${styles.stateCard} ${styles.stateError}`}>{error}</div> : null}
 
         {!loading && !error && latest ? (
           <>
             <section className={styles.topGrid}>
               <article className={styles.latestCard}>
-                <p className={styles.sectionEyebrow}>Latest scan</p>
-                <h2 className={styles.latestTitle}>{latest.result.dominantBandLabel ?? "Unknown"}</h2>
+                <p className={styles.sectionEyebrow}>Latest Insight</p>
+                <h2 className={styles.latestTitle}>{getResonanceSystemLabel(latest.result.noteInterpretation?.primaryNote ?? latest.result.dominantBandLabel)}</h2>
                 <p className={styles.latestText}>{latest.result.summary}</p>
                 <div className={styles.metaRow}>
                   <span className={styles.metaItem}>
-                    Core tone <strong>{latest.result.coreFrequencyHz ?? "—"} Hz</strong>
+                    Core Resonance <strong>{latest.result.noteInterpretation?.primaryNote ?? latest.result.dominantBandLabel ?? "—"}</strong>
                   </span>
                   <span className={styles.metaItem}>{new Date(latest.created_at).toLocaleString()}</span>
                 </div>
                 <Link href={latest.id ? `/results/${latest.id}` : "/results"} className={styles.primaryButton}>
-                  Open Latest Report
+                  Open Latest Insights
                 </Link>
               </article>
 
               <article className={styles.chartCard}>
                 <div className={styles.chartHeader}>
                   <div>
-                    <p className={styles.sectionEyebrow}>12-scan trend</p>
-                    <h2 className={styles.chartTitle}>Note movement over time.</h2>
+                    <p className={styles.sectionEyebrow}>12-Scan Trend</p>
+                    <h2 className={styles.chartTitle}>Resonance movement over time.</h2>
                     <p className={styles.chartLead}>
-                      Each line tracks one note-class energy band across your latest 12 saved scans.
+                      Each line tracks one human-system signal across your latest 12 saved Resonance Scans.
                     </p>
                   </div>
                   {trendSummary ? (
                     <div className={styles.chartStats}>
                       <div className={styles.chartStat}>
-                        <span className={styles.chartStatLabel}>Saved scans</span>
+                        <span className={styles.chartStatLabel}>Saved Resonance Scans</span>
                         <strong className={styles.chartStatValue}>{trendSummary.totalScans}</strong>
                       </div>
                       <div className={styles.chartStat}>
@@ -243,7 +245,7 @@ export default function HistoryPage() {
                         <strong className={styles.chartStatValue}>{trendSummary.windowCount}</strong>
                       </div>
                       <div className={styles.chartStat}>
-                        <span className={styles.chartStatLabel}>Avg resonance</span>
+                        <span className={styles.chartStatLabel}>Avg coherence</span>
                         <strong className={styles.chartStatValue}>
                           {trendSummary.resonanceAverage !== null ? `${trendSummary.resonanceAverage}%` : "—"}
                         </strong>
@@ -327,8 +329,8 @@ export default function HistoryPage() {
                         {trendSummary.earliestDominant} to {trendSummary.latestDominant}
                       </h3>
                       <p className={styles.insightText}>
-                        Your oldest scan in this window centered around {trendSummary.earliestDominant}, while the
-                        most recent scan centers around {trendSummary.latestDominant}.
+                        Your oldest scan in this window centered around {getResonanceSystemLabel(trendSummary.earliestDominant)}, while the
+                        most recent scan centers around {getResonanceSystemLabel(trendSummary.latestDominant)}.
                       </p>
                     </article>
                     <article className={styles.trendInsightCard}>
@@ -336,7 +338,7 @@ export default function HistoryPage() {
                       <p className={styles.insightText}>
                         {trendSummary.rising.length
                           ? trendSummary.rising
-                              .map((entry) => `${entry.label} (+${round(entry.delta * 100, 1)}%)`)
+                            .map((entry) => `${getResonanceSystemLabel(entry.label)} (+${round(entry.delta * 100, 1)}%)`)
                               .join(" · ")
                           : "No strong upward shifts stand out across this 12-scan window."}
                       </p>
@@ -346,7 +348,7 @@ export default function HistoryPage() {
                       <p className={styles.insightText}>
                         {trendSummary.falling.length
                           ? trendSummary.falling
-                              .map((entry) => `${entry.label} (${round(entry.delta * 100, 1)}%)`)
+                            .map((entry) => `${getResonanceSystemLabel(entry.label)} (${round(entry.delta * 100, 1)}%)`)
                               .join(" · ")
                           : "No strong downward shifts stand out across this 12-scan window."}
                       </p>
@@ -355,7 +357,7 @@ export default function HistoryPage() {
                       <p className={styles.insightLabel}>Most stable</p>
                       <p className={styles.insightText}>
                         {trendSummary.mostStable
-                          .map((entry) => `${entry.label} (${round(entry.average * 100, 1)}% avg)`)
+                          .map((entry) => `${getResonanceSystemLabel(entry.label)} (${round(entry.average * 100, 1)}% avg)`)
                           .join(" · ")}
                       </p>
                     </article>
@@ -367,8 +369,8 @@ export default function HistoryPage() {
             <section className={styles.historySection}>
               <div className={styles.historyHeader}>
                 <div>
-                  <p className={styles.sectionEyebrow}>Recent scans</p>
-                  <h2 className={styles.historyTitle}>Your saved reports.</h2>
+                  <p className={styles.sectionEyebrow}>Recent Resonance Scans</p>
+                  <h2 className={styles.historyTitle}>Your Resonance Trends</h2>
                 </div>
               </div>
 
@@ -377,7 +379,7 @@ export default function HistoryPage() {
                   <article key={scan.id ?? scan.created_at} className={styles.historyCard}>
                     <div className={styles.historyMain}>
                       <h3 className={styles.historyBand}>
-                        {scan.result.dominantBandLabel ?? "Unknown"} • {scan.result.coreFrequencyHz ?? "—"} Hz
+                        {getResonanceSystemLabel(scan.result.noteInterpretation?.primaryNote ?? scan.result.dominantBandLabel)}
                       </h3>
                       <p className={styles.historySummary}>{scan.result.summary}</p>
                       {scan.result.noteEnergies?.length ? (
@@ -396,7 +398,7 @@ export default function HistoryPage() {
                                   background: `${getSoulScopeNoteColor(entry.note)}12`,
                                 }}
                               >
-                                {entry.note} {round(entry.relativeEnergy * 100, 1)}%
+                                {getResonanceSystemLabel(entry.note)} {round(entry.relativeEnergy * 100, 1)}%
                               </span>
                             ))}
                         </div>
@@ -404,7 +406,7 @@ export default function HistoryPage() {
                       <div className={styles.historyDate}>{new Date(scan.created_at).toLocaleString()}</div>
                     </div>
                     <Link href={scan.id ? `/results/${scan.id}` : "/results"} className={styles.secondaryButton}>
-                      Open Report
+                      Open Insights
                     </Link>
                   </article>
                 ))}
@@ -414,7 +416,7 @@ export default function HistoryPage() {
         ) : null}
 
         {!loading && !error && !latest ? (
-          <div className={styles.stateCard}>No scans saved yet. Run a guided scan to start building history.</div>
+          <div className={styles.stateCard}>No Resonance Scans saved yet. Run a Resonance Scan to start building trends.</div>
         ) : null}
       </main>
     </div>

@@ -85,7 +85,8 @@ export default function DashboardPage() {
         <div className="bg-white/5 p-6 rounded-2xl border border-white/10 shadow-xl">
           <h1 className="text-3xl font-serif mb-2">Your Resonance Dashboard</h1>
           <p className="text-gray-300">
-            View your core tone estimate, track measured vocal bands, invite friends, and manage your subscription.
+            View your Core Resonance, recent Insights, and whole-self patterns across mental,
+            emotional, physical, and behavioral state.
           </p>
           {session?.user?.email && (
             <p className="mt-2 text-xs uppercase tracking-[0.2em] text-gray-400">
@@ -96,26 +97,26 @@ export default function DashboardPage() {
 
         <div className="grid md:grid-cols-3 gap-6">
           <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
-            <p className="text-xs uppercase tracking-widest text-gray-400">Core Tone Estimate</p>
-            <h2 className="text-3xl font-mono mt-2">{scans[0]?.result?.coreFrequencyHz ?? "—"} Hz</h2>
+            <p className="text-xs uppercase tracking-widest text-gray-400">Core Resonance</p>
+            <h2 className="text-3xl font-mono mt-2">{scans[0]?.result?.dominantBandLabel ?? "—"}</h2>
             <p className="text-sm text-gray-400">
-              Dominant band: {scans[0]?.result?.dominantBandLabel ?? scans[0]?.result?.dominant ?? "Unknown"}
+              Current organizing pattern from your latest Resonance Scan.
             </p>
           </div>
           <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
-            <p className="text-xs uppercase tracking-widest text-gray-400">Spectrum Map</p>
-            <p className="text-sm text-gray-400 mt-2">Visualize dominant vs underrepresented bands from your latest scan.</p>
+            <p className="text-xs uppercase tracking-widest text-gray-400">Resonance Map</p>
+            <p className="text-sm text-gray-400 mt-2">See what appears balanced, underexpressed, or carrying excess load.</p>
           </div>
           <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
-            <p className="text-xs uppercase tracking-widest text-gray-400">Relationship Resonance</p>
-            <p className="text-sm text-gray-400 mt-2">Invite a friend or partner to unlock bonus scans.</p>
+            <p className="text-xs uppercase tracking-widest text-gray-400">Whole-Self Trends</p>
+            <p className="text-sm text-gray-400 mt-2">Track how clarity, expression, recovery, and adaptability shift over time.</p>
           </div>
         </div>
 
         <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
-          <p className="text-sm uppercase tracking-widest text-gray-400 mb-2">Recent Scans</p>
+          <p className="text-sm uppercase tracking-widest text-gray-400 mb-2">Recent Insights</p>
           {scans.length === 0 ? (
-            <p className="text-gray-400">No scans yet. Start your first session.</p>
+            <p className="text-gray-400">No Resonance Scans yet. Start your first session.</p>
           ) : (
             <ul className="space-y-3">
               {scans.map((scan) => (
@@ -123,7 +124,7 @@ export default function DashboardPage() {
                   <div>
                     <strong>{new Date(scan.created_at).toLocaleString()}</strong>
                     <p className="text-sm text-gray-400">
-                      {scan.result?.dominantBandLabel ?? scan.result?.dominant ?? "Unknown"} — {scan.result?.coreFrequencyHz ?? "—"} Hz
+                      {scan.result?.dominantBandLabel ?? scan.result?.dominant ?? "Unknown"} resonance pattern
                     </p>
                   </div>
                   <button className="text-cyan-400 text-sm underline" onClick={() => router.push(`/results/${scan.id}`)}>
@@ -139,7 +140,8 @@ export default function DashboardPage() {
           <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-2">
             <h3 className="text-xl mb-2">Trust Your Tech</h3>
             <p className="text-sm text-gray-400">
-              Your phone’s microphone and camera capture the signal. We analyze spectral balance, centroid, noise profile, and resonance patterns from your voice sample.
+              Your phone’s microphone and camera capture signals that may correlate with clarity, expression,
+              physical load, recovery, and adaptability.
             </p>
             <Link href="/how-it-works" className="text-xs text-cyan-300 underline">
               See the full breakdown →
@@ -153,7 +155,7 @@ export default function DashboardPage() {
           </div>
           <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
             <h3 className="text-xl mb-2">Subscription Status</h3>
-            <p className="text-sm text-gray-400">7-day trial active · Upgrade to unlock unlimited scans and relationship readings.</p>
+            <p className="text-sm text-gray-400">7-day trial active · Upgrade to unlock unlimited Resonance Scans and relationship readings.</p>
           </div>
         </div>
 
@@ -162,7 +164,7 @@ export default function DashboardPage() {
             className="bg-gradient-to-r from-cyan-500 to-violet-600 px-6 py-3 rounded-full shadow-lg hover:scale-105 transition"
             onClick={() => router.push("/scan")}
           >
-            Start New Scan
+            Start New Resonance Scan
           </button>
         </div>
       </div>

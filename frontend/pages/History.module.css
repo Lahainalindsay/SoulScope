@@ -399,7 +399,7 @@
 
 @media (max-width: 760px) {
   .shell {
-    padding: 28px 14px 60px;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 14px calc(60px + env(safe-area-inset-bottom, 0px));
   }
 
   .hero,
@@ -413,11 +413,21 @@
   }
 
   .title {
-    font-size: 42px;
+    font-size: 36px;
+    line-height: 1;
   }
 
   .lead {
     font-size: 15px;
+  }
+
+  .heroActions {
+    flex-direction: column;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
   }
 
   .historyCard {
@@ -431,5 +441,28 @@
 
   .chartTimeline {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .legend {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .legend::-webkit-scrollbar {
+    display: none;
+  }
+
+  .legendPill {
+    flex: 0 0 auto;
+  }
+
+  .chartShell {
+    padding: 12px;
+  }
+
+  .chart {
+    height: 220px;
   }
 }

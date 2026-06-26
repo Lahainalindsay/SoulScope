@@ -34,7 +34,8 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
     color: "#ef4444",
     activatingOrCalming: "balancing",
     emotionBalanced: "Grounded connection, mutual care, and relational steadiness.",
-    emotionUnderactive: "May correlate with isolation, reduced support, guarded attachment, or difficulty receiving.",
+    emotionUnderactive:
+      "May correlate with isolation, reduced support, guarded attachment, difficulty receiving, or feeling like you do not have a safe or stable environment.",
     emotionOveractive: "May correlate with codependency, over-caretaking, enabling, and making others happy at your own expense.",
     physicalCorrelates: ["thyroid", "metabolism regulation", "small intestine", "lymphatics", "physical fatigue"],
     progression: [
@@ -45,6 +46,13 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
     abundancePatterns: [
       "Personal power, female sexuality, caring for self, and caring for others.",
       "Eye muscles with neighboring C#; blood problems; heart muscle; cancer; large body muscle strength.",
+    ],
+    symptomPatterns: [
+      "low physical reserve",
+      "sluggish recovery after stress",
+      "bloating or digestive heaviness",
+      "feeling unsupported or chronically drained",
+      "stuck caregiving patterns that lead to fatigue",
     ],
     support:
       "Support C with grounded self-support, reduced over-giving, steadier breath, and practices that rebuild reserve rather than relational overextension.",
@@ -65,8 +73,19 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
       "Dupuytren's syndrome, carpal tunnel syndrome, arthritis, endorphins, and finger muscles.",
       "Together with G, linked in your source notes to neck, shoulder, and fertility problems.",
     ],
+    symptomPatterns: [
+      "emotional numbness or guardedness",
+      "neck and shoulder holding",
+      "tendon or ligament tension",
+      "scar-tissue sensitivity",
+      "fertility or lower-back stress themes in this model",
+    ],
     support: "Support C# with softened expression, safe pacing, and calm vocal disclosure without collapse or defense.",
-    notes: ["Placeholder note profile pending fuller SoulScope mapping."],
+    notes: [
+      "C# is used in the current SoulScope model for sensitivity, protection, and guarded emotional response.",
+      "When this band reads low, the user may present as emotionally hard to reach or reluctant to reveal needs.",
+      "When it reads stressed, the model treats that as oversensitivity or defensive protection rather than clean receptivity.",
+    ],
   },
   {
     note: "D",
@@ -77,13 +96,20 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
     emotionBalanced: "Forward motion, practical action, and steady follow-through.",
     emotionUnderactive: "May correlate with hesitation, low initiative, or slowed momentum.",
     emotionOveractive: "May correlate with force, urgency, or pressure-driven action.",
-    physicalCorrelates: ["drive", "movement", "action readiness"],
+    physicalCorrelates: ["circulation", "sexual energy", "drive", "movement", "action readiness"],
     abundancePatterns: [
       "Oxygenation of digestion, liver, anger, emotions, constipation when the note is full, and digestion of food.",
       "Male and female hormones, food allergies, and throat muscles.",
       "Source notes connect D / D# to Parkinson's disease, dementia, dopamine, amino acids that keep the brain clear, and catatonia.",
       "Missing D is linked in the source notes to multiple sclerosis; D is also cited in Parkinson's, IBS, Crohn's disease, and hormone problems.",
       "Together with G#, D is described as an important mineral and digestion balancer.",
+    ],
+    symptomPatterns: [
+      "constipation or sluggish digestion in this model",
+      "anger-driven physical tightening",
+      "pushing too hard and then crashing",
+      "hormonal stress patterns",
+      "food-reactivity or throat-tension themes",
     ],
     support: "Support D with paced action, confident projection, and movement that is structured rather than forced.",
     notes: ["Opposite-note link to G# has been defined by the current SoulScope model."],
@@ -97,10 +123,17 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
     emotionBalanced: "Adaptability, responsiveness, and flexible change.",
     emotionUnderactive: "May correlate with rigidity, shutdown, or difficulty adjusting.",
     emotionOveractive: "May correlate with scattered responsiveness or reactive instability.",
-    physicalCorrelates: ["adrenals", "stress-response spillover when neighboring E is imbalanced"],
+    physicalCorrelates: ["adrenals", "kidneys", "liver", "stress-response spillover when neighboring E is imbalanced"],
     abundancePatterns: [
       "Paired with D around digestion, oxygenation, emotions, hormones, and food allergies.",
       "Paired with E in the source notes around hay fever and sinusitis.",
+    ],
+    symptomPatterns: [
+      "stress reactivity or adrenal strain",
+      "difficulty adapting to change",
+      "sinus or hay-fever themes in this model",
+      "reactive start-stop energy",
+      "shutdown after overstimulation",
     ],
     support: "Support D# with gradual transitions, stable rhythm, and flexibility without overstimulation.",
     notes: ["Adjacent to E and may destabilize when E is heavily imbalanced."],
@@ -114,13 +147,20 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
     emotionBalanced: "Clear agency, coherent will, and stable self-direction.",
     emotionUnderactive: "May correlate with low drive, depletion, or reduced self-direction.",
     emotionOveractive: "May correlate with force, overcontrol, or pushing through depletion.",
-    physicalCorrelates: ["candida / yeast imbalance", "adrenal spillover into adjacent notes"],
+    physicalCorrelates: ["blood", "candida / yeast imbalance", "adrenal spillover into adjacent notes"],
     abundancePatterns: [
       "Lungs, dairy allergies, and overabundant E with catarrh, bronchitis, and congested asthma.",
       "Emotionally represents the heart; too much E can reflect being stuck in a situation you do not like and cannot change.",
       "Lack of E is linked in the source notes to no joy, nervous asthma, or hay fever and sinusitis with D#.",
       "Important minerals and cigarette nicotine frequency are placed here in the source notes.",
       "A#/E are linked to jaw, face muscles, and TMJ; B or E or D can relate to high blood pressure.",
+    ],
+    symptomPatterns: [
+      "driven effort with low joy",
+      "congested breathing or asthma-like stress themes",
+      "jaw clenching or facial tension",
+      "burnout from overcontrol",
+      "pressure to keep going despite depletion",
     ],
     support:
       "Support E with cleaner pacing, less forced effort, and restorative practices that reduce compensatory drive while stabilizing neighboring notes.",
@@ -137,6 +177,7 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
     emotionOveractive:
       "May correlate with overconsumption, over-nurturing, or emotional upset triggered by pancreatic stress and sugar-driven imbalance.",
     physicalCorrelates: [
+      "bladder",
       "pancreas",
       "ears",
       "ear infections",
@@ -158,6 +199,13 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
       "Suffering from airborne allergies and poor concentration in school may reflect pancreatic stress from too much sugar.",
       "This is one example of physical problems initiating emotional upset.",
     ],
+    symptomPatterns: [
+      "sugar swings and concentration dips",
+      "ear sensitivity or recurrent ear issues",
+      "airborne-allergy patterns",
+      "depletion from poor nourishment",
+      "emotional volatility following physical stress",
+    ],
   },
   {
     note: "F#",
@@ -175,6 +223,13 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
       "Adrenaline, cortisol, and sodium are placed here.",
       "High F / F# is described as high stress and acidity; paired with F around bladder / bowel malfunction and toxicity if the filtering system is not working.",
     ],
+    symptomPatterns: [
+      "brain fog or scattered mental tracking",
+      "high inner pressure and irritability",
+      "mood-swing patterns in this model",
+      "stress chemistry overload",
+      "difficulty slowing thoughts down",
+    ],
     support:
       "Support F# with down-regulation, slower pacing, less cognitive pressure, and calming tones that reduce overcontrol.",
     notes: ["Opposite of C in the current SoulScope model."],
@@ -185,10 +240,16 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
     adjacentNotes: ["F#", "G#"],
     color: "#3b82f6",
     activatingOrCalming: "activating",
-    emotionBalanced: "Clear expression, communication, and social openness.",
+    emotionBalanced: "Authentic expression, communication, and social openness.",
     emotionUnderactive: "May correlate with withholding, muted speech, or fear of being heard.",
     emotionOveractive: "May correlate with overexplaining, vocal push, or anxious outward expression.",
-    physicalCorrelates: ["liver"],
+    physicalCorrelates: [
+      "throat",
+      "thyroid",
+      "immunity",
+      "external-influence sensitivity",
+      "radiation / environmental sensitivity",
+    ],
     abundancePatterns: [
       "Neurotransmitters, minerals, and the 'happy note' in the source notes.",
       "Lack of G / G# is linked there to apathetic depression; too much G / G# / A to manic depression and mental disorders.",
@@ -196,8 +257,20 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
       "Thyroxin, caffeine, and some leg and buttock muscles are placed here; hormone use is said to need balance in G.",
       "Together with C#, linked in the source notes to neck, shoulder, and fertility problems.",
     ],
+    symptomPatterns: [
+      "muted speech or difficulty saying what is true",
+      "vocal pushing or strained expression",
+      "difficulty handling external pressure or environmental stress",
+      "immune depletion under stress",
+      "throat or neck tension",
+      "chemical or stimulant sensitivity",
+      "social overextension followed by depletion",
+    ],
     support: "Support G with honest expression, forward resonance, and clearer communication without pressure.",
-    notes: ["The liver vibrates at the note of G in the current SoulScope mapping."],
+    notes: [
+      "G is treated as the throat note in the current SoulScope mapping.",
+      "This note is used for expression, immunity, and the ability to deal with external influences or environmental stressors.",
+    ],
   },
   {
     note: "G#",
@@ -207,7 +280,7 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
     activatingOrCalming: "activating",
     emotionBalanced: "Practical security, grounded planning, and stable self-support.",
     emotionUnderactive:
-      "May correlate with inherited physical weakness, reduced groundedness, or low personal support. When the physical side is underactive, the emotional side may overwork to compensate.",
+      "May correlate with inherited physical weakness, reduced groundedness, low personal support, feeling unheard, or always caring for others while getting no time or help for yourself. When the physical side is underactive, the emotional side may overwork to compensate.",
     emotionOveractive:
       "May correlate with financial fears, scarcity vigilance, and emotional compensation that keeps a weak physical pattern functioning, often creating stress in the emotional layer of the same note.",
     physicalCorrelates: [
@@ -234,6 +307,13 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
       "After nutritional and lifestyle changes strengthened the physical side of G#, her emotional stress diminished.",
       "As the physical part of the note balanced, she experienced more personal strength and power and gained the courage to speak her needs.",
     ],
+    symptomPatterns: [
+      "scarcity vigilance or chronic money stress",
+      "digestive weakness under pressure",
+      "supporting everyone else before yourself",
+      "fear-based planning and overcompensation",
+      "low groundedness despite high effort",
+    ],
   },
   {
     note: "A",
@@ -242,7 +322,7 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
     color: "#8b5cf6",
     activatingOrCalming: "balancing",
     emotionBalanced: "Meaning, direction, and coherent future orientation.",
-    emotionUnderactive: "May correlate with lack of inspiration or direction.",
+    emotionUnderactive: "May correlate with lack of inspiration or direction, or fear of change or the unknown.",
     emotionOveractive: "May correlate with overreach, idealization, or pressure around purpose.",
     physicalCorrelates: ["vision and direction themes"],
     abundancePatterns: [
@@ -252,8 +332,19 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
       "Also linked in the source notes to AIDS and to business acumen and success.",
       "Missing D and / or A is listed there in a multiple sclerosis profile; too much G / G# / A is linked to manic depression and mental disorders.",
     ],
+    symptomPatterns: [
+      "lack of direction or future pull",
+      "vision-strain themes in this model",
+      "knee or lower-leg stress themes",
+      "idealizing the future while losing grounding",
+      "pressure to perform a bigger purpose than the body can support",
+    ],
     support: "Support A with expansive but calm toning, reflection, and grounded forward vision.",
-    notes: ["Placeholder note profile pending fuller SoulScope mapping."],
+    notes: [
+      "A is used in the current SoulScope model for direction, future orientation, and how the user organizes meaning.",
+      "When it reads low, the model treats that as loss of inspiration or reduced future vision.",
+      "When it reads stressed, the model treats that as overreaching, idealization, or pressure around purpose.",
+    ],
   },
   {
     note: "A#",
@@ -261,11 +352,19 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
     adjacentNotes: ["A", "B"],
     color: "#ddd6fe",
     activatingOrCalming: "balancing",
-    emotionBalanced: "Reflection, integration, receptivity, and the ability to accept support and love.",
+    emotionBalanced: "Integrated reflection, receptivity, and the ability to accept support and love.",
     emotionUnderactive: "May correlate with reduced inner contact, low receptivity, fear of life, or difficulty trusting support from others.",
     emotionOveractive:
       "May correlate with workaholic tendencies, hypersensitivity to criticism, fear of being hurt or abandoned, and a pattern of treating others as more important than yourself.",
-    physicalCorrelates: ["heart support", "circulatory rhythm", "immune support", "integration and processing themes"],
+    physicalCorrelates: [
+      "spleen",
+      "thyroid",
+      "adrenals",
+      "heart support",
+      "circulatory rhythm",
+      "immune support",
+      "integration and processing themes",
+    ],
     abundancePatterns: [
       "Detoxifying both physically and emotionally in the source notes.",
       "Creative expression of E, the heart and joy, when E and A# are balanced.",

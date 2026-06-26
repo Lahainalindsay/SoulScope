@@ -15,9 +15,9 @@ import { GUIDED_SCAN_QUESTIONS } from "../../../lib/scanProtocol";
 import styles from "./GuidedScanQuestion.module.css";
 
 type PendingAction = "next" | "finish" | null;
-const AUTO_RECORDING_MS = 10000;
 const AUTO_START_DELAY_MS = 3000;
 const CAMERA_BASELINE_MS = 3000;
+const SAVE_TIMEOUT_MS = 2500;
 
 function signalClass(dbfs: number) {
   if (dbfs < -58) return styles.statusWarn;
@@ -56,6 +56,7 @@ export default function GuidedScanQuestionPage() {
   const question = GUIDED_SCAN_QUESTIONS[questionIndex];
   const isLastQuestion = questionIndex === GUIDED_SCAN_QUESTIONS.length - 1;
   const isCalibrating = step === 1 && !isRecording && isAutoStarting;
+  const recordingDurationMs = question?.durationMs ?? 10000;
 
   const handleCameraSummaryChange = (reading: FaceReading | null) => {
     cameraSummaryRef.current = reading;
@@ -124,17 +125,28 @@ export default function GuidedScanQuestionPage() {
 
   const handleComplete = async (blob: Blob) => {
     const durationMs = Math.max(0, Date.now() - recordingStartedAtRef.current);
-    try {
+    const savePromise = (async () => {
       await saveGuidedScanAnswer(questionIndex, blob, durationMs);
       if (cameraSummaryRef.current) {
         saveGuidedScanCameraCapture(questionIndex, cameraSummaryRef.current);
       }
+    })().catch((saveError) => {
+      console.error("Background save for guided scan answer failed", saveError);
+      return null;
+    });
+
+    try {
+      await Promise.race([
+        savePromise,
+        new Promise((_, reject) =>
+          window.setTimeout(() => reject(new Error("Saving this response took too long.")), SAVE_TIMEOUT_MS)
+        ),
+      ]);
       setHasCompletedRecording(true);
     } catch (saveError) {
       console.error("Failed to persist guided scan answer", saveError);
-      setError("Could not save this response. Please record it again.");
-      setHasCompletedRecording(false);
-      return;
+      setError("Saving took too long. Moving on with the scan.");
+      setHasCompletedRecording(true);
     }
 
     const action = pendingActionRef.current;
@@ -161,7 +173,7 @@ export default function GuidedScanQuestionPage() {
   return (
     <>
       <Head>
-        <title>{question.title} | SoulScope Scan</title>
+        <title>{question.title} | SoulScope Resonance Scan</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -204,6 +216,20 @@ export default function GuidedScanQuestionPage() {
             <section className={styles.heroCard}>
               <div className={styles.heroInner}>
                 <div className={styles.recordStage}>
+                  <div className={styles.mobileGuideRow}>
+                    <div className={styles.mobileGuideCard}>
+                      <span className={styles.mobileGuideLabel}>Read</span>
+                      <strong className={styles.mobileGuideValue}>3s</strong>
+                    </div>
+                    <div className={styles.mobileGuideCard}>
+                      <span className={styles.mobileGuideLabel}>Answer</span>
+                      <strong className={styles.mobileGuideValue}>10s</strong>
+                    </div>
+                    <div className={styles.mobileGuideCard}>
+                      <span className={styles.mobileGuideLabel}>Camera</span>
+                      <strong className={styles.mobileGuideValue}>Stay framed</strong>
+                    </div>
+                  </div>
                   <div className={styles.liveBadge}>
                     <span className={isRecording ? styles.liveDot : styles.idleDot} />
                     {isRecording ? "Recording" : hasCompletedRecording ? "Response captured" : "Ready"}
@@ -234,7 +260,9 @@ export default function GuidedScanQuestionPage() {
                             ? "Hold steady and read the question. Camera baseline and recording start in 3 seconds."
                             : "Get ready. Recording starts automatically."
                           : isRecording
-                          ? "You have 10 seconds. Speak naturally and keep your face in frame."
+                          ? question.captureKind === "sustained_vowel"
+                            ? `You have ${Math.max(1, Math.round(recordingDurationMs / 1000))} seconds. Hold the sound steadily and keep your face in frame.`
+                            : `You have ${Math.max(1, Math.round(recordingDurationMs / 1000))} seconds. Speak naturally and keep your face in frame.`
                           : hasCompletedRecording
                           ? "Response captured. Loading the next prompt."
                           : "Preparing your microphone."}
@@ -302,7 +330,7 @@ export default function GuidedScanQuestionPage() {
             key={question.id}
             ref={recorderRef}
             hideTrigger
-            durationMs={AUTO_RECORDING_MS}
+            durationMs={recordingDurationMs}
             onComplete={handleComplete}
             onRecordingStateChange={setIsRecording}
             onSignalSample={setLiveSample}

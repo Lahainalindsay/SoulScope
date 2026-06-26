@@ -4,6 +4,8 @@ export type GuidedScanQuestion = {
   rangeLabel: string;
   prompt: string;
   rationale: string;
+  durationMs: number;
+  captureKind: "sustained_vowel" | "guided_speech";
 };
 
 export type ResearchReference = {
@@ -14,66 +16,83 @@ export type ResearchReference = {
 };
 
 export const SCAN_OVERVIEW_LINES = [
-  "SoulScope uses a guided six-part speaking protocol instead of one unstructured clip.",
-  "The prompts move from everyday expression into relationships, emotional weight, body awareness, and future orientation.",
-  "We analyze only voiced speech, note the breaks between speaking, and map your pitch center, resonance patterns, and note balance across the full response set.",
+  "SoulScope uses a sustained vowel capture followed by guided speech prompts instead of one unstructured clip.",
+  "The scan starts with a short held ahh or ohh for pitch stability, jitter, shimmer, and resonance support, then moves into everyday expression, relationships, emotional weight, body awareness, and future orientation.",
+  "We analyze voiced speech, note the breaks between speaking, and map pitch center, resonance patterns, note balance, and recovery signals across the full response set.",
   "The report is reflective and educational. It is not a diagnosis and it does not replace clinical evaluation.",
 ];
 
 export const GUIDED_SCAN_QUESTIONS: GuidedScanQuestion[] = [
   {
-    id: "simple_joy",
+    id: "sustained_vowel",
     title: "Prompt 1",
-    rangeLabel: "Opening",
+    rangeLabel: "Foundation",
     prompt:
-      "Let's start simple. Tell me about something you enjoy doing.",
+      "Hold an ahhh or ohhh sound steadily for five seconds.",
     rationale:
-      "Opens with natural, low-pressure speech so the scan can hear your baseline expression.",
+      "Captures a sustained vowel, which is especially useful for jitter, shimmer, HNR, pitch stability, and resonance support.",
+    durationMs: 5000,
+    captureKind: "sustained_vowel",
+  },
+  {
+    id: "simple_joy",
+    title: "Prompt 2",
+    rangeLabel: "Opening",
+    prompt: "Let's start simple. Tell me about something you enjoy doing.",
+    rationale:
+      "Opens with natural, low-pressure speech so the scan can hear your everyday expression.",
+    durationMs: 10000,
+    captureKind: "guided_speech",
   },
   {
     id: "liked_in_people",
-    title: "Prompt 2",
+    title: "Prompt 3",
     rangeLabel: "Reflection",
-    prompt:
-      "What do you like most about the people in your life?",
+    prompt: "What do you like most about the people in your life?",
     rationale:
       "Captures values, affection, and how your voice organizes around appreciation.",
+    durationMs: 10000,
+    captureKind: "guided_speech",
   },
   {
     id: "current_weight",
-    title: "Prompt 3",
+    title: "Prompt 4",
     rangeLabel: "Depth",
-    prompt:
-      "Let's go a little deeper. What's been weighing on you lately?",
+    prompt: "Let's go a little deeper. What's been weighing on you lately?",
     rationale:
       "Introduces stress-related content and listens for changes in tension, pace, and support.",
+    durationMs: 10000,
+    captureKind: "guided_speech",
   },
   {
     id: "felt_emotion",
-    title: "Prompt 4",
+    title: "Prompt 5",
     rangeLabel: "Feeling",
-    prompt:
-      "How does this make you feel?",
+    prompt: "How does this make you feel?",
     rationale:
       "Focuses the voice on emotional naming and affective expression.",
+    durationMs: 10000,
+    captureKind: "guided_speech",
   },
   {
     id: "body_location",
-    title: "Prompt 5",
+    title: "Prompt 6",
     rangeLabel: "Body",
-    prompt:
-      "Where do you feel that the most?",
+    prompt: "Where do you feel that the most?",
     rationale:
       "Brings the response into body awareness and somatic language.",
+    durationMs: 10000,
+    captureKind: "guided_speech",
   },
   {
     id: "goal_dream",
-    title: "Prompt 6",
+    title: "Prompt 7",
     rangeLabel: "Future",
-    prompt:
-      "Last one. Tell me about a goal or dream you have.",
+    prompt: "Last one. Tell me about a goal or dream you have.",
     rationale:
       "Closes on aspiration and forward energy, which helps contrast weight with direction.",
+    durationMs: 10000,
+    captureKind: "guided_speech",
   },
 ];
 

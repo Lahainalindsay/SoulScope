@@ -4,38 +4,41 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { setLocalDevSession } from "@/lib/localSession";
+import { clearLocalDevSession } from "@/lib/localSession";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async (e: any) => {
     e.preventDefault();
     setStatus("Logging in...");
+    setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
-        if (error.message.toLowerCase().includes("fetch")) {
-          setLocalDevSession(email);
-          setStatus("Supabase auth is unreachable. Using local dev mode.");
-          router.push("/dashboard");
-          return;
-        }
         setStatus(error.message);
+        return;
+      }
+
+      if (!data.session) {
+        setStatus("Supabase accepted the request but did not return a session. Confirm your email, then try again.");
+        return;
       } else {
+        clearLocalDevSession();
         setStatus("Success! Redirecting...");
-        router.push("/dashboard");
+        await router.push("/auth/debug");
       }
     } catch (error) {
       console.error("Login request failed", error);
-      setLocalDevSession(email);
-      setStatus("Supabase auth is unreachable. Using local dev mode.");
-      router.push("/dashboard");
+      setStatus(error instanceof Error ? error.message : "Login request failed.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -75,9 +78,10 @@ export default function LoginPage() {
 
         <button
           type="submit"
-          className="w-full bg-[var(--electric-cyan)] text-black py-2 rounded font-bold transition hover:scale-[1.02]"
+          disabled={isSubmitting}
+          className="w-full bg-[var(--electric-cyan)] text-black py-2 rounded font-bold transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Enter SoulScope
+          {isSubmitting ? "Signing in..." : "Enter SoulScope"}
         </button>
 
         <p className="text-sm text-center mt-4 text-gray-400">

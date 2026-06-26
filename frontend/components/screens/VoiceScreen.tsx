@@ -2,6 +2,7 @@ type VoicePrompt = {
   label: string;
   prompt: string;
   duration: string;
+  captureKind: "sustained_vowel" | "guided_speech";
   status: "idle" | "recording" | "done";
 };
 
@@ -14,12 +15,12 @@ export default function VoiceScreen({ prompts, onCapture }: VoiceScreenProps) {
   return (
     <div className="voice-grid">
       {prompts.map((prompt, index) => (
-        <article className="voice-card" key={prompt.label}>
-          <header>
-            <small>{prompt.label}</small>
-            <span>{prompt.duration}</span>
-          </header>
-          <p>{prompt.prompt}</p>
+          <article className="voice-card" key={prompt.label}>
+            <header>
+              <small>{prompt.label}</small>
+              <span>{prompt.captureKind === "sustained_vowel" ? `Vowel · ${prompt.duration}` : prompt.duration}</span>
+            </header>
+            <p>{prompt.prompt}</p>
           <div className="voice-card__footer">
             <span className={`sensor-chip sensor-chip--${prompt.status}`}>
               {prompt.status === "idle"
@@ -45,4 +46,3 @@ export default function VoiceScreen({ prompts, onCapture }: VoiceScreenProps) {
     </div>
   );
 }
-

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabaseClient";
-import { setLocalDevSession } from "../../lib/localSession";
+import { clearLocalDevSession, setLocalDevSession } from "../../lib/localSession";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function SignupPage() {
     event.preventDefault();
     setError("");
     try {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) {
         if (error.message.toLowerCase().includes("fetch")) {
           setLocalDevSession(email);
@@ -24,6 +24,11 @@ export default function SignupPage() {
           return;
         }
         setError(error.message);
+        return;
+      }
+      clearLocalDevSession();
+      if (!data.session) {
+        setError("Account created. Confirm your email, then log in before running a Supabase-backed Resonance Scan.");
         return;
       }
       router.push("/dashboard");

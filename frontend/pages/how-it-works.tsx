@@ -7,43 +7,41 @@ import styles from "./HowItWorks.module.css";
 
 const steps = [
   {
-    title: "Composite voice capture",
-    description:
-      "You complete three guided prompts. SoulScope captures spontaneous, structured, and reflective speech so the readout is based on more than one speaking mode.",
+    title: "Guided Whole-Self Capture",
+    description: "A short guided voice reflection creates a natural sample for analysis.",
     details: [
-      "Three prompts are merged into one composite result",
-      "The protocol samples baseline speech, sequencing, and emotional inflection",
-      "You control when to move forward, so the recording is not rushed",
+      "Prompts are merged into one Resonance Profile",
+      "The protocol samples baseline speech, emotional expression, and reflective language",
+      "You speak naturally; there is no performance standard",
     ],
   },
   {
-    title: "Spectrum measurement",
-    description:
-      "Each response is processed with on-device speech spectrum analysis to measure how energy is distributed across 12 equal-tempered note classes in the speaking range.",
+    title: "Pattern Measurement",
+    description: "Voice characteristics are measured and organized into broader pattern groups.",
     details: [
-      "FFT-based note-class energy mapping from C through B",
-      "Centroid, flatness, RMS, zero-crossing, and note-class energy add tone context",
-      "The system flags low-support and overloaded regions across the full sample",
+      "The voice remains the sensing mechanism, not the product",
+      "Musical notes are kept internally as a stable organizing model",
+      "The interface translates those notes into human systems and observed tendencies",
     ],
   },
   {
-    title: "Pattern interpretation",
+    title: "Whole-Self Interpretation",
     description:
-      "Measured voice patterns are translated into a practical readout centered on support, clarity, projection, fatigue, tension, and vocal load, then interpreted through the SoulScope note model.",
+      "Observed patterns are translated into practical insights across mental, emotional, physical, and behavioral systems.",
     details: [
-      "Low note energy can suggest reduced support, damping, or vocal reserve",
-      "High-load note energy can suggest compensation, pressure, or overuse",
-      "The measured layer stays separate from the proprietary note-meaning and chakra overlays",
+      "Some patterns may indicate where more support, recovery, or expression is needed",
+      "Patterns with higher load may indicate pressure, compensation, or sustained strain",
+      "Language is framed as tendencies and correlations, not diagnosis",
     ],
   },
   {
-    title: "Rebalancing guidance",
+    title: "Rebalancing Guidance",
     description:
-      "The result is paired with simple next steps that target the weak regions and calm the overloaded ones.",
+      "Insights are paired with supportive actions designed to encourage balance, recovery, and adaptability.",
     details: [
-      "Listening tone suggestions and reference tone playback",
-      "Breath, resonance, projection, and recovery drills",
-      "Retesting helps you track whether the spectrum becomes more even over time",
+      "Breath, reflection, expression, movement, and recovery practices",
+      "Suggested actions are practical and non-diagnostic",
+      "Retesting helps you track whether patterns shift over time",
     ],
   },
 ];
@@ -61,15 +59,14 @@ export default function HowItWorks() {
         <main className={styles.shell}>
           <section className={styles.hero}>
             <p className={styles.eyebrow}>How It Works</p>
-            <h1 className={styles.title}>Measured voice analysis with a clear wellness frame.</h1>
+            <h1 className={styles.title}>Voice analysis translated into whole-self insight.</h1>
             <p className={styles.lead}>
-              SoulScope treats the voice as a measurable signal. The product experience is atmospheric,
-              but the scan itself is built around speech spectrum analysis, note-region energy, tone
-              quality features, and guided speech tasks.
+              SoulScope treats the voice as a sensing mechanism for patterns that may correlate with
+              mental clarity, emotional expression, physical load, recovery, and behavioral momentum.
             </p>
             <div className={styles.actions}>
               <Link href="/scan" className={styles.primaryButton}>
-                Start Scan
+                Start Resonance Scan
               </Link>
             </div>
           </section>
@@ -93,12 +90,11 @@ export default function HowItWorks() {
 
           <section className={styles.frameCard}>
             <p className={styles.sectionEyebrow}>How the result is framed</p>
-            <h2 className={styles.sectionTitle}>Measured pattern first. Meaning second.</h2>
+            <h2 className={styles.sectionTitle}>Observed patterns first. Human meaning second.</h2>
             <p className={styles.frameText}>
-              The report starts with measured voice data: spectrum balance, note-region emphasis,
-              resonance behavior, and energy distribution. That measured layer is then interpreted through
-              the SoulScope proprietary note system, which connects note patterns to emotional themes,
-              physical correlates, and rebalancing practices.
+              The Resonance Report starts with observed voice patterns. Those patterns are then translated
+              through the SoulScope system into human themes such as clarity, expression, tension,
+              recovery, motivation, and adaptability.
             </p>
           </section>
 
@@ -122,8 +118,8 @@ export default function HowItWorks() {
               ))}
             </div>
             <p className={styles.disclaimer}>
-              SoulScope is not a medical device. It is for education and self-observation and should not
-              replace professional evaluation or treatment.
+              SoulScope is not a medical device and does not diagnose mental or physical conditions. It is
+              for education, reflection, and self-observation.
             </p>
           </section>
         </main>

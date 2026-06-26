@@ -65,7 +65,7 @@ function getHeadline(camera: CameraMetrics) {
     return "Guarded activation";
   }
   if (camera.blinkRatePerMin >= 24 || camera.facialTension >= 0.48) {
-    return "Hyper-alert engagement";
+    return "Heightened alertness";
   }
   if (camera.blinkRatePerMin <= 8 && camera.eyeOpenness <= 0.55) {
     return "Constricted holding";
@@ -82,15 +82,15 @@ function getSummary(camera: CameraMetrics) {
   const dilation = Math.round(camera.eyeDilationProxy * 100);
 
   if (camera.facialTension >= 0.58) {
-    return `The face read stayed tight overall, with tension around ${tension}% and a guarded eye pattern.`;
+    return `Camera context suggests visible tension was more present during this scan, with a guarded eye pattern.`;
   }
   if (camera.blinkRatePerMin >= 24) {
-    return `The camera read skewed alert, with blink rate near ${camera.blinkRatePerMin}/min and tension around ${tension}%.`;
+    return `Camera context suggests alertness or activation may have been elevated during this scan.`;
   }
   if (camera.facialTension <= 0.32 && camera.eyeOpenness >= 0.6) {
-    return `The face read looked relatively settled, with lower tension (${tension}%), open eyes (${openness}%), and moderate blink behavior.`;
+    return `Camera context suggests your visible expression appeared relatively settled and open.`;
   }
-  return `The face read was usable but mixed: blink rate ${camera.blinkRatePerMin}/min, tension ${tension}%, eye openness ${openness}%, eye-dilation proxy ${dilation}%.`;
+  return `Camera context was mixed, suggesting no single visual pattern dominated the scan.`;
 }
 
 export function buildCameraInsights(

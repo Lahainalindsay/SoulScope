@@ -4,12 +4,9 @@ import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ResonanceResultsDashboard from "../../components/ResonanceResultsDashboard";
-import TonePlayer from "../../components/TonePlayer";
-import { buildCameraInsights } from "../../lib/cameraInsights";
-import { buildCombinedResultNarrative } from "../../lib/combinedResults";
-import { getSoulScopeNoteColor } from "../../lib/noteSystem";
 import { supabase } from "../../lib/supabaseClient";
-import { type SpectrumBandResult, type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
+import { buildSoulScopeReport, type SoulScopeReport } from "../../lib/buildSoulScopeReport";
+import { type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
 import styles from "./ResultDetail.module.css";
 
 type ScanResult = VoiceAnalysisResult & {
@@ -25,156 +22,35 @@ type ScanRow = {
   result: ScanResult;
 };
 
-function getLegacyMissingBands(scan: ScanResult): SpectrumBandResult[] {
-  return Object.entries(scan.chakraScores ?? {})
-    .sort((a, b) => a[1] - b[1])
-    .slice(0, 3)
-    .map(([key, value]) => ({
-      key,
-      label: key.replace(/_/g, " "),
-      rangeHz: [0, 0],
-      relativeEnergy: value,
-      status: "underrepresented",
-      correlates: "legacy chakra-based result",
-      note: "This scan predates the newer voice spectrum model.",
-      practice: "Run a fresh guided scan to produce measured band energy.",
-    }));
-}
+const CLOUD_REQUEST_TIMEOUT_MS = 4500;
+const STORY_PREFERENCE_PREFIX = "soulscope.results.storyPreference:";
 
-function getLegacyExcessBands(scan: ScanResult): SpectrumBandResult[] {
-  return Object.entries(scan.chakraScores ?? {})
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 2)
-    .map(([key, value]) => ({
-      key,
-      label: key.replace(/_/g, " "),
-      rangeHz: [0, 0],
-      relativeEnergy: value,
-      status: "overrepresented",
-      correlates: "legacy chakra-based result",
-      note: "This scan predates the newer voice spectrum model.",
-      practice: "Run a fresh guided scan to produce measured band energy.",
-    }));
-}
+async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string) {
+  return await new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
 
-function FocusCard({
-  label,
-  value,
-  text,
-}: {
-  label: string;
-  value: string;
-  text: string;
-}) {
-  return (
-    <article className={styles.focusCard}>
-      <span className={styles.focusLabel}>{label}</span>
-      <h3 className={styles.focusValue}>{value}</h3>
-      <p className={styles.focusText}>{text}</p>
-    </article>
-  );
-}
-
-function topPromptNotes(
-  notes: {
-    note: string;
-    score: number;
-  }[] = []
-) {
-  return [...notes].sort((a, b) => b.score - a.score).slice(0, 3);
-}
-
-type PromptToneGroup = {
-  key: string;
-  label: string;
-  title: string;
-  subheading: string;
-  prompts: NonNullable<ScanResult["protocolNotes"]>["prompts"];
-  primaryNote?: string;
-  durationMs?: number;
-  topNotes: {
-    note: string;
-    score: number;
-  }[];
-};
-
-function buildPromptToneGroups(prompts: NonNullable<ScanResult["protocolNotes"]>["prompts"]): PromptToneGroup[] {
-  const groups = [
-    {
-      key: "base-tone",
-      label: "Your Base Tone",
-      title: "Opening",
-      subheading: "This is you speaking naturally with no emotional triggers.",
-      promptIndexes: [0, 1],
-    },
-    {
-      key: "emotional",
-      label: "Emotional",
-      title: "Emotional",
-      subheading: "This is where we introduced some emotional triggers into the conversation.",
-      promptIndexes: [2, 3, 4],
-    },
-    {
-      key: "future",
-      label: "Future",
-      title: "Future",
-      subheading: "This is your subconscious dreams and balance coming through.",
-      promptIndexes: [5],
-    },
-  ];
-
-  return groups.map((group) => {
-    const groupedPrompts = group.promptIndexes.map((index) => prompts[index]).filter(Boolean);
-    const noteTotals = new Map<string, number>();
-
-    groupedPrompts.forEach((prompt) => {
-      prompt.noteScores?.forEach((entry) => {
-        noteTotals.set(entry.note, (noteTotals.get(entry.note) ?? 0) + entry.score);
-      });
-    });
-
-    const combinedNotes = Array.from(noteTotals.entries())
-      .map(([note, score]) => ({ note, score }))
-      .sort((a, b) => b.score - a.score);
-
-    return {
-      key: group.key,
-      label: group.label,
-      title: group.title,
-      subheading: group.subheading,
-      prompts: groupedPrompts,
-      primaryNote: combinedNotes[0]?.note ?? groupedPrompts[0]?.primaryNote,
-      durationMs: groupedPrompts.reduce((sum, prompt) => sum + (prompt.durationMs ?? 0), 0),
-      topNotes: combinedNotes.slice(0, 3),
-    };
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (reason) => {
+        window.clearTimeout(timer);
+        reject(reason);
+      }
+    );
   });
 }
 
-function getStatusNotes(
-  scan: ScanResult | null,
-  status: "underactive" | "overactive"
-) {
-  if (!scan?.noteEnergies?.length) {
-    return status === "underactive"
-      ? (scan?.missingBands ?? []).map((band) => band.label)
-      : (scan?.excessBands ?? []).map((band) => band.label);
-  }
-
-  return scan.noteEnergies
-    .filter((entry) => entry.status === status)
-    .sort((a, b) =>
-      status === "underactive" ? a.relativeEnergy - b.relativeEnergy : b.relativeEnergy - a.relativeEnergy
-    )
-    .slice(0, status === "underactive" ? 3 : 2)
-    .map((entry) => entry.note);
-}
-
-export default function ResultsPage() {
+export default function ResultDetailPage() {
   const router = useRouter();
   const { id } = router.query;
   const [scan, setScan] = useState<ScanResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedStoryStyle, setSelectedStoryStyle] = useState<SoulScopeReport["storyCandidates"][number]["style"] | null>(null);
 
   useEffect(() => {
     if (!id || typeof id !== "string") return;
@@ -183,415 +59,105 @@ export default function ResultsPage() {
       setLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from("scans")
-        .select("result")
-        .eq("id", id)
-        .single<ScanRow>();
+      try {
+        const { data, error: fetchError } = await withTimeout(
+          supabase.from("scans").select("result").eq("id", id).single<ScanRow>(),
+          CLOUD_REQUEST_TIMEOUT_MS,
+          "Supabase scan"
+        );
 
-      if (fetchError) {
-        setError(fetchError.message);
+        if (fetchError) {
+          setError(fetchError.message);
+          setScan(null);
+        } else {
+          setScan(data?.result ?? null);
+        }
+      } catch (fetchError) {
+        console.error("Failed to fetch scan from Supabase", fetchError);
+        setError(fetchError instanceof Error ? fetchError.message : "Could not load this Resonance Report.");
         setScan(null);
-      } else {
-        setScan(data?.result ?? null);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     void fetchScan();
   }, [id]);
 
-  const missingBands = useMemo(
-    () => scan?.missingBands ?? (scan ? getLegacyMissingBands(scan) : []),
-    [scan]
-  );
-  const excessBands = useMemo(
-    () => scan?.excessBands ?? (scan ? getLegacyExcessBands(scan) : []),
-    [scan]
-  );
-  const underactiveNotes = useMemo(() => getStatusNotes(scan, "underactive"), [scan]);
-  const overactiveNotes = useMemo(() => getStatusNotes(scan, "overactive"), [scan]);
-  const promptToneGroups = useMemo(
-    () => (scan?.protocolNotes?.prompts?.length ? buildPromptToneGroups(scan.protocolNotes.prompts) : []),
-    [scan]
-  );
-  const cameraInsights = useMemo(
-    () =>
-      buildCameraInsights(
-        scan?.protocolNotes?.camera,
-        scan?.protocolNotes?.cameraBaseline,
-        scan?.protocolNotes?.prompts
-      ),
-    [scan]
-  );
-  const combinedNarrative = useMemo(
-    () => (scan ? buildCombinedResultNarrative(scan) : null),
-    [scan]
+  const report = useMemo(() => (scan ? buildSoulScopeReport(scan) : null), [scan]);
+  const storyCandidates = report?.storyCandidates ?? [];
+  const selectedStory = useMemo(
+    () => storyCandidates.find((candidate) => candidate.style === selectedStoryStyle) ?? storyCandidates[0] ?? null,
+    [storyCandidates, selectedStoryStyle]
   );
 
-  const primaryConcern = missingBands[0] ?? null;
-  const primaryExcess = excessBands[0] ?? null;
+  useEffect(() => {
+    if (!storyCandidates.length || typeof id !== "string") return;
+
+    const storageKey = `${STORY_PREFERENCE_PREFIX}${id}`;
+    try {
+      const stored = window.localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored) as { style?: string; title?: string } | null;
+        const nextStyle =
+          parsed?.style && storyCandidates.some((candidate) => candidate.style === parsed.style)
+            ? (parsed.style as SoulScopeReport["storyCandidates"][number]["style"])
+            : parsed?.title && storyCandidates.some((candidate) => candidate.title === parsed.title)
+            ? ((storyCandidates.find((candidate) => candidate.title === parsed.title)?.style ??
+                storyCandidates[0].style) as SoulScopeReport["storyCandidates"][number]["style"])
+            : storyCandidates[0].style;
+        setSelectedStoryStyle(nextStyle);
+        return;
+      }
+      setSelectedStoryStyle(storyCandidates[0].style);
+    } catch {
+      setSelectedStoryStyle(storyCandidates[0].style);
+    }
+  }, [id, storyCandidates]);
+
+  const handleStorySelect = (style: string) => {
+    const selected = storyCandidates.find((candidate) => candidate.style === style);
+    setSelectedStoryStyle(style as SoulScopeReport["storyCandidates"][number]["style"]);
+    if (typeof id !== "string") return;
+    try {
+      if (selected) {
+        window.localStorage.setItem(`${STORY_PREFERENCE_PREFIX}${id}`, JSON.stringify(selected));
+      }
+    } catch {
+      // ignore storage failures
+    }
+  };
 
   return (
     <div className={styles.page}>
       <div className={styles.gridOverlay} />
       <main className={styles.shell}>
-        {loading ? <div className={styles.stateCard}>Retrieving your voice profile...</div> : null}
-        {error ? <div className={`${styles.stateCard} ${styles.stateError}`}>{error}</div> : null}
+        {loading ? <div className={styles.stateCard}>Retrieving your resonance insights...</div> : null}
+        {!loading && error ? <div className={`${styles.stateCard} ${styles.stateError}`}>{error}</div> : null}
+        {!loading && !error && !report ? (
+          <div className={styles.stateCard}>No insight found for this report.</div>
+        ) : null}
 
-        {scan ? (
+        {!loading && !error && report ? (
           <>
-            {combinedNarrative ? (
-              <section className={styles.combinedSection}>
-                <p className={styles.sectionEyebrow}>Combined Result</p>
-                <h2 className={styles.rangeTitle}>Voice and face are telling the same story.</h2>
-                <p className={styles.combinedText}>{combinedNarrative}</p>
-              </section>
-            ) : null}
-            <section className={styles.hero}>
-              <div className={styles.heroMain}>
-                <p className={styles.eyebrow}>Composite Voiceprint</p>
-                <h1 className={styles.title}>
-                  {scan.dominantBandLabel} is
-                  <span className={styles.titleAccent}> carrying the signal.</span>
-                </h1>
-                <p className={styles.lead}>
-                  {scan.summary} This page combines two layers: measured speech spectrum analysis and the
-                  SoulScope note interpretation model built on top of that signal. The composite note score
-                  totals 360, with 30 as the balanced target for each of the 12 notes.
-                </p>
-
-                <div className={styles.heroActions}>
-                  <Link href="/scan" className={styles.primaryButton}>
-                    New Scan
-                  </Link>
-                  <Link href="/results" className={styles.secondaryButton}>
-                    Latest Result
-                  </Link>
-                </div>
-              </div>
-
-              <aside className={styles.snapshotPanel}>
-                <span className={styles.snapshotLabel}>Signal snapshot</span>
-                <div className={styles.snapshotGrid}>
-                  <div className={styles.snapshotCard}>
-                    <span className={styles.snapshotMetricLabel}>Resonance score</span>
-                    <strong className={styles.snapshotMetricValue}>
-                      {Math.round((scan.resonanceScore ?? 0) * 100)}%
-                    </strong>
-                  </div>
-                  <div className={styles.snapshotCard}>
-                    <span className={styles.snapshotMetricLabel}>Spectral centroid</span>
-                    <strong className={styles.snapshotMetricValue}>{scan.spectralCentroidHz} Hz</strong>
-                  </div>
-                  <div className={styles.snapshotCard}>
-                    <span className={styles.snapshotMetricLabel}>Pitch center</span>
-                    <strong className={styles.snapshotMetricValue}>
-                      {scan.voiceDynamics?.medianPitchHz
-                        ? `${scan.voiceDynamics.medianPitchHz} Hz`
-                        : "Spectrum"}
-                    </strong>
-                  </div>
-                  <div className={styles.snapshotCard}>
-                    <span className={styles.snapshotMetricLabel}>Pause count</span>
-                    <strong className={styles.snapshotMetricValue}>
-                      {scan.voiceDynamics?.pauseCount ?? "—"}
-                    </strong>
-                  </div>
-                  {scan.protocolNotes?.camera ? (
-                    <div className={styles.snapshotCard}>
-                      <span className={styles.snapshotMetricLabel}>Camera read</span>
-                      <strong className={styles.snapshotMetricValue}>
-                        {scan.protocolNotes.camera.blinkRatePerMin}/min
-                      </strong>
-                    </div>
-                  ) : null}
-                </div>
-                {scan.coreFrequencyHz ? (
-                  <div className={styles.toneWrap}>
-                    <TonePlayer frequency={scan.coreFrequencyHz} label="Play Reference Tone" />
-                  </div>
-                ) : null}
-              </aside>
-            </section>
-
             <ResonanceResultsDashboard
-              soulTone={scan.noteInterpretation?.primaryNote ?? "F#"}
-              frequencyHz={scan.voiceDynamics?.medianPitchHz ?? scan.coreFrequencyHz}
-              medianMidi={scan.voiceDynamics?.medianMidi}
-              noteEnergies={scan.noteEnergies}
+              report={report}
+              hiddenNotes={["G"]}
+              selectedStoryStyle={selectedStory?.style ?? null}
+              onSelectStory={handleStorySelect}
             />
 
-            <section className={styles.focusGrid}>
-              <FocusCard
-                label="Core tone"
-                value={scan.noteInterpretation?.primaryNote ?? scan.dominantBandLabel ?? "Unavailable"}
-                text="Primary note anchor estimated from the strongest measured energy in your guided sample."
-              />
-              <FocusCard
-                label="Primary note"
-                value={scan.dominantBandLabel ?? "Unknown"}
-                text={
-                  scan.voiceDynamics?.primaryNoteSource === "tracked-pitch"
-                    ? "The measured note class was led by tracked voiced pitch across the prompts."
-                    : "Tracked pitch was limited, so the broader spectrum carried the primary note read."
-                }
-              />
-              <FocusCard
-                label="Main deficit"
-                value={primaryConcern?.label ?? "None detected"}
-                text={
-                  primaryConcern
-                    ? primaryConcern.note
-                    : "No major low-support note stood out in this result."
-                }
-              />
-              <FocusCard
-                label="Main excess"
-                value={primaryExcess?.label ?? "None detected"}
-                text={
-                  primaryExcess
-                    ? primaryExcess.note
-                    : "No major overload note stood out in this result."
-                }
-              />
-            </section>
-            {promptToneGroups.length ? (
-              <section className={styles.rangeSection}>
-                <div className={styles.rangeHeader}>
-                  <div>
-                    <p className={styles.sectionEyebrow}>Vocal Tone</p>
-                    <h2 className={styles.rangeTitle}>Your Expressed Tones</h2>
-                  </div>
-                </div>
-
-                <div className={styles.rangeGrid}>
-                  {promptToneGroups.map((group) => {
-                    return (
-                      <article key={group.key} className={styles.rangeCard}>
-                        <span className={styles.rangeLabel}>{group.label}</span>
-                        <h3 className={styles.rangeCardTitle}>{group.title}</h3>
-                        <p className={styles.rangePrompt}>{group.subheading}</p>
-                        <div className={styles.rangeMeta}>
-                          <span className={styles.rangePill}>
-                            Primary note {group.primaryNote ?? "—"}
-                          </span>
-                          {typeof group.durationMs === "number" && group.durationMs > 0 ? (
-                            <span className={styles.rangePill}>
-                              {Math.round(group.durationMs / 1000)}s
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className={styles.rangeScores}>
-                          {group.topNotes.length ? (
-                            group.topNotes.map((entry) => (
-                              <div key={`${group.key}-${entry.note}`} className={styles.rangeScoreCard}>
-                                <div className={styles.rangeScoreTop}>
-                                  <span
-                                    className={styles.rangeScoreNote}
-                                    style={{ color: getSoulScopeNoteColor(entry.note) }}
-                                  >
-                                    {entry.note}
-                                  </span>
-                                  <span className={styles.rangeScoreValue}>{entry.score.toFixed(1)}</span>
-                                </div>
-                                <div className={styles.rangeScoreTrack}>
-                                  <div
-                                    className={styles.rangeScoreFill}
-                                    style={{
-                                      width: `${Math.max(12, Math.min(100, Math.round((entry.score / 60) * 100)))}%`,
-                                      background: `linear-gradient(90deg, ${getSoulScopeNoteColor(entry.note)}55, ${getSoulScopeNoteColor(entry.note)})`,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <span className={styles.emptyText}>Grouped note breakdown unavailable.</span>
-                          )}
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
-            ) : null}
-            {cameraInsights ? (
-              <section className={styles.cameraSection}>
-                <div className={styles.cameraHeader}>
-                  <div>
-                    <p className={styles.sectionEyebrow}>Camera Read</p>
-                    <h2 className={styles.rangeTitle}>{cameraInsights.headline}</h2>
-                  </div>
-                  <p className={styles.cameraLead}>{cameraInsights.summary}</p>
-                </div>
-
-                <div className={styles.cameraMetricGrid}>
-                  <article className={styles.cameraMetricCard}>
-                    <span className={styles.snapshotMetricLabel}>Blink rate</span>
-                    <strong className={styles.snapshotMetricValue}>
-                      {scan.protocolNotes?.camera?.blinkRatePerMin}/min
-                    </strong>
-                  </article>
-                  <article className={styles.cameraMetricCard}>
-                    <span className={styles.snapshotMetricLabel}>Facial tension</span>
-                    <strong className={styles.snapshotMetricValue}>
-                      {Math.round((scan.protocolNotes?.camera?.facialTension ?? 0) * 100)}%
-                    </strong>
-                  </article>
-                  <article className={styles.cameraMetricCard}>
-                    <span className={styles.snapshotMetricLabel}>Eye openness</span>
-                    <strong className={styles.snapshotMetricValue}>
-                      {Math.round((scan.protocolNotes?.camera?.eyeOpenness ?? 0) * 100)}%
-                    </strong>
-                  </article>
-                  <article className={styles.cameraMetricCard}>
-                    <span className={styles.snapshotMetricLabel}>Dilation proxy</span>
-                    <strong className={styles.snapshotMetricValue}>
-                      {Math.round((scan.protocolNotes?.camera?.eyeDilationProxy ?? 0) * 100)}%
-                    </strong>
-                  </article>
-                </div>
-
-                <div className={styles.cameraQuickGrid}>
-                  {cameraInsights.findings.slice(0, 4).map((finding) => (
-                    <article key={finding} className={styles.cameraQuickCard}>
-                      <p className={styles.focusText}>{finding}</p>
-                    </article>
-                  ))}
-                </div>
-
-                <div className={styles.cameraRanges}>
-                  {cameraInsights.rangeSummaries.map((range) => (
-                    <article key={range.key} className={styles.cameraRangeCard}>
-                      <span className={styles.rangeLabel}>{range.label}</span>
-                      <div className={styles.cameraPromptStats}>
-                        <span>{range.blinkRatePerMin}/min blinks</span>
-                        <span>{Math.round(range.facialTension * 100)}% tension</span>
-                        <span>{Math.round(range.eyeOpenness * 100)}% openness</span>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-
-                <div className={styles.cameraPromptList}>
-                  {cameraInsights.promptMetrics.map((prompt) => (
-                    <article key={prompt.id} className={styles.cameraPromptCard}>
-                      <div>
-                        <span className={styles.rangeLabel}>{prompt.rangeLabel ?? "Prompt"}</span>
-                        <h3 className={styles.cameraPromptTitle}>{prompt.title}</h3>
-                      </div>
-                      <div className={styles.cameraPromptStats}>
-                        <span>{prompt.camera.blinkRatePerMin}/min</span>
-                        <span>{Math.round(prompt.camera.facialTension * 100)}% tension</span>
-                        <span>{Math.round(prompt.camera.eyeOpenness * 100)}% openness</span>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            <section className={styles.analysisGrid}>
-              <article className={styles.analysisCard}>
-                <p className={styles.sectionEyebrow}>Measured findings</p>
-                <div className={styles.chipBlock}>
-                  <span className={`${styles.chipLabel} ${styles.chipDeficient}`}>Deficient notes</span>
-                  <div className={styles.chips}>
-                    {missingBands.length > 0 ? (
-                      missingBands.map((band) => (
-                        <span key={band.key} className={`${styles.chip} ${styles.chipDeficient}`}>
-                          {band.label}
-                        </span>
-                      ))
-                    ) : (
-                      <span className={styles.emptyText}>No strong deficits detected.</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className={styles.chipBlock}>
-                  <span className={`${styles.chipLabel} ${styles.chipExcess}`}>Excess notes</span>
-                  <div className={styles.chips}>
-                    {excessBands.length > 0 ? (
-                      excessBands.map((band) => (
-                        <span key={band.key} className={`${styles.chip} ${styles.chipExcess}`}>
-                          {band.label}
-                        </span>
-                      ))
-                    ) : (
-                      <span className={styles.emptyText}>No strong overload notes detected.</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className={styles.findingsList}>
-                  {(scan.findings ?? []).slice(0, 4).map((finding) => (
-                    <div key={finding} className={styles.findingCard}>
-                      {finding}
-                    </div>
-                  ))}
-                </div>
-              </article>
-
-              <article className={styles.analysisCard}>
-                <div className={styles.planHeader}>
-                  <div>
-                    <p className={styles.sectionEyebrow}>SoulScope interpretation</p>
-                    <h2 className={styles.planTitle}>Work the weak notes, calm the overloaded ones.</h2>
-                  </div>
-                  {scan.face ? (
-                    <div className={styles.faceCard}>
-                      <span className={styles.faceLabel}>Context</span>
-                      <strong className={styles.faceValue}>{scan.face.emotion}</strong>
-                      <span className={styles.faceMeta}>
-                        Focus {Math.round((scan.face.focusScore ?? 0) * 100)}%
-                      </span>
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className={styles.planGrid}>
-                  {scan.noteInterpretation ? (
-                    <article className={styles.planCard}>
-                      <p className={styles.planText}>
-                        <strong>{scan.noteInterpretation.primaryNote}</strong> is the primary note anchor in this
-                        scan, with <strong>{scan.noteInterpretation.oppositeNote}</strong> read as the opposite
-                        pole.
-                      </p>
-                      <p className={styles.planText}>
-                        The statements below are part of the SoulScope proprietary interpretation model, not
-                        direct medical findings from the acoustic measurement itself.
-                      </p>
-                      <p className={styles.planText}>{scan.noteInterpretation.emotionalPattern}</p>
-                      <p className={styles.planText}>{scan.noteInterpretation.physicalPattern}</p>
-                      <p className={styles.planText}>{scan.noteInterpretation.oppositePattern}</p>
-                      {scan.noteInterpretation.progression?.map((item) => (
-                        <p key={item} className={styles.planText}>
-                          {item}
-                        </p>
-                      ))}
-                    </article>
-                  ) : null}
-                  {(scan.supportPlan ?? []).length > 0 ? (
-                    scan.supportPlan.map((step) => (
-                      <article key={step} className={styles.planCard}>
-                        <p className={styles.planText}>{step}</p>
-                      </article>
-                    ))
-                  ) : (
-                    <article className={styles.planCard}>
-                      <p className={styles.planText}>No guided plan is available for this saved scan.</p>
-                    </article>
-                  )}
-                </div>
-              </article>
-            </section>
-
             <section className={styles.footerNote}>
-              <p>{scan.methodology}</p>
-              <p>{scan.caution}</p>
+              <p>
+                SoulScope uses voice as the sensing mechanism and translates observed tendencies into a
+                whole-self Resonance Report.
+              </p>
+              <p>{scan?.caution}</p>
+              <div className={styles.footerAction}>
+                <Link href="/scan" className={styles.primaryButton}>
+                  Run New Resonance Scan
+                </Link>
+              </div>
             </section>
           </>
         ) : null}

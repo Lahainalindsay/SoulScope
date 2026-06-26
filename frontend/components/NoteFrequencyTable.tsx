@@ -95,7 +95,7 @@ const BODY_RESONANCE_ROWS: BodyResonanceRow[] = [
 ];
 
 const CHAKRA_SENSE_ROWS: ChakraSenseRow[] = [
-  { center: "Root (base of spine)", note: "C", association: "Grounding" },
+  { center: "Root (base of spine)", note: "C", association: "Stability" },
   { center: "Sacral (lower abdomen)", note: "D", association: "Sensuality / Emotion" },
   { center: "Solar plexus (upper abdomen)", note: "E", association: "Sight / Willpower" },
   { center: "Heart (chest)", note: "F", association: "Touch" },
@@ -328,12 +328,12 @@ export default function NoteFrequencyTable() {
     <section className={styles.section}>
       <div className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Data Table</p>
-          <h2 className={styles.title}>Frequency and vibration reference by note.</h2>
+          <p className={styles.eyebrow}>Reference Table</p>
+          <h2 className={styles.title}>Note-based reference library.</h2>
           <p className={styles.subtitle}>
-            Standard equal-tempered tuning reference. Vibration rate is shown in hertz, which means
-            cycles per second. The sections below also include the comparative organ, body resonance,
-            and chakra-note mappings you added for later reference inside the app.
+            This archival library keeps note mappings available for internal reference. The primary
+            SoulScope experience translates notes into human-system patterns rather than centering
+            technical measurements.
           </p>
         </div>
       </div>
@@ -366,10 +366,10 @@ export default function NoteFrequencyTable() {
       <div className={styles.sectionBlock}>
         <div className={styles.blockHeader}>
           <p className={styles.blockEyebrow}>Comparative Mapping</p>
-          <h3 className={styles.blockTitle}>Five organs and musical tones in TCM.</h3>
+          <h3 className={styles.blockTitle}>Traditional five-organ tone references.</h3>
           <p className={styles.blockText}>
-            According to the Yellow Emperor&apos;s Internal Medicine tradition, the five Zang organs are
-            associated with the five pentatonic tones.
+            This is retained as a historical comparison layer. SoulScope does not treat organs as having
+            fixed musical frequencies or use this table to produce Insights.
           </p>
         </div>
 
@@ -470,10 +470,11 @@ export default function NoteFrequencyTable() {
       <div className={styles.sectionBlock}>
         <div className={styles.blockHeader}>
           <p className={styles.blockEyebrow}>Added Chart</p>
-          <h3 className={styles.blockTitle}>Organ frequencies and associated musical notes.</h3>
+          <h3 className={styles.blockTitle}>Archival organ-frequency chart.</h3>
           <p className={styles.blockText}>
-            This section stores the values visible in the uploaded chart so the app keeps both the
-            structured rows and the original chart image together.
+            Current voice analysis is better represented through body systems such as respiratory
+            support, autonomic regulation, vocal stability, timing, and energy patterns. This chart is
+            kept only as an archival reference and is not used as evidence for fixed organ frequencies.
           </p>
         </div>
 
@@ -580,7 +581,7 @@ export default function NoteFrequencyTable() {
 
         <div className={styles.dualGrid}>
           <div className={styles.findingsCard}>
-            <p className={styles.blockEyebrow}>Reported Results</p>
+            <p className={styles.blockEyebrow}>Reported Observations</p>
             <h3 className={styles.blockTitle}>Outcomes described by the paper.</h3>
             <ul className={styles.findingsList}>
               {SWARASAN_REPORTED_RESULTS.map((item) => (

@@ -16,12 +16,12 @@ export default function ResultsScreen({ ready, loading, result, error }: Results
   return (
     <div className="results-grid">
       <div className="result-gauge">
-        <p>Core Frequency</p>
+        <p>Core Resonance</p>
         <div className="result-gauge__circle">
           <span>{gaugeDisplay}</span>
           <small>{gaugeLabel}</small>
         </div>
-        <p>{dominantBand ? `Dominant Band ~${dominantBand} Hz` : "Dominant Band pending"}</p>
+        <p>{dominantBand ? "Main pattern available" : "Main pattern pending"}</p>
       </div>
       <div className="result-cards">
         <article className="result-card">
@@ -37,7 +37,7 @@ export default function ResultsScreen({ ready, loading, result, error }: Results
           </ul>
         </article>
         <article className="result-card">
-          <h4>Soul Resonance</h4>
+          <h4>Expression Resonance</h4>
           <p>
             Index:{" "}
             {result ? result.soul_resonance.toFixed(2) : loading ? "…" : "—"}
@@ -61,26 +61,24 @@ export default function ResultsScreen({ ready, loading, result, error }: Results
       </div>
       <div className="result-actions">
         <button className="wizard-button" disabled={!result}>
-          Play balancing sound
+          View Rebalancing Guidance
         </button>
         <button className="wizard-button wizard-button--ghost" disabled={!result}>
-          View shadow patterns
+          View Load Patterns
         </button>
         <button className="wizard-button wizard-button--ghost" disabled={!result}>
           Save & compare
         </button>
       </div>
       <p className="panel__description">
-        Backend call sequence: PhysioTimeSeries → extract_physio_features → aggregate VoiceFeatures →
-        fill ReactivityMetrics → <code>fuse_core_frequency(...)</code>.
+        Patterns are organized into a Resonance Profile for reflection, not diagnosis.
       </p>
       {error && <p className="wizard-error">{error}</p>}
       {!ready && (
         <p className="wizard-hint">
-          The report unlocks after baseline, voice, challenge, and recovery data are captured.
+          The Resonance Report becomes available after baseline, voice, challenge, and recovery data are captured.
         </p>
       )}
     </div>
   );
 }
-

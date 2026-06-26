@@ -11,14 +11,13 @@ export default function IntroScreen({ eyebrow, title, summary }: IntroScreenProp
       <h2 className="panel__title">{title}</h2>
       <p className="panel__description">{summary}</p>
       <ul>
-        <li>PhysioTimeSeries → HRV, EDA, breath (baseline + challenge).</li>
-        <li>VoiceFeatures → aggregated from guided prompts.</li>
+        <li>Sustained vowel → jitter, shimmer, HNR, pitch stability, resonance support.</li>
+        <li>Guided speech → pauses, cadence, expression, cognitive load, and directional change.</li>
         <li>ReactivityMetrics → baseline vs challenge vs recovery.</li>
       </ul>
       <p className="panel__description">
-        After ~6–8 minutes we call <code>fuse_core_frequency()</code> and reveal the magic.
+        After the guided capture, SoulScope translates the available patterns into a Resonance Profile.
       </p>
     </div>
   );
 }
-

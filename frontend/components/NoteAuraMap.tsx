@@ -5,7 +5,6 @@ import styles from "./NoteAuraMap.module.css";
 type NoteAuraMapProps = {
   noteEnergies: NoteEnergyResult[];
   title?: string;
-  subtitle?: string;
 };
 
 function polarToCartesian(cx: number, cy: number, radius: number, angleDeg: number) {
@@ -18,8 +17,7 @@ function polarToCartesian(cx: number, cy: number, radius: number, angleDeg: numb
 
 export default function NoteAuraMap({
   noteEnergies,
-  title = "Your Voice Mandala",
-  subtitle = "The composite score totals 360. A perfectly balanced voice would land at 30 points per note, with shorter rays for underactive notes and longer rays for overloaded ones.",
+  title = "Your Resonance Map",
 }: NoteAuraMapProps) {
   if (!noteEnergies.length) return null;
 
@@ -38,9 +36,7 @@ export default function NoteAuraMap({
     <section className={styles.section}>
       <div className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Primary Healing Visual</p>
           <h2 className={styles.title}>{title}</h2>
-          <p className={styles.subtitle}>{subtitle}</p>
         </div>
       </div>
 

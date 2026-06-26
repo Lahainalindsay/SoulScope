@@ -4,33 +4,45 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabaseClient";
-import { setLocalDevSession } from "../../lib/localSession";
+import { clearLocalDevSession } from "../../lib/localSession";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
+    setStatus("Signing in with Supabase...");
+    setIsSubmitting(true);
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        if (error.message.toLowerCase().includes("fetch")) {
-          setLocalDevSession(email);
-          router.push("/dashboard");
-          return;
-        }
         setError(error.message);
+        setStatus("");
         return;
       }
-      router.push("/dashboard");
+
+      if (!data.session) {
+        setError("Supabase accepted the request but did not return a session. Confirm your email, then try again.");
+        setStatus("");
+        return;
+      }
+
+      clearLocalDevSession();
+      setStatus("Signed in. Redirecting...");
+      await router.push("/auth/debug");
     } catch (error) {
       console.error("Login request failed", error);
-      setLocalDevSession(email);
-      router.push("/dashboard");
+      setError(error instanceof Error ? error.message : "Login request failed.");
+      setStatus("");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -54,9 +66,14 @@ export default function LoginPage() {
           onChange={(event) => setPassword(event.target.value)}
           required
         />
+        {status && <p className="text-cyan-200 text-sm mb-4">{status}</p>}
         {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
-        <button type="submit" className="w-full bg-yellow-300 text-black py-2 rounded font-semibold shadow">
-          Login
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-yellow-300 text-black py-2 rounded font-semibold shadow disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSubmitting ? "Signing in..." : "Login"}
         </button>
         <p className="mt-4 text-sm text-center">
           No account?{" "}

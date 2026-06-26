@@ -111,9 +111,21 @@
   gap: 20px;
 }
 
+.topNotesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
 .noteGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.domainGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
 }
 
@@ -122,6 +134,15 @@
   background:
     radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 14%, transparent), transparent 26%),
     rgba(255, 255, 255, 0.04);
+}
+
+.domainCard {
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 10%, transparent), transparent 28%),
+    rgba(255, 255, 255, 0.035);
 }
 
 .noteTop {
@@ -136,6 +157,22 @@
   font-size: 28px;
   font-weight: 700;
   color: var(--accent);
+}
+
+.domainState {
+  margin: 8px 0 0;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.domainActivity {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(248, 251, 255, 0.92);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .noteFrequency {
@@ -178,6 +215,103 @@
   color: rgba(226, 232, 240, 0.82);
 }
 
+.domainPattern {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.8;
+  color: rgba(226, 232, 240, 0.84);
+}
+
+.domainSection {
+  margin-top: 16px;
+}
+
+.domainSectionLabel,
+.sectionLabel {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.68);
+}
+
+.domainList,
+.technicalList {
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.domainListItem {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.domainReframe {
+  margin: 18px 0 0;
+  font-size: 14px;
+  line-height: 1.8;
+  color: rgba(226, 232, 240, 0.88);
+}
+
+.technicalDetails {
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 18px 22px;
+}
+
+.technicalSummary {
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.technicalBody {
+  margin-top: 18px;
+}
+
+.technicalIntro {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.8;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.technicalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.technicalCard {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.breakdownButton {
+  justify-self: start;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f8fbff;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.breakdownButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .reassurance {
   margin: 0;
   padding: 0 6px 6px;
@@ -198,6 +332,14 @@
   }
 
   .noteGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .topNotesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .technicalGrid {
     grid-template-columns: 1fr;
   }
 }

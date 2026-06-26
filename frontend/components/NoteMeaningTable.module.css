@@ -69,7 +69,7 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 980px;
+  min-width: 1220px;
 }
 
 .table th,
@@ -98,10 +98,33 @@
 }
 
 .table td:first-child {
-  width: 76px;
-  font-size: 18px;
+  width: 96px;
+}
+
+.noteCell {
+  display: flex;
+  justify-content: center;
+}
+
+.noteBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 20px;
   font-weight: 700;
   color: #ffffff;
+}
+
+.copy {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.72;
+  color: rgba(226, 232, 240, 0.84);
 }
 
 .list {

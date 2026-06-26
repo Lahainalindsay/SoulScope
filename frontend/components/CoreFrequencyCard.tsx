@@ -17,23 +17,23 @@ const statusClasses: Record<Status, string> = {
   done: "status-chip status-chip--done",
 };
 
-const signalPills = ["Theta Bloom", "Heart Coherence", "Auric Shield"];
+const signalPills = ["Clarity", "Recovery", "Adaptability"];
 
 export default function CoreFrequencyCard({ status, onSimulate }: Props) {
   return (
     <section className="frequency-card">
       <div className="frequency-card__header">
         <div>
-          <p className="hero__eyebrow">Core Frequency</p>
-          <p className="frequency-card__value">432 Hz</p>
+          <p className="hero__eyebrow">Core Resonance</p>
+          <p className="frequency-card__value">Resonance Profile</p>
         </div>
         <span className={statusClasses[status]}>{statusCopy[status]}</span>
       </div>
 
       <p className="frequency-card__copy">
-        Monitoring harmonic resonance and heart–brain coherence in real time.
-        When the channel is synced, we surface the most grounded guidance for
-        your next ritual or session.
+        Monitoring observed tendencies across mental clarity, physical load, recovery, and behavioral
+        momentum. When the profile is ready, SoulScope surfaces practical guidance for the current state
+        of your system.
       </p>
 
       <div className="frequency-card__controls">
@@ -42,7 +42,7 @@ export default function CoreFrequencyCard({ status, onSimulate }: Props) {
           onClick={onSimulate}
           disabled={status === "loading"}
         >
-          {status === "loading" ? "Aligning waveform…" : "Simulate analysis"}
+          {status === "loading" ? "Mapping patterns..." : "Simulate analysis"}
         </button>
         <div className="frequency-card__signal">
           {signalPills.map((pill) => (

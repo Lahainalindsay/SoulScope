@@ -41,6 +41,7 @@ type VoicePrompt = {
   label: string;
   prompt: string;
   duration: string;
+  captureKind: "sustained_vowel" | "guided_speech";
   status: "idle" | "recording" | "done";
 };
 
@@ -49,9 +50,9 @@ const steps: StepDefinition[] = [
     id: "intro",
     label: "Intro",
     eyebrow: "Screen 1",
-    title: "Core Frequency Scan",
+    title: "Resonance Scan",
     summary:
-      "This scan will measure your nervous system, your voice, and your emotional reactivity to estimate your core frequency – the pattern your system defaults to beneath stress and performance.",
+      "This Resonance Scan uses voice as a sensing mechanism to surface patterns that may be associated with clarity, expression, load, recovery, and adaptability.",
   },
   {
     id: "sensors",
@@ -59,7 +60,7 @@ const steps: StepDefinition[] = [
     eyebrow: "Screen 2",
     title: "Sensor check",
     summary:
-      "Verify that the heart sensor, EDA pads, and breathing belt (optional) are streaming clean signals before the scan begins.",
+      "Verify that optional sensors are streaming clean signals before the Resonance Scan begins.",
   },
   {
     id: "baseline",
@@ -75,7 +76,7 @@ const steps: StepDefinition[] = [
     eyebrow: "Screen 4",
     title: "Voice phase",
     summary:
-      "Capture four short voice clips: neutral identity, current state, power statement, and vulnerability line.",
+      "Capture a sustained vowel first, then short voice clips covering identity, current state, power statement, and vulnerability.",
   },
   {
     id: "challenge",
@@ -83,7 +84,7 @@ const steps: StepDefinition[] = [
     eyebrow: "Screen 5",
     title: "Emotional challenge",
     summary:
-      "Guide the seeker through gentle emotional recall to measure how their system responds under stress.",
+      "Guide a gentle emotional recall prompt to observe how the system responds under pressure.",
   },
   {
     id: "recovery",
@@ -95,11 +96,11 @@ const steps: StepDefinition[] = [
   },
   {
     id: "results",
-    label: "Results",
+    label: "Insights",
     eyebrow: "Screen 7",
-    title: "Core frequency report",
+    title: "Resonance Report",
     summary:
-      "Fuse PhysioTimeSeries, VoiceFeatures, and ReactivityMetrics to reveal the seeker’s dominant band and resonance profile.",
+      "Combine available signals into a Resonance Profile focused on mental, emotional, physical, and behavioral insight.",
   },
 ];
 
@@ -111,24 +112,34 @@ const DEFAULT_PHASE_DURATIONS: Record<PhaseId, number> = {
 
 const voicePromptsTemplate: Omit<VoicePrompt, "status">[] = [
   {
+    label: "Sustained vowel",
+    prompt: "“Hold an ahhh or ohhh sound steadily for five seconds.”",
+    duration: "5s",
+    captureKind: "sustained_vowel",
+  },
+  {
     label: "Neutral identity",
     prompt: "“Please say your full name slowly and clearly.”",
-    duration: "≈ 5s",
+    duration: "≈ 8s",
+    captureKind: "guided_speech",
   },
   {
     label: "Current state",
     prompt: "“In one sentence, say how you’re feeling right now.”",
     duration: "≈ 8s",
+    captureKind: "guided_speech",
   },
   {
     label: "Power statement",
     prompt: "“Say: ‘I trust myself to handle what comes next.’”",
     duration: "≈ 6s",
+    captureKind: "guided_speech",
   },
   {
     label: "Heart line",
     prompt: "“Say: ‘I deserve to be loved and supported.’”",
     duration: "≈ 6s",
+    captureKind: "guided_speech",
   },
 ];
 
