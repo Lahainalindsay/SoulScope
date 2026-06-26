@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useEffect, useState } from "react";
 import { getLocalDevSession } from "../lib/localSession";
@@ -7,11 +8,18 @@ import styles from "./Home.module.css";
 
 export default function Home() {
   const user = useUser();
+  const router = useRouter();
   const [hasLocalSession, setHasLocalSession] = useState(false);
 
   useEffect(() => {
     setHasLocalSession(Boolean(getLocalDevSession()));
   }, []);
+
+  useEffect(() => {
+    if (user || hasLocalSession) {
+      void router.replace("/dashboard");
+    }
+  }, [hasLocalSession, router, user]);
 
   const canScan = Boolean(user) || hasLocalSession;
 

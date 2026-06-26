@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { clearLocalDevSession } from "@/lib/localSession";
+const DEFAULT_AUTH_HOME = "/dashboard";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,7 +33,7 @@ export default function LoginPage() {
       } else {
         clearLocalDevSession();
         setStatus("Success! Redirecting...");
-        await router.push("/auth/debug");
+        await router.push(DEFAULT_AUTH_HOME);
       }
     } catch (error) {
       console.error("Login request failed", error);
