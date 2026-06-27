@@ -1,171 +1,218 @@
 # SoulScope
 
-SoulScope is a voice-based reflection and resonance app. It guides users through a spoken scan, analyzes vocal pitch and note energy, and returns a personalized results experience built around soul tone, voice mandala, note expression, and grouped vocal-tone patterns.
+SoulScope is a human pattern interpretation system.
 
-## Overview
+It translates measurable resonance signals into clear, recognizable descriptions of a person's current state of functioning. The goal is not diagnosis. The goal is recognition.
 
-The project currently includes:
+SoulScope should feel less like reading a lab report and more like having a highly perceptive guide explain what your system may currently be expressing.
 
-- a Next.js frontend for the homepage, scan flow, and results UI
-- a FastAPI backend for session, sensor, and fusion endpoints
-- Supabase project files for migrations and function scaffolding
-- browser-based voice analysis using Web Audio and Meyda
+## Core Idea
 
-## Features
+SoulScope does not exist to show disconnected scores.
 
-- redesigned homepage and onboarding flow
-- guided multi-prompt voice scan
-- browser-side audio analysis
-- local fallback results when capture quality is weak
-- soul tone card with playable reference tone
-- voice mandala visualization
-- note key with note frequencies and expression descriptions
-- grouped results for base tone, emotional tone, and future tone
+It exists to answer one question:
 
-## Project Structure
+**What story do these measurements tell together?**
 
-```text
-soulscope/
-├── backend/
-├── frontend/
-├── scripts/
-├── start-dev.sh
-└── supabase/
-```
+A scan should produce:
+- one coherent interpretation
+- one primary pattern
+- optional supporting and emerging patterns
+- three narrative variants for preference learning
+- a clear, human-centered explanation of what may be happening right now
 
-## Local Setup
+## Product Positioning
 
-### Requirements
+SoulScope is not:
+- a diagnosis tool
+- a generic voice analyzer
+- a note dashboard
+- a collection of isolated metrics
 
-- Node.js 18+
-- Python 3.11+
-- npm
+SoulScope is:
+- a private pattern intelligence system
+- a resonance-based reflection product
+- a pattern-first user experience
+- a tool for recognizing what is working, what is strained, and what may need support
+
+## Current Product Direction
+
+The platform is moving from **score-first reporting** to **pattern-first interpretation**.
+
+Instead of leading with separate metrics, SoulScope now centers the user experience around:
+- **Primary Pattern**
+- **Supporting Pattern**
+- **Emerging Pattern**
+- lived experience translation
+- supporting evidence
+- user-selected narrative preference
+
+Example direction:
+
+Instead of:
+- Recovery: 42
+- Communication: 81
+- Mental Load: 74
+
+SoulScope should say:
+
+> Your current scan most closely resembles **The Overextended Achiever** — a system with strong forward movement that may be asking for more restoration.
+
+## Experience Principles
+
+### 1. Recognition over diagnosis
+The success metric is not technical completeness.
+The success metric is whether the user says:
+
+> “That sounds exactly like what I’ve been experiencing.”
+
+### 2. Pattern-first, not fragment-first
+Users should not feel like they are reading seven unrelated cards.
+Each section of the report should reinforce one central story.
+
+### 3. Human language over technical language
+Technical measurements matter, but they should support the interpretation, not replace it.
+
+### 4. Premium clarity
+SoulScope should feel:
+- calm
+- perceptive
+- trustworthy
+- precise
+- emotionally intelligent
+- high-end
+
+## Logged-In Product Flow
+
+### Logged-out user
+The public homepage explains:
+- what SoulScope is
+- why it is different
+- why it matters
+
+### Logged-in user
+The app should open to the user's private home base:
+- latest pattern
+- pattern history
+- movement over time
+- favorite narrative preferences
+- clear CTA to start a new scan
+
+## Main User Surfaces
+
+### Dashboard
+The logged-in home.
+
+Should show:
+- latest pattern
+- latest scan date
+- pattern history
+- change over time
+- quick access to latest insight
+- start new scan
+
+### Pattern History
+A record of how the user's internal patterns change over time.
+
+Should lead with:
+- pattern names
+- human themes
+- scan date
+- preferred summary style
+
+Supporting technical detail can remain available, but it should not dominate the experience.
+
+### Results
+A single scan should produce:
+- one canonical interpretation
+- one primary pattern
+- optional supporting and emerging patterns
+- three separate narrative variants of the same result:
+  - Direct
+  - Supportive
+  - Insight
+
+The user selects the summary that feels most accurate. That feedback helps SoulScope learn how each person prefers information to be communicated.
+
+## Technical Architecture
+
+SoulScope currently includes:
+- a **frontend** application
+- a **backend** analysis service
+- **Supabase** for persistence
+- **Vercel** deployment support
+
+### Result Model
+One scan should map to:
+1. raw scan signals
+2. interpreted dimensions/domains
+3. one canonical pattern result
+4. three narrative variants
+5. one saved user preference
+
+## Data Model Direction
+
+The product is moving toward normalized persistence for:
+- scans
+- canonical pattern matches
+- story variants
+- selected story preferences
+
+This supports:
+- better history views
+- better preference learning
+- cleaner analytics
+- more personalized reporting over time
+
+## Design Standard
+
+SoulScope should not feel like:
+- a prototype
+- a corporate health dashboard
+- a spiritual toy
+- a debug-heavy internal tool
+
+It should feel like:
+- a thoughtful private system
+- a category-defining product
+- a premium personal insight experience
+
+## Development Priorities
+
+Current priorities:
+- pattern-first dashboard experience
+- premium language and hierarchy
+- better scan discrimination so different scans do not collapse into the same pattern
+- cleaner logged-in home flow
+- preference learning through narrative selection
+- continued reduction of note-first user-facing language
+
+## Local Development
 
 ### Frontend
 
 ```bash
 cd frontend
 npm install
-```
-
-Create `frontend/.env.local` if needed:
-
-```bash
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-```
-
-If you are using Supabase locally, keep your public Supabase env vars in this file as well.
-
-### Backend
-
-From the repo root:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
-```
-
-## Run Locally
-
-### One-command startup
-
-```bash
-./start-dev.sh
-```
-
-This starts:
-
-- frontend at `http://localhost:3000`
-- backend at `http://localhost:8000`
-
-### Manual startup
-
-Backend:
-
-```bash
-cd backend
-source ../.venv/bin/activate
-PYTHONPATH=. uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Frontend:
-
-```bash
-cd frontend
 npm run dev
 ```
 
-## How The Scan Works
-
-1. The user enters the guided scan.
-2. The app records spoken prompt responses.
-3. Answers are stored locally in browser session helpers.
-4. The analyzing step runs voice-spectrum analysis in the browser.
-5. Results are saved locally and optionally to Supabase.
-6. The user is routed to the results page.
-
-If the signal is weak, SoulScope can still complete the flow with a fallback result instead of dead-ending.
-
-## Results Experience
-
-The results flow currently includes:
-
-- a soul tone summary card
-- a playable tone button
-- the voice mandala
-- note-by-note expression cards
-- grouped prompt-tone summaries
-
-Main files:
-
-- `frontend/pages/results/index.tsx`
-- `frontend/pages/results/[id].tsx`
-- `frontend/components/ResonanceResultsDashboard.tsx`
-- `frontend/components/NoteAuraMap.tsx`
-
-## Voice Analysis
-
-Voice analysis is centered in:
-
-- `frontend/lib/voiceSpectrum.ts`
-
-Current processing includes:
-
-- frame-based audio decoding
-- RMS, spectral centroid, flatness, and zero-crossing analysis
-- pitch tracking when available
-- spectral fallback when pitch tracking is weak
-- note-energy mapping across the 12 chromatic notes
-- merged analysis across multiple prompts
-
-## Backend
-
-The FastAPI backend in `backend/main.py` currently exposes APIs for:
-
-- sensor/session readiness checks
-- phase startup
-- voice clip persistence
-- physio ingestion
-- reactivity updates
-- scan finalization through `corescope`
-
-The current user-facing voice scan results are primarily driven by the frontend analysis layer.
-
-## Helpful Commands
-
-Type check:
+### Backend
 
 ```bash
-cd frontend
-./node_modules/.bin/tsc --noEmit
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Production build:
+### One-command startup
+
+If your repo includes a start script, use that from the repo root:
 
 ```bash
-cd frontend
-npm run build
+./start-dev.sh
 ```
 
 ## Notes
@@ -173,7 +220,3 @@ npm run build
 - The repo includes a large set of checked-in image and reference assets.
 - Scan quality still depends heavily on microphone capture quality and environment noise.
 - Supabase is used when available, but local fallback behavior is supported.
-
-## License
-
-See `LICENSE`.
