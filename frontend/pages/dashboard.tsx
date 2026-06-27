@@ -1,1 +1,5 @@
-export { default } from "../components/PatternHistoryDashboard";
+import PatternHistoryDashboard from "../components/PatternHistoryDashboard";
+
+export default function DashboardPage() {
+  return <PatternHistoryDashboard />;
+}
