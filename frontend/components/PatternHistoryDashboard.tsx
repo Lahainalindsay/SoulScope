@@ -9,6 +9,7 @@ import { NOTE_ORDER, getSoulScopeNoteColor } from "../lib/noteSystem";
 import { getResonanceSystemLabel } from "../lib/resonanceLanguage";
 import { buildSoulScopeReport } from "../lib/buildSoulScopeReport";
 import { type NoteEnergyResult, type VoiceAnalysisResult } from "../lib/voiceSpectrum";
+import NoteAuraMap from "./NoteAuraMap";
 import styles from "../pages/History.module.css";
 
 type SpectrumBand = {
@@ -113,6 +114,7 @@ export default function PatternHistoryDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [scans, setScans] = useState<ScanRow[]>([]);
   const [preferences, setPreferences] = useState<Record<string, StoryPreferenceRow>>({});
+  const [viewMode, setViewMode] = useState<"new" | "history">("new");
 
   useEffect(() => {
     const loadLocal = () => {
@@ -206,13 +208,6 @@ export default function PatternHistoryDashboard() {
   }, [preferences, scans]);
 
   const latestEntry = historyEntries[0] ?? null;
-  const heroTitle = latestEntry?.report.primaryPattern.name ?? "Your Pattern History";
-  const primaryCta = latestEntry?.scan.id
-    ? { href: `/results/${latestEntry.scan.id}`, label: "Open Latest Insight" }
-    : { href: "/scan", label: "Start New Scan" };
-  const secondaryCta = latestEntry
-    ? { href: "/scan", label: "Start New Scan" }
-    : { href: "/how-it-works", label: "How It Works" };
   const chartScans = useMemo(() => scans.slice().reverse().slice(-12), [scans]);
   const trendSummary = useMemo(() => {
     if (!chartScans.length) {
@@ -258,38 +253,63 @@ export default function PatternHistoryDashboard() {
     };
   }, [chartScans, scans.length]);
 
+  const visibleEnergies = (latestEntry?.scan.result.noteEnergies ?? []).filter(
+    (entry) => entry.note !== "G"
+  );
+
   return (
     <div className={styles.page}>
       <div className={styles.gridOverlay} />
       <main className={styles.shell}>
-        <section className={styles.hero}>
-          <p className={styles.eyebrow}>Dashboard</p>
-          <h1 className={styles.title}>{heroTitle}</h1>
-          <p className={styles.lead}>
-            One scan. One coherent interpretation. Review the pattern your system is expressing, and follow
-            how it changes over time.
+        {/* New Scan Section - Always at Top */}
+        <section className={styles.newScanSection}>
+          <p className={styles.eyebrow}>Begin Your Journey</p>
+          <h2 className={styles.newScanTitle}>Ready for a Resonance Scan?</h2>
+          <p className={styles.newScanLead}>
+            Start a fresh scan to explore your current resonance. Each scan creates a private snapshot of your system's expression right now.
           </p>
-          <div className={styles.heroActions}>
-            <Link href={primaryCta.href} className={styles.primaryButton}>
-              {primaryCta.label}
-            </Link>
-            <Link href={secondaryCta.href} className={styles.secondaryButton}>
-              {secondaryCta.label}
+          <div className={styles.newScanActions}>
+            <Link href="/scan" className={styles.primaryButton}>
+              Start New Scan
             </Link>
           </div>
         </section>
 
+        {/* View Mode Tabs */}
+        {!loading && !error && scans.length > 0 && (
+          <section className={styles.tabsSection}>
+            <button
+              onClick={() => setViewMode("new")}
+              className={`${styles.tab} ${viewMode === "new" ? styles.tabActive : ""}`}
+            >
+              New Scan
+            </button>
+            <button
+              onClick={() => setViewMode("history")}
+              className={`${styles.tab} ${viewMode === "history" ? styles.tabActive : ""}`}
+            >
+              Past Scans
+            </button>
+          </section>
+        )}
+
         {loading ? <div className={styles.stateCard}>Loading pattern history...</div> : null}
         {error ? <div className={`${styles.stateCard} ${styles.stateError}`}>{error}</div> : null}
 
-        {!loading && !error && latestEntry ? (
+        {/* History View - Shows Latest Scan Data */}
+        {!loading && !error && scans.length > 0 && viewMode === "history" && latestEntry ? (
           <>
-            <section className={styles.topGrid}>
-              <article className={styles.latestCard}>
-                <p className={styles.sectionEyebrow}>Latest Insight</p>
-                <h2 className={styles.latestTitle}>{latestEntry.report.primaryPattern.name}</h2>
-                <p className={styles.latestText}>{latestEntry.report.primaryPattern.theme}</p>
-                <p className={styles.latestText}>{latestEntry.selectedSummary}</p>
+            {/* Latest Scan Map and Summary */}
+            <section className={styles.historyLatestSection}>
+              <div className={styles.historyLatestMapContainer}>
+                <NoteAuraMap noteEnergies={visibleEnergies} title="Your Latest Resonance Map" />
+              </div>
+
+              <article className={styles.historyLatestCard}>
+                <p className={styles.sectionEyebrow}>Latest Scan</p>
+                <h2 className={styles.historyLatestTitle}>{latestEntry.report.primaryPattern.name}</h2>
+                <p className={styles.historyLatestTheme}>{latestEntry.report.primaryPattern.theme}</p>
+                <p className={styles.historyLatestText}>{latestEntry.selectedSummary}</p>
                 <div className={styles.metaRow}>
                   <span className={styles.metaItem}>
                     Summary style <strong>{latestEntry.selectedStyle ?? "Direct"}</strong>
@@ -299,162 +319,166 @@ export default function PatternHistoryDashboard() {
                   </span>
                   <span className={styles.metaItem}>{new Date(latestEntry.scan.created_at).toLocaleString()}</span>
                 </div>
-                <p className={styles.historySummary}>
-                  Supporting marker:{" "}
-                  {latestEntry.scan.result.noteInterpretation?.primaryNote ?? latestEntry.scan.result.dominantBandLabel ?? "—"}
-                </p>
-                <Link href={latestEntry.scan.id ? `/results/${latestEntry.scan.id}` : "/dashboard"} className={styles.primaryButton}>
-                  Open Latest Report
-                </Link>
-              </article>
 
-              <article className={styles.chartCard}>
-                <div className={styles.chartHeader}>
-                  <div>
-                    <p className={styles.sectionEyebrow}>Movement Over Time</p>
-                    <h2 className={styles.chartTitle}>How the system has been shifting.</h2>
-                    <p className={styles.chartLead}>
-                      See the underlying signal layer without losing the larger human story. Recovery, expression,
-                      clarity, load, adaptability, and direction remain the frame of reference.
-                    </p>
-                  </div>
-                  {trendSummary ? (
-                    <div className={styles.chartStats}>
-                      <div className={styles.chartStat}>
-                        <span className={styles.chartStatLabel}>Saved scans</span>
-                        <strong className={styles.chartStatValue}>{trendSummary.totalScans}</strong>
-                      </div>
-                      <div className={styles.chartStat}>
-                        <span className={styles.chartStatLabel}>Window</span>
-                        <strong className={styles.chartStatValue}>{trendSummary.windowCount}</strong>
-                      </div>
-                      <div className={styles.chartStat}>
-                        <span className={styles.chartStatLabel}>Avg coherence</span>
-                        <strong className={styles.chartStatValue}>
-                          {trendSummary.resonanceAverage !== null ? `${trendSummary.resonanceAverage}%` : "—"}
-                        </strong>
-                      </div>
-                    </div>
-                  ) : null}
+                <div className={styles.historyLatestActions}>
+                  <Link href={latestEntry.scan.id ? `/results/${latestEntry.scan.id}` : "/dashboard"} className={styles.primaryButton}>
+                    View Full Report
+                  </Link>
+                  <button className={styles.secondaryButton}>
+                    Healing Recommendations
+                  </button>
                 </div>
-
-                <div className={styles.chartShell}>
-                  <svg viewBox="0 0 100 100" className={styles.chart} aria-hidden="true">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <line
-                        key={index}
-                        x1="0"
-                        x2="100"
-                        y1={index * 25}
-                        y2={index * 25}
-                        className={styles.chartLine}
-                      />
-                    ))}
-                    {Array.from({ length: Math.max(chartScans.length, 2) }).map((_, index) => {
-                      const x = (index / Math.max(chartScans.length - 1, 1)) * 100;
-                      return (
-                        <line
-                          key={`v-${index}`}
-                          x1={x}
-                          x2={x}
-                          y1="0"
-                          y2="100"
-                          className={styles.chartAxisLine}
-                        />
-                      );
-                    })}
-                    {BAND_LABELS.map((label) => (
-                      <path
-                        key={label}
-                        d={buildSeries(chartScans, label)}
-                        fill="none"
-                        stroke={BAND_COLORS[label]}
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                    ))}
-                  </svg>
-                </div>
-
-                {chartScans.length ? (
-                  <div className={styles.chartTimeline}>
-                    {chartScans.map((scan, index) => (
-                      <span key={`${scan.id ?? scan.created_at}-${index}`} className={styles.timelineTick}>
-                        {new Date(scan.created_at).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-
-                <div className={styles.legend}>
-                  {BAND_LABELS.map((label) => (
-                    <span
-                      key={label}
-                      className={styles.legendPill}
-                      style={{
-                        borderColor: `${BAND_COLORS[label]}55`,
-                        color: BAND_COLORS[label],
-                        background: `${BAND_COLORS[label]}11`,
-                      }}
-                    >
-                      {label}
-                    </span>
-                  ))}
-                </div>
-
-                {trendSummary ? (
-                  <div className={styles.trendInsightGrid}>
-                    <article className={styles.trendInsightCard}>
-                      <p className={styles.insightLabel}>Overall direction</p>
-                      <h3 className={styles.insightTitle}>
-                        {trendSummary.earliestDominant} to {trendSummary.latestDominant}
-                      </h3>
-                      <p className={styles.insightText}>
-                        Your oldest scan in this window centered around {getResonanceSystemLabel(trendSummary.earliestDominant)}, while the
-                        most recent scan centers around {getResonanceSystemLabel(trendSummary.latestDominant)}.
-                      </p>
-                    </article>
-                    <article className={styles.trendInsightCard}>
-                      <p className={styles.insightLabel}>Rising bands</p>
-                      <p className={styles.insightText}>
-                        {trendSummary.rising.length
-                          ? trendSummary.rising
-                              .map((entry) => `${getResonanceSystemLabel(entry.label)} (+${round(entry.delta * 100, 1)}%)`)
-                              .join(" · ")
-                          : "No strong upward shifts stand out across this 12-scan window."}
-                      </p>
-                    </article>
-                    <article className={styles.trendInsightCard}>
-                      <p className={styles.insightLabel}>Fading bands</p>
-                      <p className={styles.insightText}>
-                        {trendSummary.falling.length
-                          ? trendSummary.falling
-                              .map((entry) => `${getResonanceSystemLabel(entry.label)} (${round(entry.delta * 100, 1)}%)`)
-                              .join(" · ")
-                          : "No strong downward shifts stand out across this 12-scan window."}
-                      </p>
-                    </article>
-                    <article className={styles.trendInsightCard}>
-                      <p className={styles.insightLabel}>Most stable</p>
-                      <p className={styles.insightText}>
-                        {trendSummary.mostStable
-                          .map((entry) => `${getResonanceSystemLabel(entry.label)} (${round(entry.average * 100, 1)}% avg)`)
-                          .join(" · ")}
-                      </p>
-                    </article>
-                  </div>
-                ) : null}
               </article>
             </section>
 
+            {/* Scan History Chart */}
+            <article className={styles.chartCard}>
+              <div className={styles.chartHeader}>
+                <div>
+                  <p className={styles.sectionEyebrow}>Movement Over Time</p>
+                  <h2 className={styles.chartTitle}>How the system has been shifting.</h2>
+                  <p className={styles.chartLead}>
+                    See the underlying signal layer without losing the larger human story. Recovery, expression,
+                    clarity, load, adaptability, and direction remain the frame of reference.
+                  </p>
+                </div>
+                {trendSummary ? (
+                  <div className={styles.chartStats}>
+                    <div className={styles.chartStat}>
+                      <span className={styles.chartStatLabel}>Saved scans</span>
+                      <strong className={styles.chartStatValue}>{trendSummary.totalScans}</strong>
+                    </div>
+                    <div className={styles.chartStat}>
+                      <span className={styles.chartStatLabel}>Window</span>
+                      <strong className={styles.chartStatValue}>{trendSummary.windowCount}</strong>
+                    </div>
+                    <div className={styles.chartStat}>
+                      <span className={styles.chartStatLabel}>Avg coherence</span>
+                      <strong className={styles.chartStatValue}>
+                        {trendSummary.resonanceAverage !== null ? `${trendSummary.resonanceAverage}%` : "—"}
+                      </strong>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className={styles.chartShell}>
+                <svg viewBox="0 0 100 100" className={styles.chart} aria-hidden="true">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <line
+                      key={index}
+                      x1="0"
+                      x2="100"
+                      y1={index * 25}
+                      y2={index * 25}
+                      className={styles.chartLine}
+                    />
+                  ))}
+                  {Array.from({ length: Math.max(chartScans.length, 2) }).map((_, index) => {
+                    const x = (index / Math.max(chartScans.length - 1, 1)) * 100;
+                    return (
+                      <line
+                        key={`v-${index}`}
+                        x1={x}
+                        x2={x}
+                        y1="0"
+                        y2="100"
+                        className={styles.chartAxisLine}
+                      />
+                    );
+                  })}
+                  {BAND_LABELS.map((label) => (
+                    <path
+                      key={label}
+                      d={buildSeries(chartScans, label)}
+                      fill="none"
+                      stroke={BAND_COLORS[label]}
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  ))}
+                </svg>
+              </div>
+
+              {chartScans.length ? (
+                <div className={styles.chartTimeline}>
+                  {chartScans.map((scan, index) => (
+                    <span key={`${scan.id ?? scan.created_at}-${index}`} className={styles.timelineTick}>
+                      {new Date(scan.created_at).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className={styles.legend}>
+                {BAND_LABELS.map((label) => (
+                  <span
+                    key={label}
+                    className={styles.legendPill}
+                    style={{
+                      borderColor: `${BAND_COLORS[label]}55`,
+                      color: BAND_COLORS[label],
+                      background: `${BAND_COLORS[label]}11`,
+                    }}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+
+              {trendSummary ? (
+                <div className={styles.trendInsightGrid}>
+                  <article className={styles.trendInsightCard}>
+                    <p className={styles.insightLabel}>Overall direction</p>
+                    <h3 className={styles.insightTitle}>
+                      {trendSummary.earliestDominant} to {trendSummary.latestDominant}
+                    </h3>
+                    <p className={styles.insightText}>
+                      Your oldest scan in this window centered around {getResonanceSystemLabel(trendSummary.earliestDominant)}, while the
+                      most recent scan centers around {getResonanceSystemLabel(trendSummary.latestDominant)}.
+                    </p>
+                  </article>
+                  <article className={styles.trendInsightCard}>
+                    <p className={styles.insightLabel}>Rising bands</p>
+                    <p className={styles.insightText}>
+                      {trendSummary.rising.length
+                        ? trendSummary.rising
+                            .map((entry) => `${getResonanceSystemLabel(entry.label)} (+${round(entry.delta * 100, 1)}%)`)
+                            .join(" · ")
+                        : "No strong upward shifts stand out across this 12-scan window."}
+                    </p>
+                  </article>
+                  <article className={styles.trendInsightCard}>
+                    <p className={styles.insightLabel}>Fading bands</p>
+                    <p className={styles.insightText}>
+                      {trendSummary.falling.length
+                        ? trendSummary.falling
+                            .map((entry) => `${getResonanceSystemLabel(entry.label)} (${round(entry.delta * 100, 1)}%)`)
+                            .join(" · ")
+                        : "No strong downward shifts stand out across this 12-scan window."}
+                    </p>
+                  </article>
+                  <article className={styles.trendInsightCard}>
+                    <p className={styles.insightLabel}>Most stable</p>
+                    <p className={styles.insightText}>
+                      {trendSummary.mostStable
+                        .map((entry) => `${getResonanceSystemLabel(entry.label)} (${round(entry.average * 100, 1)}% avg)`)
+                        .join(" · ")}
+                    </p>
+                  </article>
+                </div>
+              ) : null}
+            </article>
+
+            {/* Pattern History List */}
             <section className={styles.historySection}>
               <div className={styles.historyHeader}>
                 <div>
                   <p className={styles.sectionEyebrow}>Pattern History</p>
-                  <h2 className={styles.historyTitle}>Pattern History</h2>
+                  <h2 className={styles.historyTitle}>All Your Scans</h2>
                 </div>
               </div>
 
@@ -484,7 +508,7 @@ export default function PatternHistoryDashboard() {
                         <div className={styles.historyDate}>{new Date(entry.scan.created_at).toLocaleString()}</div>
                       </div>
                       <Link href={entry.scan.id ? `/results/${entry.scan.id}` : "/dashboard"} className={styles.secondaryButton}>
-                        Open Latest Insight
+                        View Report
                       </Link>
                     </article>
                   );
