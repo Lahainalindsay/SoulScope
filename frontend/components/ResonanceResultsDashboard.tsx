@@ -26,6 +26,14 @@ export default function ResonanceResultsDashboard({
 
   return (
     <section className={styles.section}>
+      {/* Resonance Map at Top */}
+      <section className={styles.mapSection}>
+        <div className={styles.mapFrame}>
+          <NoteAuraMap noteEnergies={visibleEnergies} title="Your Resonance Map" />
+        </div>
+      </section>
+
+      {/* Pattern Summary Below Map */}
       <section className={styles.heroCard}>
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>Primary Pattern</p>
@@ -208,19 +216,6 @@ export default function ResonanceResultsDashboard({
               </article>
             );
           })}
-        </div>
-      </section>
-
-      <section className={styles.mapSection}>
-        <div className={styles.mapHeader}>
-          <div>
-            <p className={styles.eyebrow}>Resonance Map</p>
-            <h2 className={styles.mapTitle}>Your Resonance Map</h2>
-          </div>
-        </div>
-
-        <div className={styles.mapFrame}>
-          <NoteAuraMap noteEnergies={visibleEnergies} title="Your Resonance Map" />
         </div>
       </section>
 
