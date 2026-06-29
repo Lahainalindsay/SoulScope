@@ -19,7 +19,7 @@ import { type VoiceAnalysisResult } from "@/lib/voiceSpectrum";
  */
 
 interface ResultsPageProps {
-  scan: VoiceAnalysisResult;
+  scan?: VoiceAnalysisResult;
   userId?: string;
   scanId?: string;
 }
@@ -27,6 +27,19 @@ interface ResultsPageProps {
 export default function ResultsPage({ scan, userId, scanId }: ResultsPageProps) {
   // State for story selection preference
   const [selectedStory, setSelectedStory] = useState<"Direct" | "Supportive" | "Insight" | null>(null);
+
+  if (!scan) {
+    return (
+      <main className="min-h-screen bg-white px-4 py-10">
+        <div className="mx-auto max-w-3xl rounded-xl border border-gray-200 bg-gray-50 p-6">
+          <h1 className="text-2xl font-bold text-gray-900">Results Example</h1>
+          <p className="mt-3 text-gray-700">
+            This example page expects a <code className="rounded bg-gray-100 px-1 py-0.5">scan</code> object.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   // Build the enhanced report (includes synthesis)
   const { report, synthesis, isAccurate } = buildEnhancedSoulScopeReport(scan);

@@ -364,13 +364,13 @@ function analyzeDomainRelationships(domains: UserResultDomain[]): DomainRelation
     });
   }
 
-  // High Emotional Expression + Low Regulation = surface reactivity
+  // High Emotional Expression + Low Direction/Adaptability = surface reactivity
   const emotional = domains.find((d) => d.title === "Emotional Expression");
-  const regulation = domains.find((d) => d.title === "Regulation");
+  const regulation = domains.find((d) => d.title === "Direction & Adaptability");
   if (emotional?.score && regulation?.score && emotional.score > 60 && regulation.score < 45) {
     relationships.push({
       domain1: "Emotional Expression",
-      domain2: "Regulation",
+      domain2: "Direction & Adaptability",
       relationship: "conflicting",
       description: "Emotions may be closer to the surface right now.",
     });
