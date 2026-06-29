@@ -29,8 +29,8 @@ export default function ResonanceResultsDashboard({
     <section className={styles.section}>
       <section className={styles.heroCard}>
         <div className={styles.heroCopy}>
-          <p className={styles.eyebrow}>Hero Pattern</p>
-          <h1 className={styles.title}>{report.primaryPattern.name}</h1>
+          <p className={styles.eyebrow}>Current Pattern</p>
+          <h2 className={styles.title}>{report.primaryPattern.name}</h2>
           <p className={styles.lead}>{report.primaryPattern.theme}</p>
           <p className={styles.noteText}>{report.primaryPattern.explanation}</p>
         </div>

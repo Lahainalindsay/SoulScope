@@ -78,7 +78,7 @@
 .wordmark {
   margin: 18px 0 0;
   font-family: var(--font-serif);
-  font-size: clamp(30px, min(13vw, 56px), 148px);
+  font-size: clamp(24px, 10vw, 148px);
   line-height: 1.1;
   letter-spacing: clamp(0.02em, 0.22vw, 0.08em);
   text-transform: uppercase;

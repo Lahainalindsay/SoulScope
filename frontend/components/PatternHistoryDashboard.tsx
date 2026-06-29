@@ -114,12 +114,10 @@ function getGreeting(date: Date) {
   return "Good evening";
 }
 
-function getPreferredName(email: string | null | undefined) {
-  if (!email) return "there";
-  const localPart = email.split("@")[0]?.trim();
-  if (!localPart) return "there";
-  const clean = localPart.replace(/[._-]+/g, " ").trim();
-  return clean.charAt(0).toUpperCase() + clean.slice(1);
+function getPreferredName(name: string | null | undefined) {
+  const safe = name?.trim();
+  if (!safe) return "there";
+  return safe;
 }
 
 export default function PatternHistoryDashboard() {
@@ -266,8 +264,7 @@ export default function PatternHistoryDashboard() {
   const visibleEnergies = (latestEntry?.scan.result.noteEnergies ?? []).filter((entry) => entry.note !== "G");
 
   const greeting = getGreeting(new Date());
-  const fallbackEmail = getLocalDevSession()?.email ?? null;
-  const preferredName = getPreferredName(session?.user?.email ?? fallbackEmail ?? null);
+  const preferredName = getPreferredName(session?.user?.user_metadata?.full_name ?? null);
 
   return (
     <div className={styles.page}>
