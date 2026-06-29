@@ -6,6 +6,7 @@ import Link from "next/link";
 import ResonanceResultsDashboard from "../../components/ResonanceResultsDashboard";
 import { supabase } from "../../lib/supabaseClient";
 import { buildSoulScopeReport, type SoulScopeReport } from "../../lib/buildSoulScopeReport";
+import { buildPatternSynthesis } from "../../lib/patternSynthesis";
 import { persistCanonicalReport } from "../../lib/reportPersistence";
 import { saveFavoriteStory } from "../../lib/reportPersistence";
 import { type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
@@ -87,6 +88,10 @@ export default function ResultDetailPage() {
   }, [id]);
 
   const report = useMemo(() => (scan ? buildSoulScopeReport(scan) : null), [scan]);
+  const synthesis = useMemo(
+    () => (report ? buildPatternSynthesis(report.domainResults, report.evidence.dimensions) : null),
+    [report],
+  );
   const storyCandidates = useMemo(() => report?.storyCandidates ?? [], [report]);
   const selectedStory = useMemo(
     () => storyCandidates.find((candidate) => candidate.style === selectedStoryStyle) ?? storyCandidates[0] ?? null,
@@ -135,13 +140,23 @@ export default function ResultDetailPage() {
     }
   }, [id, storyCandidates]);
 
-  const handleStorySelect = (style: string) => {
+  const handleStorySelect = (style: SoulScopeReport["storyCandidates"][number]["style"]) => {
     const selected = storyCandidates.find((candidate) => candidate.style === style);
-    setSelectedStoryStyle(style as SoulScopeReport["storyCandidates"][number]["style"]);
+    setSelectedStoryStyle(style);
     if (typeof id !== "string") return;
     try {
       if (selected) {
-        window.localStorage.setItem(`${STORY_PREFERENCE_PREFIX}${id}`, JSON.stringify(selected));
+        window.localStorage.setItem(
+          `${STORY_PREFERENCE_PREFIX}${id}`,
+          JSON.stringify({
+            style: selected.style,
+            title: selected.title,
+            summary: selected.summary,
+            primaryPatternSelected: synthesis?.primaryPattern.name ?? report?.primaryPattern.name ?? "Unknown",
+            selectedAt: new Date().toISOString(),
+            scanId: id,
+          }),
+        );
       }
     } catch {
       // ignore storage failures
@@ -158,6 +173,8 @@ export default function ResultDetailPage() {
           style: selected.style,
           title: selected.title,
           summary: selected.summary,
+          primaryPatternSelected: synthesis?.primaryPattern.name ?? report?.primaryPattern.name ?? "Unknown",
+          selectedAt: new Date().toISOString(),
         });
       } catch (persistError) {
         console.error("Failed to persist story preference", persistError);
@@ -177,12 +194,14 @@ export default function ResultDetailPage() {
 
         {!loading && !error && report ? (
           <>
-            <ResonanceResultsDashboard
-              report={report}
-              hiddenNotes={["G"]}
-              selectedStoryStyle={selectedStory?.style ?? null}
-              onSelectStory={handleStorySelect}
-            />
+            {synthesis ? (
+              <ResonanceResultsDashboard
+                report={report}
+                synthesis={synthesis}
+                selectedStoryStyle={selectedStory?.style ?? null}
+                onSelectStory={handleStorySelect}
+              />
+            ) : null}
 
             <section className={styles.footerNote}>
               <p>

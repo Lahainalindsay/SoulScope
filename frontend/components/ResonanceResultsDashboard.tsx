@@ -1,12 +1,12 @@
-import NoteAuraMap from "./NoteAuraMap";
 import { type SoulScopeReport } from "../lib/buildSoulScopeReport";
+import { type PatternSynthesis } from "../lib/patternSynthesis";
 import styles from "./ResonanceResultsDashboard.module.css";
 
 type ResonanceResultsDashboardProps = {
   report: SoulScopeReport;
-  hiddenNotes?: string[];
-  onSelectStory?: (style: "Direct" | "Supportive" | "Insight") => void;
-  selectedStoryStyle?: "Direct" | "Supportive" | "Insight" | null;
+  synthesis: PatternSynthesis;
+  onSelectStory?: (style: SoulScopeReport["storyCandidates"][number]["style"]) => void;
+  selectedStoryStyle?: SoulScopeReport["storyCandidates"][number]["style"] | null;
 };
 
 function safeLines(value: unknown): string[] {
@@ -16,48 +16,36 @@ function safeLines(value: unknown): string[] {
 
 export default function ResonanceResultsDashboard({
   report,
-  hiddenNotes = [],
+  synthesis,
   onSelectStory,
   selectedStoryStyle = null,
 }: ResonanceResultsDashboardProps) {
-  const visibleEnergies = (report.evidence.noteEnergies ?? []).filter(
-    (entry) => !hiddenNotes.includes(entry.note)
-  );
-
   return (
     <section className={styles.section}>
-      {/* Resonance Map at Top */}
-      <section className={styles.mapSection}>
-        <div className={styles.mapFrame}>
-          <NoteAuraMap noteEnergies={visibleEnergies} title="Your Resonance Map" />
-        </div>
-      </section>
-
-      {/* Pattern Summary Below Map */}
       <section className={styles.heroCard}>
         <div className={styles.heroCopy}>
-          <p className={styles.eyebrow}>Primary Pattern</p>
-          <h2 className={styles.title}>{report.primaryPattern.name}</h2>
-          <p className={styles.lead}>{report.primaryPattern.theme}</p>
-          <p className={styles.noteText}>{report.primaryPattern.explanation}</p>
+          <p className={styles.eyebrow}>Main Pattern Right Now</p>
+          <h2 className={styles.title}>{synthesis.mainTitle}</h2>
+          <p className={styles.lead}>{synthesis.primaryPattern.theme}</p>
+          <p className={styles.noteText}>{synthesis.integratedSummary}</p>
         </div>
       </section>
 
-      {report.supportingPattern || report.emergingPattern ? (
+      {synthesis.secondaryPattern || synthesis.optionalEmergingPattern ? (
         <section className={styles.patternStrip}>
-          {report.supportingPattern ? (
+          {synthesis.secondaryPattern ? (
             <article className={styles.patternCard}>
-              <p className={styles.noteStatus}>Supporting Pattern</p>
-              <h3 className={styles.patternTitle}>{report.supportingPattern.name}</h3>
-              <p className={styles.patternTheme}>{report.supportingPattern.theme}</p>
+              <p className={styles.noteStatus}>Secondary Pattern</p>
+              <h3 className={styles.patternTitle}>{synthesis.secondaryPattern.name}</h3>
+              <p className={styles.patternTheme}>{synthesis.secondaryPattern.theme}</p>
             </article>
           ) : null}
 
-          {report.emergingPattern ? (
+          {synthesis.optionalEmergingPattern ? (
             <article className={styles.patternCard}>
               <p className={styles.noteStatus}>Emerging Pattern</p>
-              <h3 className={styles.patternTitle}>{report.emergingPattern.name}</h3>
-              <p className={styles.patternTheme}>{report.emergingPattern.theme}</p>
+              <h3 className={styles.patternTitle}>{synthesis.optionalEmergingPattern.name}</h3>
+              <p className={styles.patternTheme}>{synthesis.optionalEmergingPattern.theme}</p>
             </article>
           ) : null}
         </section>
@@ -69,7 +57,7 @@ export default function ResonanceResultsDashboard({
             <p className={styles.eyebrow}>Preference Learning</p>
             <h2 className={styles.mapTitle}>Choose the summary that feels most accurate</h2>
             <p className={styles.lead}>
-              All three options are built from the same scan. Your selection helps SoulScope learn which
+              All options are built from the same scan. Your selection helps SoulScope learn which
               style of explanation feels most true to you.
             </p>
           </div>
@@ -111,11 +99,10 @@ export default function ResonanceResultsDashboard({
       <section className={styles.notesSection}>
         <div className={styles.notesHeader}>
           <div>
-            <p className={styles.eyebrow}>Current Story</p>
-            <h2 className={styles.mapTitle}>What this may be reflecting right now</h2>
+            <p className={styles.eyebrow}>Pattern Context</p>
+            <h2 className={styles.mapTitle}>This may explain why…</h2>
             <p className={styles.lead}>
-              The cards below translate the same scan into lived experience. They are not competing truths;
-              they are different ways of reading one result.
+              Your voice pattern suggests this pattern may show up in concrete, lived ways.
             </p>
           </div>
         </div>
@@ -124,7 +111,7 @@ export default function ResonanceResultsDashboard({
           <article className={styles.storyCard}>
             <p className={styles.noteStatus}>What this may feel like</p>
             <ul className={styles.storyList}>
-              {safeLines(report.primaryPattern.whatThisMayFeelLike).map((item) => (
+              {safeLines(synthesis.likelyExperiences).map((item) => (
                 <li key={item} className={styles.storyItem}>
                   {item}
                 </li>
@@ -133,9 +120,9 @@ export default function ResonanceResultsDashboard({
           </article>
 
           <article className={styles.storyCard}>
-            <p className={styles.noteStatus}>What is supporting the system</p>
+            <p className={styles.noteStatus}>What is still working for you</p>
             <ul className={styles.storyList}>
-              {safeLines(report.primaryPattern.supportiveFactors).map((item) => (
+              {safeLines(synthesis.protectiveFactors).map((item) => (
                 <li key={item} className={styles.storyItem}>
                   {item}
                 </li>
@@ -144,9 +131,9 @@ export default function ResonanceResultsDashboard({
           </article>
 
           <article className={styles.storyCard}>
-            <p className={styles.noteStatus}>What is working hardest</p>
+            <p className={styles.noteStatus}>What may be happening underneath</p>
             <ul className={styles.storyList}>
-              {safeLines(report.primaryPattern.whatIsWorkingHardest).map((item) => (
+              {safeLines(synthesis.primaryDrivers).map((item) => (
                 <li key={item} className={styles.storyItem}>
                   {item}
                 </li>
@@ -156,7 +143,7 @@ export default function ResonanceResultsDashboard({
 
           <article className={styles.storyCard}>
             <p className={styles.noteStatus}>What deserves attention first</p>
-            <p className={styles.noteText}>{report.primaryPattern.whatNeedsAttention}</p>
+            <p className={styles.noteText}>{synthesis.suggestedFocus}</p>
           </article>
         </div>
       </section>
@@ -257,9 +244,26 @@ export default function ResonanceResultsDashboard({
                 )}
               </ul>
             </article>
+
+            <article className={styles.technicalCard}>
+              <p className={styles.sectionLabel}>Voice Dynamics</p>
+              <ul className={styles.technicalList}>
+                <li>Jitter: {report.evidence.voiceDynamics?.jitterLocalPct ?? "n/a"}</li>
+                <li>Shimmer: {report.evidence.voiceDynamics?.shimmerLocalPct ?? "n/a"}</li>
+                <li>HNR: {report.evidence.voiceDynamics?.harmonicToNoiseRatioDb ?? "n/a"}</li>
+                <li>Spectral centroid: {Math.round(report.evidence.spectralCentroidHz)} Hz</li>
+                <li>Pitch stability: {report.evidence.voiceDynamics?.pitchStability ?? "n/a"}</li>
+                <li>Voiced frame ratio: {report.evidence.voiceDynamics?.voicedFrameRatio ?? "n/a"}</li>
+                <li>Harmonic richness: {report.evidence.voiceDynamics?.harmonicRichness ?? "n/a"}</li>
+                <li>
+                  Frequency details: {report.evidence.voiceDynamics?.lowPitchHz ?? "n/a"}–{report.evidence.voiceDynamics?.highPitchHz ?? "n/a"} Hz
+                </li>
+              </ul>
+            </article>
           </div>
         </div>
       </details>
+
     </section>
   );
 }

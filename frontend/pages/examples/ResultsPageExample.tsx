@@ -26,13 +26,13 @@ interface ResultsPageProps {
 
 export default function ResultsPage({ scan, userId, scanId }: ResultsPageProps) {
   // State for story selection preference
-  const [selectedStory, setSelectedStory] = useState<"Direct" | "Supportive" | "Insight" | null>(null);
+  const [selectedStory, setSelectedStory] = useState<"Direct" | "Supportive" | "Insight" | "Grounded/Actionable" | null>(null);
 
   // Build the enhanced report (includes synthesis)
   const { report, synthesis, isAccurate } = buildEnhancedSoulScopeReport(scan);
 
   // Handle story selection
-  const handleSelectStory = async (style: "Direct" | "Supportive" | "Insight") => {
+  const handleSelectStory = async (style: "Direct" | "Supportive" | "Insight" | "Grounded/Actionable") => {
     setSelectedStory(style);
 
     // Optional: Send preference to backend for learning

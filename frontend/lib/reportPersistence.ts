@@ -15,6 +15,8 @@ type SaveSelectionArgs = {
   style: StoryStyle;
   title: string;
   summary: string;
+  primaryPatternSelected: string;
+  selectedAt?: string;
 };
 
 function patternPayload(pattern: SoulScopeReport["primaryPattern"]) {
@@ -87,7 +89,7 @@ export async function persistCanonicalReport(
 
 export async function saveFavoriteStory(
   client: SupabaseClient,
-  { scanId, userId, style, title, summary }: SaveSelectionArgs
+  { scanId, userId, style, title, summary, primaryPatternSelected, selectedAt }: SaveSelectionArgs
 ) {
   const response = await client.from("scan_story_preferences").upsert(
     {
@@ -96,6 +98,8 @@ export async function saveFavoriteStory(
       selected_style: style,
       selected_title: title,
       selected_summary: summary,
+      selected_primary_pattern: primaryPatternSelected,
+      selected_at: selectedAt ?? new Date().toISOString(),
     },
     { onConflict: "scan_id" }
   );

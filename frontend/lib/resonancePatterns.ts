@@ -65,6 +65,8 @@ export type SoulScopeReport = {
     dimensions: SystemDimension[];
     hasCamera: boolean;
     pauseCount: number;
+    spectralCentroidHz: number;
+    voiceDynamics?: VoiceAnalysisResult["voiceDynamics"];
     captureQuality?: NonNullable<VoiceAnalysisResult["voiceDynamics"]>["captureQuality"];
   };
 };
@@ -447,6 +449,9 @@ function buildStoryCandidates(report: {
   const roles = summarizeDomainRoles(report.domainResults);
   const loadTitle = roles.dominantLoad?.title ?? report.primaryPattern.name;
   const resourceTitle = roles.dominantResource?.title;
+  const strongestResources = roles.resources.slice(0, 2).map((domain) => domain.title);
+  const workingHardest = roles.workingHard.slice(0, 2).map((domain) => domain.title);
+  const askingForSupport = roles.askingSupport.slice(0, 2).map((domain) => domain.title);
 
   return [
     {
@@ -459,10 +464,10 @@ function buildStoryCandidates(report: {
           : loadTitle === "Focus & Mental Load"
           ? "Mental load is asking for more space."
           : `${loadTitle} appears to be working harder than usual.`,
-      summary: `${report.primaryPattern.explanation} ${roles.dominantLoad ? `The clearest friction is showing up in ${roles.dominantLoad.title.toLowerCase()}.` : "The scan suggests the main pattern is still centered on how effort and recovery are interacting."}`,
-      strongestResources: roles.resources.slice(0, 2).map((domain) => domain.title),
-      areasWorkingHard: roles.workingHard.slice(0, 2).map((domain) => domain.title),
-      areasAskingForSupport: roles.askingSupport.slice(0, 2).map((domain) => domain.title),
+      summary: `Your voice pattern suggests ${report.primaryPattern.theme.toLowerCase()} ${roles.dominantLoad ? `This may express itself as extra effort in ${roles.dominantLoad.title.toLowerCase()}.` : "This may express itself as output and restoration feeling temporarily out of sync."}`,
+      strongestResources,
+      areasWorkingHard: workingHardest,
+      areasAskingForSupport: askingForSupport,
     },
     {
       style: "Supportive",
@@ -474,12 +479,10 @@ function buildStoryCandidates(report: {
           : resourceTitle === "Communication & Clarity"
           ? "There is capacity here, but it is being used."
           : "Strength is present, but so is strain.",
-      summary:
-        report.supportingPattern?.theme ??
-        `You are still showing up, and several areas remain available. ${roles.dominantLoad ? `${roles.dominantLoad.title} appears to be carrying more than usual` : "Some parts of the system still need more space"} while the stronger domains continue to help keep you moving.`,
-      strongestResources: roles.resources.slice(0, 2).map((domain) => domain.title),
-      areasWorkingHard: roles.workingHard.slice(0, 2).map((domain) => domain.title),
-      areasAskingForSupport: roles.askingSupport.slice(0, 2).map((domain) => domain.title),
+      summary: `This area appears to be asking more from you right now, while meaningful strengths are still online. What may be happening underneath is not lack of capacity, but a system working hard to stay responsive.`,
+      strongestResources,
+      areasWorkingHard: workingHardest,
+      areasAskingForSupport: askingForSupport,
     },
     {
       style: "Insight",
@@ -491,12 +494,21 @@ function buildStoryCandidates(report: {
           : resourceTitle === "Direction & Adaptability" && roles.dominantLoad?.title === "Connection & Support"
           ? "Support and momentum are out of sync."
           : "The challenge is load, not lack of ability.",
-      summary:
-        report.emergingPattern?.explanation ??
-        `The dominant pattern is imbalance between output and restoration: ${roles.resources.length ? roles.resources.map((domain) => domain.title).slice(0, 2).join(" and ") : "your stronger domains"} remain usable, while ${roles.workingHard.length ? roles.workingHard.map((domain) => domain.title).slice(0, 2).join(" and ") : "several other areas"} are spending more energy than usual.`,
-      strongestResources: roles.resources.slice(0, 2).map((domain) => domain.title),
-      areasWorkingHard: roles.workingHard.slice(0, 2).map((domain) => domain.title),
-      areasAskingForSupport: roles.askingSupport.slice(0, 2).map((domain) => domain.title),
+      summary: `This pattern can feel like being capable and stretched at once. ${roles.resources.length ? roles.resources.map((domain) => domain.title).slice(0, 2).join(" and ") : "Your strongest resources"} remain available, while ${roles.workingHard.length ? roles.workingHard.map((domain) => domain.title).slice(0, 2).join(" and ") : "other areas"} are carrying higher load.`,
+      strongestResources,
+      areasWorkingHard: workingHardest,
+      areasAskingForSupport: askingForSupport,
+    },
+    {
+      style: "Grounded/Actionable",
+      title:
+        resourceTitle === "Recovery & Restoration"
+          ? "Protect recovery first, then leverage your strongest resource."
+          : `${loadTitle} is the first place to reduce pressure.`,
+      summary: `What may help first is easing demand in ${roles.dominantLoad?.title ?? "the highest-load domain"}, while intentionally using ${roles.dominantResource?.title ?? "your strongest available domain"} as a stabilizer. This creates a practical first step without overhauling everything at once.`,
+      strongestResources,
+      areasWorkingHard: workingHardest,
+      areasAskingForSupport: askingForSupport,
     },
   ];
 }
@@ -566,6 +578,8 @@ export function buildSoulScopeReport(scan: VoiceAnalysisResult): SoulScopeReport
       dimensions,
       hasCamera: Boolean(scan.protocolNotes?.camera),
       pauseCount: scan.voiceDynamics?.pauseCount ?? 0,
+      spectralCentroidHz: scan.spectralCentroidHz ?? 0,
+      voiceDynamics: scan.voiceDynamics,
       captureQuality: scan.voiceDynamics?.captureQuality,
     },
   };

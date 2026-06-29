@@ -35,7 +35,7 @@ type ScanRow = {
 
 type StoryPreferenceRow = {
   scan_id: string;
-  selected_style: "Direct" | "Supportive" | "Insight";
+  selected_style: "Direct" | "Supportive" | "Insight" | "Grounded/Actionable";
   selected_title: string;
   selected_summary: string;
 };
