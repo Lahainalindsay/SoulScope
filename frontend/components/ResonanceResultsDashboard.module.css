@@ -1,386 +1,234 @@
 .section {
   display: grid;
-  gap: 24px;
-  margin-top: 24px;
-}
-
-.patternStrip,
-.storyGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
+  gap: clamp(14px, 3vw, 24px);
 }
 
 .heroCard,
+.notesSection,
 .mapSection,
-.noteCard {
-  border-radius: 32px;
+.technicalDetails,
+.scanHistoryFooter {
+  border-radius: 26px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(18px);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.28);
+  padding: clamp(16px, 4.8vw, 28px);
 }
 
 .heroCard {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 420px);
-  align-items: center;
-  gap: 24px;
-  padding: 30px;
   background:
-    radial-gradient(circle at top left, rgba(103, 232, 249, 0.12), transparent 26%),
-    linear-gradient(145deg, rgba(7, 16, 31, 0.95), rgba(8, 19, 40, 0.78));
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.13), transparent 34%),
+    linear-gradient(145deg, rgba(6, 16, 33, 0.96), rgba(8, 21, 46, 0.8));
 }
 
 .heroCopy {
-  min-width: 0;
+  max-width: 70ch;
+}
+
+.eyebrow,
+.noteStatus,
+.domainSectionLabel,
+.sectionLabel {
+  margin: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
 }
 
 .eyebrow {
-  margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: rgba(103, 232, 249, 0.82);
+  color: rgba(103, 232, 249, 0.86);
 }
 
-.title {
-  margin: 14px 0 0;
+.title,
+.mapTitle,
+.sectionTitle {
+  margin: 10px 0 0;
   font-family: var(--font-serif);
-  font-size: clamp(34px, 5vw, 58px);
-  line-height: 0.98;
+  font-size: clamp(24px, 7.4vw, 36px);
+  line-height: 1.08;
 }
 
-.lead {
-  max-width: 740px;
-  margin: 16px 0 0;
-  font-size: 17px;
-  line-height: 1.8;
-  color: rgba(226, 232, 240, 0.82);
-}
-
-.toneAction {
-  margin-top: 22px;
-}
-
-.keyboardPanel {
-  border-radius: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  padding: 18px;
-}
-
-.keyboardWrap {
-  width: 100%;
-  overflow: hidden;
-}
-
-.keyboard {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.whiteLabel,
-.blackLabel {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.blackLabel {
-  fill: #f8fafc;
-}
-
-.mapSection {
-  padding: 28px;
-}
-
-.mapHeader,
-.notesHeader {
-  display: flex;
-  align-items: end;
-  gap: 16px;
-}
-
-.mapTitle {
+.lead,
+.noteText,
+.noteTheme,
+.domainPattern,
+.domainReframe,
+.sectionLead,
+.technicalIntro,
+.scanHistoryText {
   margin: 12px 0 0;
-  font-family: var(--font-serif);
-  font-size: clamp(26px, 4vw, 40px);
-  line-height: 1.04;
+  font-size: clamp(14px, 3.7vw, 16px);
+  line-height: 1.7;
+  color: rgba(226, 232, 240, 0.84);
 }
 
-.mapFrame {
-  margin-top: 20px;
-}
-
-.notesSection {
+.storyGrid,
+.topNotesGrid,
+.domainGrid,
+.technicalGrid,
+.quickGrid {
+  margin-top: 12px;
   display: grid;
-  gap: 20px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
-.topNotesGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.noteGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.domainGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-}
-
-.noteCard {
-  padding: 22px;
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 14%, transparent), transparent 26%),
-    rgba(255, 255, 255, 0.04);
-}
-
-.patternCard,
-.storyCard {
-  padding: 20px;
-  border-radius: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.domainCard {
-  padding: 22px;
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 10%, transparent), transparent 28%),
-    rgba(255, 255, 255, 0.035);
+.storyCard,
+.noteCard,
+.domainCard,
+.technicalCard {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(5, 11, 22, 0.5);
+  padding: 14px;
 }
 
 .noteTop {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 8px;
 }
 
-.noteName {
-  display: inline-block;
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--accent);
-}
-
-.domainState {
-  margin: 8px 0 0;
-  font-size: 24px;
-  line-height: 1.1;
-}
-
-.domainActivity {
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(248, 251, 255, 0.92);
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.noteFrequency {
-  margin: 8px 0 0;
-  font-size: 11px;
-  line-height: 1.6;
-  letter-spacing: 0.08em;
-  color: rgba(226, 232, 240, 0.68);
-}
-
-.noteStatus {
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(226, 232, 240, 0.74);
-}
-
-.noteCenter,
-.noteTheme,
-.noteExpression,
-.noteText {
-  margin: 12px 0 0;
-}
-
-.noteCenter {
-  font-size: 16px;
-  color: #ffffff;
-}
-
-.noteTheme,
-.noteExpression {
-  font-size: 14px;
-  line-height: 1.7;
-  color: rgba(226, 232, 240, 0.78);
-}
-
-.patternTitle {
-  margin: 10px 0 0;
-  font-size: 22px;
-  line-height: 1.2;
-}
-
-.patternTheme {
-  margin: 10px 0 0;
-  font-size: 14px;
-  line-height: 1.7;
-  color: rgba(226, 232, 240, 0.78);
-}
-
-.noteText {
-  font-size: 15px;
-  line-height: 1.8;
-  color: rgba(226, 232, 240, 0.82);
-}
-
-.domainPattern {
-  margin: 12px 0 0;
-  font-size: 15px;
-  line-height: 1.8;
-  color: rgba(226, 232, 240, 0.84);
-}
-
-.domainSection {
-  margin-top: 16px;
-}
-
+.noteStatus,
 .domainSectionLabel,
 .sectionLabel {
-  margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(226, 232, 240, 0.68);
+  color: rgba(148, 163, 184, 0.8);
 }
 
-.domainList,
+.breakdownButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.breakdownButton[aria-pressed="true"] {
+  border-color: rgba(103, 232, 249, 0.6);
+  background: rgba(34, 211, 238, 0.2);
+}
+
+.noteName,
+.domainState {
+  margin: 10px 0 0;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.noteExpression {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.58;
+  color: rgba(203, 213, 225, 0.84);
+}
+
 .storyList,
+.domainList,
 .technicalList {
   margin: 10px 0 0;
   padding-left: 18px;
+  color: rgba(226, 232, 240, 0.86);
 }
 
-.domainListItem {
-  margin-top: 6px;
+.storyItem,
+.domainListItem,
+.technicalList li {
+  margin: 6px 0;
   font-size: 14px;
-  line-height: 1.7;
-  color: rgba(226, 232, 240, 0.82);
+  line-height: 1.65;
 }
 
-.storyItem {
-  margin-top: 6px;
-  font-size: 14px;
-  line-height: 1.7;
-  color: rgba(226, 232, 240, 0.82);
-}
-
-.domainReframe {
-  margin: 18px 0 0;
-  font-size: 14px;
-  line-height: 1.8;
-  color: rgba(226, 232, 240, 0.88);
-}
-
-.technicalDetails {
-  border-radius: 26px;
+.domainActivity {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
-  padding: 18px 22px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.domainSection {
+  margin-top: 10px;
+}
+
+.sectionHeader {
+  display: grid;
+  gap: 6px;
+}
+
+.mapFrame {
+  margin-top: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  padding: clamp(10px, 3vw, 18px);
 }
 
 .technicalSummary {
   cursor: pointer;
+  list-style: none;
   font-size: 12px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(226, 232, 240, 0.78);
+  color: rgba(226, 232, 240, 0.9);
+  font-weight: 700;
+}
+
+.technicalSummary::-webkit-details-marker {
+  display: none;
 }
 
 .technicalBody {
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
-.technicalIntro {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.8;
-  color: rgba(226, 232, 240, 0.78);
+.scanHistoryFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.technicalGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.technicalCard {
-  padding: 18px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.breakdownButton {
-  justify-self: start;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #f8fbff;
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.breakdownButton:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.reassurance {
-  margin: 0;
-  padding: 0 6px 6px;
-  font-size: 15px;
-  line-height: 1.8;
-  color: rgba(226, 232, 240, 0.82);
-}
-
-@media (max-width: 980px) {
-  .heroCard,
-  .mapHeader,
-  .notesHeader {
-    display: grid;
-  }
-
-  .heroCard {
-    grid-template-columns: 1fr;
-  }
-
-  .noteGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .topNotesGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .patternStrip,
+@media (min-width: 760px) {
   .storyGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .topNotesGrid,
+  .domainGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .technicalGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .scanHistoryFooter {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+@media (min-width: 1080px) {
+  .topNotesGrid,
+  .domainGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

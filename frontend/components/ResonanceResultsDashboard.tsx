@@ -1,3 +1,4 @@
+import Link from "next/link";
 import NoteAuraMap from "./NoteAuraMap";
 import { type SoulScopeReport } from "../lib/buildSoulScopeReport";
 import styles from "./ResonanceResultsDashboard.module.css";
@@ -26,51 +27,50 @@ export default function ResonanceResultsDashboard({
 
   return (
     <section className={styles.section}>
-      {/* Resonance Map at Top */}
-      <section className={styles.mapSection}>
-        <div className={styles.mapFrame}>
-          <NoteAuraMap noteEnergies={visibleEnergies} title="Your Resonance Map" />
-        </div>
-      </section>
-
-      {/* Pattern Summary Below Map */}
       <section className={styles.heroCard}>
         <div className={styles.heroCopy}>
-          <p className={styles.eyebrow}>Primary Pattern</p>
+          <p className={styles.eyebrow}>Current Pattern</p>
           <h2 className={styles.title}>{report.primaryPattern.name}</h2>
           <p className={styles.lead}>{report.primaryPattern.theme}</p>
           <p className={styles.noteText}>{report.primaryPattern.explanation}</p>
         </div>
       </section>
 
-      {report.supportingPattern || report.emergingPattern ? (
-        <section className={styles.patternStrip}>
-          {report.supportingPattern ? (
-            <article className={styles.patternCard}>
-              <p className={styles.noteStatus}>Supporting Pattern</p>
-              <h3 className={styles.patternTitle}>{report.supportingPattern.name}</h3>
-              <p className={styles.patternTheme}>{report.supportingPattern.theme}</p>
-            </article>
-          ) : null}
+      <section className={styles.notesSection}>
+        <div className={styles.notesHeader}>
+          <div>
+            <p className={styles.eyebrow}>Pattern Summary</p>
+            <h2 className={styles.mapTitle}>What this may feel like right now</h2>
+          </div>
+        </div>
 
-          {report.emergingPattern ? (
-            <article className={styles.patternCard}>
-              <p className={styles.noteStatus}>Emerging Pattern</p>
-              <h3 className={styles.patternTitle}>{report.emergingPattern.name}</h3>
-              <p className={styles.patternTheme}>{report.emergingPattern.theme}</p>
-            </article>
-          ) : null}
-        </section>
-      ) : null}
+        <div className={styles.storyGrid}>
+          <article className={styles.storyCard}>
+            <p className={styles.noteStatus}>Lived experience</p>
+            <ul className={styles.storyList}>
+              {safeLines(report.primaryPattern.whatThisMayFeelLike).map((item) => (
+                <li key={item} className={styles.storyItem}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </article>
+
+          <article className={styles.storyCard}>
+            <p className={styles.noteStatus}>What deserves attention first</p>
+            <p className={styles.noteText}>{report.primaryPattern.whatNeedsAttention}</p>
+          </article>
+        </div>
+      </section>
 
       <section className={styles.notesSection}>
         <div className={styles.notesHeader}>
           <div>
-            <p className={styles.eyebrow}>Preference Learning</p>
-            <h2 className={styles.mapTitle}>Choose the summary that feels most accurate</h2>
+            <p className={styles.eyebrow}>Choose your favorite summary</p>
+            <h2 className={styles.mapTitle}>Which style feels most accurate?</h2>
             <p className={styles.lead}>
-              All three options are built from the same scan. Your selection helps SoulScope learn which
-              style of explanation feels most true to you.
+              All three options come from the same scan. Your selection helps SoulScope learn which
+              explanation style feels most true to you.
             </p>
           </div>
         </div>
@@ -94,13 +94,13 @@ export default function ResonanceResultsDashboard({
                 <h3 className={styles.noteName}>{candidate.title}</h3>
                 <p className={styles.noteTheme}>{candidate.summary}</p>
                 <p className={styles.noteExpression}>
-                  Strongest available resources: {safeLines(candidate.strongestResources).join(" • ")}
+                  Strongest resources: {safeLines(candidate.strongestResources).join(" • ")}
                 </p>
                 <p className={styles.noteExpression}>
-                  Areas working hardest: {safeLines(candidate.areasWorkingHard).join(" • ")}
+                  Working hardest: {safeLines(candidate.areasWorkingHard).join(" • ")}
                 </p>
                 <p className={styles.noteExpression}>
-                  Areas asking for support: {safeLines(candidate.areasAskingForSupport).join(" • ")}
+                  Asking for support: {safeLines(candidate.areasAskingForSupport).join(" • ")}
                 </p>
               </article>
             );
@@ -111,38 +111,11 @@ export default function ResonanceResultsDashboard({
       <section className={styles.notesSection}>
         <div className={styles.notesHeader}>
           <div>
-            <p className={styles.eyebrow}>Current Story</p>
-            <h2 className={styles.mapTitle}>What this may be reflecting right now</h2>
-            <p className={styles.lead}>
-              The cards below translate the same scan into lived experience. They are not competing truths;
-              they are different ways of reading one result.
-            </p>
+            <p className={styles.eyebrow}>This may explain why</p>
+            <h2 className={styles.mapTitle}>What is driving this pattern</h2>
           </div>
         </div>
-
         <div className={styles.storyGrid}>
-          <article className={styles.storyCard}>
-            <p className={styles.noteStatus}>What this may feel like</p>
-            <ul className={styles.storyList}>
-              {safeLines(report.primaryPattern.whatThisMayFeelLike).map((item) => (
-                <li key={item} className={styles.storyItem}>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </article>
-
-          <article className={styles.storyCard}>
-            <p className={styles.noteStatus}>What is supporting the system</p>
-            <ul className={styles.storyList}>
-              {safeLines(report.primaryPattern.supportiveFactors).map((item) => (
-                <li key={item} className={styles.storyItem}>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </article>
-
           <article className={styles.storyCard}>
             <p className={styles.noteStatus}>What is working hardest</p>
             <ul className={styles.storyList}>
@@ -153,20 +126,44 @@ export default function ResonanceResultsDashboard({
               ))}
             </ul>
           </article>
-
-          <article className={styles.storyCard}>
-            <p className={styles.noteStatus}>What deserves attention first</p>
-            <p className={styles.noteText}>{report.primaryPattern.whatNeedsAttention}</p>
-          </article>
         </div>
       </section>
 
       <section className={styles.notesSection}>
         <div className={styles.notesHeader}>
           <div>
-            <p className={styles.eyebrow}>Human-Centered Domains</p>
-            <h2 className={styles.mapTitle}>What this means in daily life</h2>
+            <p className={styles.eyebrow}>What is working for you</p>
+            <h2 className={styles.mapTitle}>Protective factors still present</h2>
           </div>
+        </div>
+        <div className={styles.storyGrid}>
+          <article className={styles.storyCard}>
+            <p className={styles.noteStatus}>Strengths in this scan</p>
+            <ul className={styles.storyList}>
+              {safeLines(report.primaryPattern.supportiveFactors).map((item) => (
+                <li key={item} className={styles.storyItem}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section className={styles.mapSection}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Resonance Map</h2>
+          <p className={styles.sectionLead}>A visual layer for your current scan.</p>
+        </div>
+        <div className={styles.mapFrame}>
+          <NoteAuraMap noteEnergies={visibleEnergies} title="Your Resonance Map" />
+        </div>
+      </section>
+
+      <section className={styles.notesSection}>
+        <div className={styles.notesHeader}>
+          <p className={styles.eyebrow}>Domain Cards</p>
+          <h2 className={styles.mapTitle}>What this means in daily life</h2>
         </div>
 
         <div className={styles.domainGrid}>
@@ -220,7 +217,7 @@ export default function ResonanceResultsDashboard({
       </section>
 
       <details className={styles.technicalDetails}>
-        <summary className={styles.technicalSummary}>View Technical Analysis</summary>
+        <summary className={styles.technicalSummary}>Technical Analysis</summary>
         <div className={styles.technicalBody}>
           <p className={styles.technicalIntro}>
             For power users. The technical layer stays collapsed so the report remains centered on your
@@ -260,6 +257,13 @@ export default function ResonanceResultsDashboard({
           </div>
         </div>
       </details>
+
+      <section className={styles.scanHistoryFooter}>
+        <p className={styles.scanHistoryText}>Want context across time? View your full scan timeline and progression.</p>
+        <Link href="/dashboard" className={styles.secondaryButton}>
+          Open Scan History
+        </Link>
+      </section>
     </section>
   );
 }
