@@ -231,7 +231,7 @@ const CORE_PATTERNS = {
     name: "The Recovering Adapter",
     theme: "Your system appears to be rebuilding capacity while staying responsive to current demands.",
     signals: {
-      improving: ["Recovery & Restoration", "Regulation"],
+      improving: ["Recovery & Restoration", "Direction & Adaptability"],
       responsive: true,
       low_extremes: true,
     },
@@ -390,7 +390,7 @@ const CORE_PATTERNS = {
     theme: "The system may be conserving energy rather than pushing forward.",
     signals: {
       low: ["Energy & Vitality", "Direction & Adaptability"],
-      stable: ["Recovery & Restoration", "Regulation"],
+      stable: ["Recovery & Restoration", "Connection & Support"],
     },
 
     "internal-communicator": {
@@ -556,17 +556,24 @@ function analyzeDomainRelationships(
     });
   }
 
-  // High Emotional Expression + Low Regulation = surface reactivity
+  // High Emotional Expression + low inferred regulation = surface reactivity
   const emotional = domains.find((d) => d.title === "Emotional Expression");
-  const regulationDimension = dimensions.find((d) => d.name === "Regulation");
+  const inferredRegulationInputs = [recovery?.score, direction?.score, connection?.score].filter(
+    (score): score is number => typeof score === "number",
+  );
+  const inferredRegulationScore = inferredRegulationInputs.length
+    ? inferredRegulationInputs.reduce((sum, score) => sum + score, 0) / inferredRegulationInputs.length
+    : 50;
+  const inferredRegulationDomain =
+    (recovery?.score ?? 50) <= (direction?.score ?? 50) ? "Recovery & Restoration" : "Direction & Adaptability";
   if (
     emotional?.score &&
-    ((regulationDimension?.score ?? 50) < 45 || (!regulationDimension && recovery?.score && recovery.score < 45)) &&
+    inferredRegulationScore < 45 &&
     emotional.score > 60
   ) {
     relationships.push({
       domain1: "Emotional Expression",
-      domain2: "Regulation",
+      domain2: inferredRegulationDomain,
       relationship: "conflicting",
       description: "Emotions may be closer to the surface right now.",
     });
