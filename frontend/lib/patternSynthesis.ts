@@ -558,6 +558,7 @@ function analyzeDomainRelationships(
 
   // High Emotional Expression + low inferred regulation = surface reactivity
   const emotional = domains.find((d) => d.title === "Emotional Expression");
+  // Use restoration, adaptability, and support as the closest domain-level regulation proxies.
   const inferredRegulationInputs = [recovery?.score, direction?.score, connection?.score].filter(
     (score): score is number => typeof score === "number",
   );
