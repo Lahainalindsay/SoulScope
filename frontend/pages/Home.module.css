@@ -78,17 +78,15 @@
 .wordmark {
   margin: 18px 0 0;
   font-family: var(--font-serif);
-  font-size: clamp(28px, 8.5vw, 148px);
+  font-size: clamp(30px, min(13vw, 56px), 148px);
   line-height: 1.1;
-  letter-spacing: 0.02em;
+  letter-spacing: clamp(0.02em, 0.22vw, 0.08em);
   text-transform: uppercase;
   color: #f8fbff;
   text-shadow: 0 18px 60px rgba(0, 0, 0, 0.34);
-  word-break: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+  white-space: nowrap;
   max-width: 100%;
-  padding: 0 4px;
+  padding: 0 8px;
 }
 
 .headline {
