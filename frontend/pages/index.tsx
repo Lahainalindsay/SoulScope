@@ -73,24 +73,6 @@ export default function Home() {
                 <span className={styles.metaPill}>Private</span>
                 <span className={styles.metaPill}>No downloads</span>
               </div>
-
-              <div className={styles.scanInfo}>
-                <div className={styles.metric}>
-                  <p className={styles.sideLabel}>Clarity</p>
-                  <div className={styles.metricValue}>Clarity</div>
-                  <p className={styles.sideText}>Understand where attention, focus, and mental energy are currently being directed.</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.sideLabel}>Load</p>
-                  <div className={styles.metricValue}>Load</div>
-                  <p className={styles.sideText}>Discover patterns associated with pressure, tension, and recovery demands.</p>
-                </div>
-                <div className={styles.metric}>
-                  <p className={styles.sideLabel}>Support</p>
-                  <div className={styles.metricValue}>Support</div>
-                  <p className={styles.sideText}>Identify strengths, resources, and adaptive capacities already present within your system.</p>
-                </div>
-              </div>
             </div>
           </section>
 
@@ -104,16 +86,6 @@ export default function Home() {
                   Voice patterns may reflect how mental, emotional, physical, and behavioral systems are
                   interacting in real time. SoulScope translates those patterns into meaningful
                   self-awareness—not technical measurements.
-                </p>
-              </div>
-            </div>
-
-            <div className={styles.heroSupportCard}>
-              <div className={styles.sideCard}>
-                <p className={styles.sideLabel}>Resonance Profile</p>
-                <p className={styles.sideText}>
-                  Your Resonance Profile shows what appears balanced, what may be carrying excess load,
-                  and what may be asking for more support.
                 </p>
               </div>
             </div>
