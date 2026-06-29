@@ -19,20 +19,33 @@ import { type VoiceAnalysisResult } from "@/lib/voiceSpectrum";
  */
 
 interface ResultsPageProps {
-  scan: VoiceAnalysisResult;
+  scan?: VoiceAnalysisResult;
   userId?: string;
   scanId?: string;
 }
 
 export default function ResultsPage({ scan, userId, scanId }: ResultsPageProps) {
   // State for story selection preference
-  const [selectedStory, setSelectedStory] = useState<"Direct" | "Supportive" | "Insight" | null>(null);
+  const [selectedStory, setSelectedStory] = useState<"Direct" | "Supportive" | "Insight" | "Grounded/Actionable" | null>(null);
+
+  if (!scan) {
+    return (
+      <main className="min-h-screen bg-white">
+        <div className="max-w-1200px mx-auto px-4 py-12">
+          <h1 className="text-2xl font-bold">Results Example</h1>
+          <p className="text-gray-600 mt-3">
+            This example page expects a <code>scan</code> object. Provide scan data when embedding this component in your app.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   // Build the enhanced report (includes synthesis)
   const { report, synthesis, isAccurate } = buildEnhancedSoulScopeReport(scan);
 
   // Handle story selection
-  const handleSelectStory = async (style: "Direct" | "Supportive" | "Insight") => {
+  const handleSelectStory = async (style: "Direct" | "Supportive" | "Insight" | "Grounded/Actionable") => {
     setSelectedStory(style);
 
     // Optional: Send preference to backend for learning

@@ -7,8 +7,8 @@ type PremiumResultsDashboardProps = {
   report: SoulScopeReport;
   synthesis: PatternSynthesis;
   hiddenNotes?: string[];
-  onSelectStory?: (style: "Direct" | "Supportive" | "Insight") => void;
-  selectedStoryStyle?: "Direct" | "Supportive" | "Insight" | null;
+  onSelectStory?: (style: SoulScopeReport["storyCandidates"][number]["style"]) => void;
+  selectedStoryStyle?: SoulScopeReport["storyCandidates"][number]["style"] | null;
 };
 
 function safeLines(value: unknown): string[] {

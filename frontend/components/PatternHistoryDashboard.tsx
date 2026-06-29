@@ -35,7 +35,7 @@ type ScanRow = {
 
 type StoryPreferenceRow = {
   scan_id: string;
-  selected_style: "Direct" | "Supportive" | "Insight";
+  selected_style: "Direct" | "Supportive" | "Insight" | "Grounded/Actionable";
   selected_title: string;
   selected_summary: string;
 };
@@ -266,7 +266,7 @@ export default function PatternHistoryDashboard() {
           <p className={styles.eyebrow}>Begin Your Journey</p>
           <h2 className={styles.newScanTitle}>Ready for a Resonance Scan?</h2>
           <p className={styles.newScanLead}>
-            Start a fresh scan to explore your current resonance. Each scan creates a private snapshot of your system's expression right now.
+            Start a fresh scan to explore your current resonance. Each scan creates a private snapshot of your system&apos;s expression right now.
           </p>
           <div className={styles.newScanActions}>
             <Link href="/scan" className={styles.primaryButton}>

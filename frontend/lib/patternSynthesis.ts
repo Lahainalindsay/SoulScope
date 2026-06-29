@@ -38,6 +38,15 @@ export type PatternSynthesis = {
     name: string;
     theme: string;
   };
+
+  optionalEmergingPattern?: {
+    id: string;
+    name: string;
+    theme: string;
+  };
+
+  mainTitle: string;
+  integratedSummary: string;
   
   // The dominant drivers of this pattern right now
   primaryDrivers: string[];
@@ -100,6 +109,42 @@ const CORE_PATTERNS = {
       high: ["Focus & Mental Load", "Communication & Clarity"],
       stressed: ["Focus & Mental Load", "Recovery & Restoration"],
       low: ["Energy & Vitality"],
+    },
+
+    "mental-multitasker": {
+      name: "The Mental Multitasker",
+      theme: "Many mental channels appear active at the same time.",
+      signals: {
+        high: ["Focus & Mental Load", "Communication & Clarity"],
+        low: ["Recovery & Restoration"],
+        stressed: ["Focus & Mental Load"],
+      },
+      experiences: [
+        "Tracking several thoughts at once",
+        "Starting one thought before finishing another",
+        "Difficulty finding quiet mental space",
+        "Feeling mentally switched on for long stretches",
+      ],
+      protective: ["Strong processing speed", "Communication access", "High cognitive availability"],
+      focus: "Simplifying inputs and reducing simultaneous demands may help this system settle without losing clarity.",
+    },
+
+    "thinking-faster-than-speaking": {
+      name: "The Thinking Faster Than Speaking Pattern",
+      theme: "Thought speed appears to be outpacing verbal organization right now.",
+      signals: {
+        high: ["Communication & Clarity", "Focus & Mental Load"],
+        stressed: ["Communication & Clarity"],
+        low: ["Recovery & Restoration"],
+      },
+      experiences: [
+        "Losing your train of thought while explaining",
+        "Overexplaining to find the right words",
+        "Needing more time to structure what you already know",
+        "Feeling clear internally but effortful externally",
+      ],
+      protective: ["Active communication", "Strong internal processing", "Continued engagement"],
+      focus: "Giving yourself more pacing in expression may improve clarity with less effort.",
     },
     experiences: [
       "Replaying conversations after they happen",
@@ -186,7 +231,7 @@ const CORE_PATTERNS = {
     name: "The Recovering Adapter",
     theme: "Your system appears to be rebuilding capacity while staying responsive to current demands.",
     signals: {
-      improving: ["Recovery & Restoration", "Regulation"],
+      improving: ["Recovery & Restoration", "Direction & Adaptability"],
       responsive: true,
       low_extremes: true,
     },
@@ -205,12 +250,29 @@ const CORE_PATTERNS = {
   },
 
   "tired-but-capable": {
-    name: "The Tired but Capable Pattern",
+    name: "The Capable but Tired Pattern",
     theme: "The system can keep going, but restoration is not keeping pace with what is being asked of it.",
     signals: {
       moderate_to_high: ["Direction & Adaptability", "Energy & Vitality"],
       low: ["Recovery & Restoration"],
       stressed: ["Energy & Vitality"],
+    },
+
+    "recovery-seeker": {
+      name: "The Recovery Seeker",
+      theme: "The system appears to be asking for more quiet, replenishment, and recovery bandwidth.",
+      signals: {
+        low: ["Recovery & Restoration", "Energy & Vitality"],
+        stressed: ["Focus & Mental Load"],
+      },
+      experiences: [
+        "Needing more quiet than usual",
+        "Feeling like rest is less restorative than expected",
+        "Reaching capacity earlier in the day",
+        "Wanting space before taking on more demand",
+      ],
+      protective: ["Clear recovery signal", "System is communicating needs", "Potential for restoration with pacing"],
+      focus: "Prioritizing true recovery windows may help this system rebuild faster than pushing through.",
     },
     experiences: [
       "Feeling productive but not restored",
@@ -232,6 +294,42 @@ const CORE_PATTERNS = {
     signals: {
       high: ["Connection & Support", "Emotional Expression"],
       low: ["Recovery & Restoration", "Energy & Vitality"],
+    },
+
+    "emotionally-saturated-communicator": {
+      name: "The Emotionally Saturated Communicator",
+      theme: "Communication is active while emotion appears closer to the surface.",
+      signals: {
+        high: ["Emotional Expression", "Communication & Clarity"],
+        stressed: ["Communication & Clarity"],
+        low: ["Recovery & Restoration"],
+      },
+      experiences: [
+        "Feeling a lot while trying to communicate clearly",
+        "Words carrying emotional weight",
+        "Sensitivity increasing under relational pressure",
+        "Needing extra regulation after conversations",
+      ],
+      protective: ["Emotional access is present", "Communication remains active", "Relational availability"],
+      focus: "Supportive pacing and regulation before difficult conversations may reduce strain without suppressing expression.",
+    },
+
+    "giving-more-than-receiving": {
+      name: "The Giving More Than Receiving Pattern",
+      theme: "Relational output appears high while restoration support appears comparatively lower.",
+      signals: {
+        high: ["Connection & Support"],
+        low: ["Recovery & Restoration", "Energy & Vitality"],
+        stressed: ["Connection & Support"],
+      },
+      experiences: [
+        "Showing up for others while privately needing support",
+        "Feeling relationally available but personally under-restored",
+        "Sustaining care output longer than recovery allows",
+        "Wanting connection and space at the same time",
+      ],
+      protective: ["Relational strength", "Empathy", "Consistent caring capacity"],
+      focus: "Receiving support is part of long-term sustainability, not a detour from it.",
     },
     experiences: [
       "Available to others while needing more support yourself",
@@ -255,6 +353,24 @@ const CORE_PATTERNS = {
       low: ["Recovery & Restoration"],
       overactive_notes: ["A", "B"],
     },
+
+    "adaptive-performer": {
+      name: "The Adaptive Performer",
+      theme: "The system appears capable, responsive, and comparatively well-supported under current demands.",
+      signals: {
+        high: ["Direction & Adaptability", "Energy & Vitality"],
+        balanced: true,
+        stressed: ["Focus & Mental Load"],
+      },
+      experiences: [
+        "Handling changing demands with less disruption",
+        "Staying engaged without obvious overload",
+        "Maintaining momentum while adjusting in real time",
+        "Feeling capable and responsive",
+      ],
+      protective: ["Adaptability", "Available energy", "Operational steadiness"],
+      focus: "Maintain recovery support to preserve this level of adaptability.",
+    },
     experiences: [
       "Always thinking about what is next",
       "Difficulty being present without already planning ahead",
@@ -274,7 +390,25 @@ const CORE_PATTERNS = {
     theme: "The system may be conserving energy rather than pushing forward.",
     signals: {
       low: ["Energy & Vitality", "Direction & Adaptability"],
-      stable: ["Recovery & Restoration", "Regulation"],
+      stable: ["Recovery & Restoration", "Connection & Support"],
+    },
+
+    "internal-communicator": {
+      name: "The Internal Communicator",
+      theme: "Processing appears highly active internally, with less outward expression than expected.",
+      signals: {
+        high: ["Focus & Mental Load"],
+        low: ["Communication & Clarity"],
+        stressed: ["Focus & Mental Load"],
+      },
+      experiences: [
+        "Thinking more than speaking",
+        "Holding responses internally before sharing",
+        "Having clear internal narratives that are slower to verbalize",
+        "Needing more time to translate insight into words",
+      ],
+      protective: ["Strong internal reflection", "Deliberate processing", "Insight depth"],
+      focus: "Small structured moments of outward expression may reduce internal crowding.",
     },
     experiences: [
       "Energy feels like something to protect rather than deploy",
@@ -311,12 +445,70 @@ const CORE_PATTERNS = {
     ],
     focus: "Slowing down might feel risky, but it may actually make expression easier. What would happen if you took more time?",
   },
+
+  "tired-but-wired": {
+    name: "The Tired but Wired Pattern",
+    theme: "Mental activation appears elevated while physical energy and restoration remain under pressure.",
+    signals: {
+      high: ["Focus & Mental Load"],
+      low: ["Energy & Vitality", "Recovery & Restoration"],
+      stressed: ["Focus & Mental Load"],
+    },
+    experiences: [
+      "Feeling tired physically but mentally active",
+      "Difficulty downshifting at the end of the day",
+      "Fatigue without full cognitive quiet",
+      "Rest feeling available but hard to enter",
+    ],
+    protective: ["Mental drive remains available", "Cognitive responsiveness", "Continued engagement"],
+    focus: "Transition rituals that downshift mental activation may improve restoration quality.",
+  },
+
+  "rebuilding-momentum": {
+    name: "The Rebuilding Momentum Pattern",
+    theme: "Capacity appears to be returning with signs of forward movement and improving restoration.",
+    signals: {
+      high: ["Direction & Adaptability"],
+      balanced: true,
+      low: ["Recovery & Restoration"],
+    },
+    experiences: [
+      "Feeling movement return after a slower period",
+      "More usable energy with occasional dips",
+      "Increasing ability to re-engage with priorities",
+      "Growing momentum that still benefits from pacing",
+    ],
+    protective: ["Improving direction", "Recovering capacity", "Adaptive responsiveness"],
+    focus: "Steady pacing may help convert progress into sustainable momentum.",
+  },
+
+  "scattered-capacity": {
+    name: "The Scattered Capacity Pattern",
+    theme: "Energy appears available but spread across too many channels, reducing coherence.",
+    signals: {
+      high: ["Focus & Mental Load", "Direction & Adaptability", "Communication & Clarity"],
+      stressed: ["Focus & Mental Load", "Communication & Clarity"],
+      low: ["Recovery & Restoration"],
+      high_cumulative_strain: true,
+    },
+    experiences: [
+      "Being active in many directions without feeling settled",
+      "Frequent context switching",
+      "Starting more threads than can be comfortably closed",
+      "Feeling busy without feeling integrated",
+    ],
+    protective: ["Available capacity", "Motivation", "Engagement across domains"],
+    focus: "Narrowing active channels may create more coherence with less strain.",
+  },
 };
 
 /**
  * Analyze domain relationships to detect reinforcing patterns
  */
-function analyzeDomainRelationships(domains: UserResultDomain[]): DomainRelationship[] {
+function analyzeDomainRelationships(
+  domains: UserResultDomain[],
+  dimensions: SystemDimension[] = [],
+): DomainRelationship[] {
   const relationships: DomainRelationship[] = [];
 
   // High Mental Load + Low Recovery = reinforcing strain
@@ -364,13 +556,25 @@ function analyzeDomainRelationships(domains: UserResultDomain[]): DomainRelation
     });
   }
 
-  // High Emotional Expression + Low Regulation = surface reactivity
+  // High Emotional Expression + low inferred regulation = surface reactivity
   const emotional = domains.find((d) => d.title === "Emotional Expression");
-  const regulation = domains.find((d) => d.title === "Regulation");
-  if (emotional?.score && regulation?.score && emotional.score > 60 && regulation.score < 45) {
+  // Use restoration, adaptability, and support as the closest domain-level regulation proxies.
+  const inferredRegulationInputs = [recovery?.score, direction?.score, connection?.score].filter(
+    (score): score is number => typeof score === "number",
+  );
+  const inferredRegulationScore = inferredRegulationInputs.length
+    ? inferredRegulationInputs.reduce((sum, score) => sum + score, 0) / inferredRegulationInputs.length
+    : 50;
+  const inferredRegulationDomain =
+    (recovery?.score ?? 50) <= (direction?.score ?? 50) ? "Recovery & Restoration" : "Direction & Adaptability";
+  if (
+    emotional?.score &&
+    inferredRegulationScore < 45 &&
+    emotional.score > 60
+  ) {
     relationships.push({
       domain1: "Emotional Expression",
-      domain2: "Regulation",
+      domain2: inferredRegulationDomain,
       relationship: "conflicting",
       description: "Emotions may be closer to the surface right now.",
     });
@@ -387,6 +591,27 @@ function analyzeDomainRelationships(domains: UserResultDomain[]): DomainRelation
     });
   }
 
+  if (direction?.score && energy?.score && direction.score > 65 && energy.score < 45) {
+    relationships.push({
+      domain1: "Direction & Adaptability",
+      domain2: "Energy & Vitality",
+      relationship: "conflicting",
+      description: "You may be oriented toward what is next more than what is here.",
+    });
+  }
+
+  const cumulativeModerateStrain = domains.filter(
+    (d) => (d.functionalState === "Working Hard" || d.functionalState === "Under Pressure") && d.score >= 50 && d.score <= 75,
+  ).length;
+  if (cumulativeModerateStrain >= 4) {
+    relationships.push({
+      domain1: "Cross-domain",
+      domain2: "Cross-domain",
+      relationship: "conflicting",
+      description: "You may appear steady while carrying more internally than is obvious.",
+    });
+  }
+
   return relationships;
 }
 
@@ -396,6 +621,7 @@ function analyzeDomainRelationships(domains: UserResultDomain[]): DomainRelation
 function scorePatternMatch(
   domains: UserResultDomain[],
   dimensions: SystemDimension[],
+  relationships: DomainRelationship[],
   patternId: string,
 ): number {
   const pattern = CORE_PATTERNS[patternId as keyof typeof CORE_PATTERNS];
@@ -403,13 +629,16 @@ function scorePatternMatch(
 
   const signals = pattern.signals as Record<string, any>;
   let score = 0;
+  let matchedDomainCount = 0;
+  let matchedStrainCount = 0;
 
   // Score based on high domains
   if (signals.high) {
     const highMatches = domains.filter((d) =>
       signals.high.includes(d.title) && (d.functionalState === "Highly Engaged" || d.functionalState === "Working Hard"),
     );
-    score += (highMatches.length / signals.high.length) * 0.3;
+    score += (highMatches.length / signals.high.length) * 0.2;
+    matchedDomainCount += highMatches.length;
   }
 
   // Score based on low domains
@@ -417,7 +646,8 @@ function scorePatternMatch(
     const lowMatches = domains.filter((d) =>
       signals.low.includes(d.title) && (d.functionalState === "Asking for Support" || d.functionalState === "Less Accessible"),
     );
-    score += (lowMatches.length / signals.low.length) * 0.25;
+    score += (lowMatches.length / signals.low.length) * 0.2;
+    matchedDomainCount += lowMatches.length;
   }
 
   // Score based on stressed domains
@@ -426,6 +656,7 @@ function scorePatternMatch(
       signals.stressed.includes(d.title) && d.functionalState === "Under Pressure",
     );
     score += (stressedMatches.length / signals.stressed.length) * 0.2;
+    matchedStrainCount += stressedMatches.length;
   }
 
   // Score based on no extremes (moderate across board)
@@ -448,6 +679,24 @@ function scorePatternMatch(
     score += strainedDomains.length >= 3 ? 0.25 : 0;
   }
 
+  const strainIntensity = domains.filter(
+    (d) => d.functionalState === "Working Hard" || d.functionalState === "Under Pressure",
+  ).length / Math.max(domains.length, 1);
+  const recovery = domains.find((d) => d.title === "Recovery & Restoration")?.score ?? 50;
+  const depletionRecoveryGap = Math.max(0, 70 - recovery) / 70;
+  const baselineDeviation = dimensions.filter(
+    (d) => d.band === "Extremely High" || d.band === "Extremely Low",
+  ).length / Math.max(dimensions.length, 1);
+  const signalCoherence = Math.min(1, matchedDomainCount / Math.max((signals.high?.length ?? 0) + (signals.low?.length ?? 0), 1));
+  const relationshipBonus = Math.min(0.1, relationships.length * 0.03);
+
+  score += signalCoherence * 0.15;
+  score += strainIntensity * 0.07;
+  score += depletionRecoveryGap * 0.05;
+  score += baselineDeviation * 0.04;
+  score += matchedStrainCount > 0 ? 0.05 : 0;
+  score += relationshipBonus;
+
   return Math.min(1, score);
 }
 
@@ -458,10 +707,12 @@ export function buildPatternSynthesis(
   domains: UserResultDomain[],
   dimensions: SystemDimension[],
 ): PatternSynthesis {
+  const relationships = analyzeDomainRelationships(domains, dimensions);
+
   // Score all patterns
   const patternScores = Object.keys(CORE_PATTERNS).map((patternId) => ({
     id: patternId,
-    score: scorePatternMatch(domains, dimensions, patternId),
+    score: scorePatternMatch(domains, dimensions, relationships, patternId),
   }));
 
   patternScores.sort((a, b) => b.score - a.score);
@@ -475,8 +726,6 @@ export function buildPatternSynthesis(
   const tertiaryPatternDef = tertiary.score > 0.1 ? CORE_PATTERNS[tertiary.id as keyof typeof CORE_PATTERNS] : null;
 
   // Detect domain relationships (used for explanation refinement)
-  const relationships = analyzeDomainRelationships(domains);
-
   // Build primary drivers (what is actually causing this pattern)
   const primaryDrivers = getPrimaryDrivers(domains, relationships);
 
@@ -485,6 +734,8 @@ export function buildPatternSynthesis(
 
   // Get suggested focus
   const suggestedFocus = primaryPatternDef.focus;
+
+  const integratedSummary = buildPatternExplanation(domains, primaryPatternDef, relationships);
 
   return {
     primaryPattern: {
@@ -507,6 +758,15 @@ export function buildPatternSynthesis(
           theme: tertiaryPatternDef.theme,
         }
       : undefined,
+    optionalEmergingPattern: tertiaryPatternDef
+      ? {
+          id: tertiary.id,
+          name: tertiaryPatternDef.name,
+          theme: tertiaryPatternDef.theme,
+        }
+      : undefined,
+    mainTitle: primaryPatternDef.name,
+    integratedSummary,
     primaryDrivers,
     likelyExperiences: primaryPatternDef.experiences,
     protectiveFactors,
@@ -551,7 +811,7 @@ function buildPatternExplanation(
   const strained = domains.filter((d) => d.functionalState === "Working Hard" || d.functionalState === "Under Pressure");
   const resourceful = domains.filter((d) => d.functionalState === "Highly Engaged" || d.functionalState === "Readily Available");
 
-  let explanation = pattern.theme;
+  let explanation = `Your voice pattern suggests ${pattern.theme.charAt(0).toLowerCase()}${pattern.theme.slice(1)}`;
 
   if (relationships.length > 0) {
     explanation += ` ${relationships[0].description}`;
@@ -559,7 +819,7 @@ function buildPatternExplanation(
 
   if (resourceful.length > 0) {
     const resources = resourceful.map((d) => d.title).slice(0, 2).join(" and ");
-    explanation += ` Still, ${resources} remain available.`;
+    explanation += ` This may express itself as effort and capacity showing up together. ${resources} remain available.`;
   }
 
   return explanation;

@@ -124,7 +124,7 @@ export type UserResultStory = {
 };
 
 export type UserResultStoryCandidate = {
-  style: "Direct" | "Supportive" | "Insight";
+  style: "Direct" | "Supportive" | "Insight" | "Grounded/Actionable";
   title: string;
   summary: string;
   strongestResources: string[];
@@ -1005,7 +1005,7 @@ export function buildUserResultDomains(scan: VoiceAnalysisResult): UserResultDom
   return USER_RESULT_DOMAIN_DEFINITIONS.map((definition) => buildDomainNarrative(scan, definition));
 }
 
-type SummaryStyle = "Direct" | "Supportive" | "Insight";
+type SummaryStyle = "Direct" | "Supportive" | "Insight" | "Grounded/Actionable";
 
 type SummaryContext = {
   resources: UserResultDomain[];
@@ -1127,6 +1127,8 @@ export function buildSummaryTitle(domainResults: UserResultDomain[], style: Summ
       return titleForResource(dominantResource) ?? titleForLoad(dominantLoad);
     case "Insight":
       return titleForInsight(dominantLoad, dominantResource);
+    case "Grounded/Actionable":
+      return "Start with the area carrying the most load, then protect what is still working.";
   }
 }
 
@@ -1151,7 +1153,7 @@ export function buildTopSummaries(domainResults: UserResultDomain[]): UserResult
   const workingHardNames = (workingHard.length ? workingHard : askingSupport).slice(0, 2).map((domain) => domain.title);
   const askingSupportNames = askingSupport.slice(0, 2).map((domain) => domain.title);
 
-  const styles: SummaryStyle[] = ["Direct", "Supportive", "Insight"];
+  const styles: SummaryStyle[] = ["Direct", "Supportive", "Insight", "Grounded/Actionable"];
 
   const context: SummaryContext = {
     resources: resources.slice(0, 2),
@@ -1174,6 +1176,8 @@ export function buildTopSummaries(domainResults: UserResultDomain[]): UserResult
       `You are still showing up, and several areas remain available. ${dominantLoad ? `${dominantLoad.title} appears to be carrying more than usual` : "Some parts of the system still need more space"} while the stronger domains continue to help keep you moving.`,
     Insight:
       `The dominant pattern is imbalance between output and restoration: ${resourceNames.length ? resourceNames.join(" and ") : "your stronger domains"} remain usable, while ${workingHardNames.length ? workingHardNames.join(" and ") : "several other areas"} are spending more energy than usual. ${askingSupportNames.length ? `${askingSupportNames.join(" and ")} are asking for more support.` : "Recovery remains an important lever."}`,
+    "Grounded/Actionable":
+      `What may help first is reducing load in ${dominantLoad?.title ?? "the most demanding area"} while protecting ${resourceNames[0] ?? "your strongest available resource"}. This can create enough room for recovery to catch up.`,
   };
 
   return styles.map((style) => {
