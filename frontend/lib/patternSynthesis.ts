@@ -366,7 +366,9 @@ function analyzeDomainRelationships(domains: UserResultDomain[]): DomainRelation
 
   // High Emotional Expression + Low Regulation = surface reactivity
   const emotional = domains.find((d) => d.title === "Emotional Expression");
-  const regulation = domains.find((d) => d.title === "Regulation");
+  const regulation = domains.find(
+  (d) => d.title === "Recovery & Restoration"
+);
   if (emotional?.score && regulation?.score && emotional.score > 60 && regulation.score < 45) {
     relationships.push({
       domain1: "Emotional Expression",
