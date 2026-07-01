@@ -1,60 +1,34 @@
-import { type VoiceAnalysisResult } from "./voiceSpectrum";
 import { type UserResultDomain, type SystemDimension } from "./systemDimensions";
 
 /**
  * PATTERN SYNTHESIS ENGINE
- * 
- * Purpose: Transform discrete data points (domain scores, notes, dimensions)
- * into a coherent, relatable human pattern that describes what is actually
- * happening in the person's system right now.
- * 
- * Philosophy:
- * - High activity ≠ strength. It may indicate effort, strain, or compensation.
- * - Low activity ≠ weakness. It may indicate absence of demand, intentional conservation,
- *   or capacity that is not currently being called upon.
- * - Patterns are about relationships between domains, not absolute scores.
- * - Language is specific, human, non-diagnostic, and recognizable.
+ *
+ * Purpose: Transform discrete data points into a coherent, relatable human
+ * pattern that describes what is happening in the person's system right now.
  */
 
 export type PatternSynthesis = {
-  // Human-readable current-state pattern name
   primaryPattern: {
     id: string;
     name: string;
     theme: string;
     explanation: string;
   };
-  
-  // Secondary pattern if confidence supports it
   secondaryPattern?: {
     id: string;
     name: string;
     theme: string;
   };
-  
-  // Emerging pattern if just becoming visible
   emergingPattern?: {
     id: string;
     name: string;
     theme: string;
   };
-  
-  // The dominant drivers of this pattern right now
   primaryDrivers: string[];
-  
-  // What this pattern might actually feel like day-to-day
   likelyExperiences: string[];
-  
-  // What is still protecting the system
   protectiveFactors: string[];
-  
-  // Where to start if the user wants to shift this
   suggestedFocus: string;
-  
-  // Confidence in primary pattern 0-1
   confidence: number;
-  
-  // Was this synthesized successfully or did it fall back to generic?
   isAccurate: boolean;
 };
 
@@ -65,12 +39,16 @@ export type DomainRelationship = {
   description: string;
 };
 
-/**
- * Pattern Library (Comprehensive)
- * These are current-state patterns, not fixed types.
- * Users can move between patterns as their system state changes.
- */
-const CORE_PATTERNS = {
+type PatternDefinition = {
+  name: string;
+  theme: string;
+  signals: Record<string, string[] | boolean>;
+  experiences: string[];
+  protective: string[];
+  focus: string;
+};
+
+const CORE_PATTERNS: Record<string, PatternDefinition> = {
   "overextended-achiever": {
     name: "The Overextended Achiever",
     theme: "Forward movement appears strong, but recovery may not be keeping pace.",
@@ -85,14 +63,9 @@ const CORE_PATTERNS = {
       "Having a mind that keeps moving even when the body needs more recovery",
       "Pushing through fatigue with momentum that feels productive",
     ],
-    protective: [
-      "Strong forward orientation",
-      "Available adaptability and responsiveness",
-      "Clear direction and agency",
-    ],
+    protective: ["Strong forward orientation", "Available adaptability and responsiveness", "Clear direction and agency"],
     focus: "Begin protecting recovery before strain becomes the dominant story. Small consistent rest may matter more than you think.",
   },
-
   "deep-processor": {
     name: "The Deep Processor",
     theme: "Your system appears to spend considerable effort processing, organizing, and making meaning.",
@@ -107,14 +80,9 @@ const CORE_PATTERNS = {
       "Thinking deeply even when trying to rest",
       "Multiple loops running simultaneously in the mind",
     ],
-    protective: [
-      "Strong insight and pattern recognition",
-      "Reflective capacity and self-awareness",
-      "Depth of processing",
-    ],
+    protective: ["Strong insight and pattern recognition", "Reflective capacity and self-awareness", "Depth of processing"],
     focus: "Creating closure on mental loops may help the system feel less crowded. Completion practices may be more supportive than you expect.",
   },
-
   "guarded-but-responsive": {
     name: "The Guarded but Responsive Pattern",
     theme: "Your system appears engaged, but it narrows when the material becomes more personal.",
@@ -130,14 +98,9 @@ const CORE_PATTERNS = {
       "Feeling expressive on the surface while tightening underneath",
       "Maintaining function while protecting inner space",
     ],
-    protective: [
-      "Responsiveness and engagement are still present",
-      "Emotional contact is maintained even under protection",
-      "Consistent functional capacity",
-    ],
+    protective: ["Responsiveness and engagement are still present", "Emotional contact is maintained even under protection", "Consistent functional capacity"],
     focus: "Safety and pacing matter more here than pushing for more exposure. Building trust—including self-trust—is the entrance point.",
   },
-
   "quietly-overloaded": {
     name: "The Quietly Overloaded Pattern",
     theme: "The surface may look functional, but the system appears to be carrying more than it is showing.",
@@ -152,14 +115,9 @@ const CORE_PATTERNS = {
       "Low-grade strain that is easy to normalize",
       "Steady on the outside, more effort on the inside than is obvious",
     ],
-    protective: [
-      "Functional capacity is still present",
-      "Consistency across domains",
-      "System is not collapsed",
-    ],
+    protective: ["Functional capacity is still present", "Consistency across domains", "System is not collapsed"],
     focus: "The first need here is honest acknowledgment of cumulative strain. What you are carrying is real even if it does not show.",
   },
-
   "balanced-regulator": {
     name: "The Balanced Regulator",
     theme: "Your system currently appears relatively steady, responsive, and available.",
@@ -174,19 +132,14 @@ const CORE_PATTERNS = {
       "Available energy without obvious internal crowding",
       "Better access to choice in how to spend attention",
     ],
-    protective: [
-      "Regulation and adaptability are working",
-      "Recovery has adequate support",
-      "Multiple systems are functioning",
-    ],
+    protective: ["Adaptability is working", "Recovery has adequate support", "Multiple systems are functioning"],
     focus: "Protect what is already working before unnecessary strain accumulates. Maintain what feels good.",
   },
-
   "recovering-adapter": {
     name: "The Recovering Adapter",
     theme: "Your system appears to be rebuilding capacity while staying responsive to current demands.",
     signals: {
-      improving: ["Recovery & Restoration", "Regulation"],
+      improving: ["Recovery & Restoration", "Direction & Adaptability"],
       responsive: true,
       low_extremes: true,
     },
@@ -196,14 +149,9 @@ const CORE_PATTERNS = {
       "A sense that things are moving in the right direction",
       "Days that are better, days that are still cautious",
     ],
-    protective: [
-      "Resilience and adaptability",
-      "Recovery capacity is growing",
-      "System is not stuck",
-    ],
+    protective: ["Resilience and adaptability", "Recovery capacity is growing", "System is not stuck"],
     focus: "Consistency matters more than intensity right now. Small regular practices may matter more than big efforts.",
   },
-
   "tired-but-capable": {
     name: "The Tired but Capable Pattern",
     theme: "The system can keep going, but restoration is not keeping pace with what is being asked of it.",
@@ -218,14 +166,9 @@ const CORE_PATTERNS = {
       "Moving forward while quietly depleted",
       "The system keeps performing even when it is asking for something different",
     ],
-    protective: [
-      "Direction is still available",
-      "Adaptability is intact",
-      "System has not shut down",
-    ],
+    protective: ["Direction is still available", "Adaptability is intact", "System has not shut down"],
     focus: "Recovery is not a luxury here; it is a requirement for sustained functioning. What would restoration actually feel like to you?",
   },
-
   "empathic-giver": {
     name: "The Empathic Giver",
     theme: "Relational availability is high, but replenishment may be lagging.",
@@ -239,14 +182,9 @@ const CORE_PATTERNS = {
       "Giving more than you are restoring",
       "Capacity for connection that may exceed capacity for self-support",
     ],
-    protective: [
-      "Relational awareness and capacity",
-      "Ability to connect and support",
-      "Emotional availability",
-    ],
+    protective: ["Relational awareness and capacity", "Ability to connect and support", "Emotional availability"],
     focus: "Receiving is a skill that can be practiced. What would it feel like to let someone support you the way you support others?",
   },
-
   "restless-planner": {
     name: "The Restless Planner",
     theme: "Future focus is active, but present-moment restoration may be low.",
@@ -261,20 +199,15 @@ const CORE_PATTERNS = {
       "Mental momentum that does not stop easily",
       "Restoration feeling like lost time rather than necessary refueling",
     ],
-    protective: [
-      "Clear forward orientation",
-      "Planning and direction capacity",
-      "Organizational clarity",
-    ],
+    protective: ["Clear forward orientation", "Planning and direction capacity", "Organizational clarity"],
     focus: "Presence practices may feel counterintuitive but could be more restorative than you expect. What would it take to be here without planning ahead?",
   },
-
   "system-conservator": {
     name: "The Resource Conservator",
     theme: "The system may be conserving energy rather than pushing forward.",
     signals: {
       low: ["Energy & Vitality", "Direction & Adaptability"],
-      stable: ["Recovery & Restoration", "Regulation"],
+      stable: ["Recovery & Restoration", "Direction & Adaptability"],
     },
     experiences: [
       "Energy feels like something to protect rather than deploy",
@@ -282,14 +215,9 @@ const CORE_PATTERNS = {
       "Pulling back rather than pushing forward",
       "Protecting resources rather than spending them",
     ],
-    protective: [
-      "Regulation is stable",
-      "System is not in crisis",
-      "Intentional conservation is possible",
-    ],
+    protective: ["Adaptability is stable", "System is not in crisis", "Intentional conservation is possible"],
     focus: "This may be protective wisdom rather than a problem. What is the system protecting you from? What would feel safe to move forward with?",
   },
-
   "expression-under-pressure": {
     name: "The Expression Under Pressure Pattern",
     theme: "Communication or emotional output is active, but it is requiring extra effort.",
@@ -304,24 +232,22 @@ const CORE_PATTERNS = {
       "Expression being active while clarity is strained",
       "Needing to work harder to say what is true",
     ],
-    protective: [
-      "Communication is still happening",
-      "Effort and availability are present",
-      "System is attempting connection",
-    ],
+    protective: ["Communication is still happening", "Effort and availability are present", "System is attempting connection"],
     focus: "Slowing down might feel risky, but it may actually make expression easier. What would happen if you took more time?",
   },
 };
 
-/**
- * Analyze domain relationships to detect reinforcing patterns
- */
 function analyzeDomainRelationships(domains: UserResultDomain[]): DomainRelationship[] {
   const relationships: DomainRelationship[] = [];
 
-  // High Mental Load + Low Recovery = reinforcing strain
   const mentalLoad = domains.find((d) => d.title === "Focus & Mental Load");
   const recovery = domains.find((d) => d.title === "Recovery & Restoration");
+  const communication = domains.find((d) => d.title === "Communication & Clarity");
+  const direction = domains.find((d) => d.title === "Direction & Adaptability");
+  const connection = domains.find((d) => d.title === "Connection & Support");
+  const emotional = domains.find((d) => d.title === "Emotional Expression");
+  const energy = domains.find((d) => d.title === "Energy & Vitality");
+
   if (mentalLoad?.score && recovery?.score && mentalLoad.score > 65 && recovery.score < 45) {
     relationships.push({
       domain1: "Focus & Mental Load",
@@ -331,8 +257,6 @@ function analyzeDomainRelationships(domains: UserResultDomain[]): DomainRelation
     });
   }
 
-  // High Communication + High Mental Load = potentially effortful expression
-  const communication = domains.find((d) => d.title === "Communication & Clarity");
   if (communication?.score && mentalLoad?.score && communication.score > 60 && mentalLoad.score > 60) {
     relationships.push({
       domain1: "Communication & Clarity",
@@ -342,8 +266,6 @@ function analyzeDomainRelationships(domains: UserResultDomain[]): DomainRelation
     });
   }
 
-  // High Direction + Low Recovery = forward/restoration imbalance
-  const direction = domains.find((d) => d.title === "Direction & Adaptability");
   if (direction?.score && recovery?.score && direction.score > 65 && recovery.score < 45) {
     relationships.push({
       domain1: "Direction & Adaptability",
@@ -353,8 +275,6 @@ function analyzeDomainRelationships(domains: UserResultDomain[]): DomainRelation
     });
   }
 
-  // High Connection + Low Recovery = relational depletion pattern
-  const connection = domains.find((d) => d.title === "Connection & Support");
   if (connection?.score && recovery?.score && connection.score > 65 && recovery.score < 45) {
     relationships.push({
       domain1: "Connection & Support",
@@ -364,22 +284,15 @@ function analyzeDomainRelationships(domains: UserResultDomain[]): DomainRelation
     });
   }
 
-  // High Emotional Expression + Low Regulation = surface reactivity
-  const emotional = domains.find((d) => d.title === "Emotional Expression");
-  const regulation = domains.find(
-  (d) => d.title === "Recovery & Restoration"
-);
-  if (emotional?.score && regulation?.score && emotional.score > 60 && regulation.score < 45) {
+  if (emotional?.score && recovery?.score && emotional.score > 60 && recovery.score < 45) {
     relationships.push({
       domain1: "Emotional Expression",
-      domain2: "Regulation",
+      domain2: "Recovery & Restoration",
       relationship: "conflicting",
-      description: "Emotions may be closer to the surface right now.",
+      description: "Emotions may be closer to the surface while restoration is asking for support.",
     });
   }
 
-  // Low Energy + High Mental Load = tired but wired
-  const energy = domains.find((d) => d.title === "Energy & Vitality");
   if (energy?.score && mentalLoad?.score && energy.score < 45 && mentalLoad.score > 65) {
     relationships.push({
       domain1: "Energy & Vitality",
@@ -392,75 +305,58 @@ function analyzeDomainRelationships(domains: UserResultDomain[]): DomainRelation
   return relationships;
 }
 
-/**
- * Match domains to pattern signals
- */
-function scorePatternMatch(
-  domains: UserResultDomain[],
-  dimensions: SystemDimension[],
-  patternId: string,
-): number {
-  const pattern = CORE_PATTERNS[patternId as keyof typeof CORE_PATTERNS];
+function signalList(signals: Record<string, string[] | boolean>, key: string): string[] {
+  const value = signals[key];
+  return Array.isArray(value) ? value : [];
+}
+
+function scorePatternMatch(domains: UserResultDomain[], _dimensions: SystemDimension[], patternId: string): number {
+  const pattern = CORE_PATTERNS[patternId];
   if (!pattern) return 0;
 
-  const signals = pattern.signals as Record<string, any>;
   let score = 0;
+  const highSignals = signalList(pattern.signals, "high");
+  const lowSignals = signalList(pattern.signals, "low");
+  const stressedSignals = signalList(pattern.signals, "stressed");
 
-  // Score based on high domains
-  if (signals.high) {
-    const highMatches = domains.filter((d) =>
-      signals.high.includes(d.title) && (d.functionalState === "Highly Engaged" || d.functionalState === "Working Hard"),
+  if (highSignals.length > 0) {
+    const highMatches = domains.filter(
+      (d) => highSignals.includes(d.title) && (d.functionalState === "Highly Engaged" || d.functionalState === "Working Hard"),
     );
-    score += (highMatches.length / signals.high.length) * 0.3;
+    score += (highMatches.length / highSignals.length) * 0.3;
   }
 
-  // Score based on low domains
-  if (signals.low) {
-    const lowMatches = domains.filter((d) =>
-      signals.low.includes(d.title) && (d.functionalState === "Asking for Support" || d.functionalState === "Less Accessible"),
+  if (lowSignals.length > 0) {
+    const lowMatches = domains.filter(
+      (d) => lowSignals.includes(d.title) && (d.functionalState === "Asking for Support" || d.functionalState === "Less Accessible"),
     );
-    score += (lowMatches.length / signals.low.length) * 0.25;
+    score += (lowMatches.length / lowSignals.length) * 0.25;
   }
 
-  // Score based on stressed domains
-  if (signals.stressed) {
-    const stressedMatches = domains.filter((d) =>
-      signals.stressed.includes(d.title) && d.functionalState === "Under Pressure",
-    );
-    score += (stressedMatches.length / signals.stressed.length) * 0.2;
+  if (stressedSignals.length > 0) {
+    const stressedMatches = domains.filter((d) => stressedSignals.includes(d.title) && d.functionalState === "Under Pressure");
+    score += (stressedMatches.length / stressedSignals.length) * 0.2;
   }
 
-  // Score based on no extremes (moderate across board)
-  if (signals.no_extremes) {
+  if (pattern.signals.no_extremes) {
     const allModerate = domains.every((d) => d.score >= 40 && d.score <= 70);
     score += allModerate ? 0.35 : 0;
   }
 
-  // Score based on balanced state
-  if (signals.balanced) {
+  if (pattern.signals.balanced) {
     const balancedCount = domains.filter((d) => d.functionalState === "Readily Available").length;
-    score += (balancedCount / domains.length) * 0.3;
+    score += domains.length > 0 ? (balancedCount / domains.length) * 0.3 : 0;
   }
 
-  // Score based on cumulative strain
-  if (signals.high_cumulative_strain) {
-    const strainedDomains = domains.filter((d) =>
-      d.functionalState === "Working Hard" || d.functionalState === "Under Pressure",
-    );
+  if (pattern.signals.high_cumulative_strain) {
+    const strainedDomains = domains.filter((d) => d.functionalState === "Working Hard" || d.functionalState === "Under Pressure");
     score += strainedDomains.length >= 3 ? 0.25 : 0;
   }
 
   return Math.min(1, score);
 }
 
-/**
- * Build pattern synthesis from scan data
- */
-export function buildPatternSynthesis(
-  domains: UserResultDomain[],
-  dimensions: SystemDimension[],
-): PatternSynthesis {
-  // Score all patterns
+export function buildPatternSynthesis(domains: UserResultDomain[], dimensions: SystemDimension[]): PatternSynthesis {
   const patternScores = Object.keys(CORE_PATTERNS).map((patternId) => ({
     id: patternId,
     score: scorePatternMatch(domains, dimensions, patternId),
@@ -472,21 +368,12 @@ export function buildPatternSynthesis(
   const secondary = patternScores[1];
   const tertiary = patternScores[2];
 
-  const primaryPatternDef = CORE_PATTERNS[primary.id as keyof typeof CORE_PATTERNS];
-  const secondaryPatternDef = secondary.score > 0.15 ? CORE_PATTERNS[secondary.id as keyof typeof CORE_PATTERNS] : null;
-  const tertiaryPatternDef = tertiary.score > 0.1 ? CORE_PATTERNS[tertiary.id as keyof typeof CORE_PATTERNS] : null;
+  const primaryPatternDef = CORE_PATTERNS[primary.id];
+  const secondaryPatternDef = secondary.score > 0.15 ? CORE_PATTERNS[secondary.id] : null;
+  const tertiaryPatternDef = tertiary.score > 0.1 ? CORE_PATTERNS[tertiary.id] : null;
 
-  // Detect domain relationships (used for explanation refinement)
   const relationships = analyzeDomainRelationships(domains);
-
-  // Build primary drivers (what is actually causing this pattern)
   const primaryDrivers = getPrimaryDrivers(domains, relationships);
-
-  // Get protective factors
-  const protectiveFactors = primaryPatternDef.protective;
-
-  // Get suggested focus
-  const suggestedFocus = primaryPatternDef.focus;
 
   return {
     primaryPattern: {
@@ -511,28 +398,21 @@ export function buildPatternSynthesis(
       : undefined,
     primaryDrivers,
     likelyExperiences: primaryPatternDef.experiences,
-    protectiveFactors,
-    suggestedFocus,
+    protectiveFactors: primaryPatternDef.protective,
+    suggestedFocus: primaryPatternDef.focus,
     confidence: primary.score,
     isAccurate: primary.score > 0.25,
   };
 }
 
-/**
- * Identify what is actually driving this pattern
- */
 function getPrimaryDrivers(domains: UserResultDomain[], relationships: DomainRelationship[]): string[] {
   const drivers: string[] = [];
-
-  // Add domains that are "Working Hard" or "Under Pressure"
   const strained = domains.filter((d) => d.functionalState === "Working Hard" || d.functionalState === "Under Pressure");
-  drivers.push(...strained.map((d) => d.title));
-
-  // Add domains that are "Asking for Support"
   const depleted = domains.filter((d) => d.functionalState === "Asking for Support");
+
+  drivers.push(...strained.map((d) => d.title));
   drivers.push(...depleted.map((d) => d.title).slice(0, 2));
 
-  // Add relationship tensions
   relationships.forEach((rel) => {
     if (rel.relationship === "conflicting") {
       drivers.push(rel.description);
@@ -542,17 +422,8 @@ function getPrimaryDrivers(domains: UserResultDomain[], relationships: DomainRel
   return drivers.slice(0, 3);
 }
 
-/**
- * Build human-readable pattern explanation
- */
-function buildPatternExplanation(
-  domains: UserResultDomain[],
-  pattern: (typeof CORE_PATTERNS)[keyof typeof CORE_PATTERNS],
-  relationships: DomainRelationship[],
-): string {
-  const strained = domains.filter((d) => d.functionalState === "Working Hard" || d.functionalState === "Under Pressure");
+function buildPatternExplanation(domains: UserResultDomain[], pattern: PatternDefinition, relationships: DomainRelationship[]): string {
   const resourceful = domains.filter((d) => d.functionalState === "Highly Engaged" || d.functionalState === "Readily Available");
-
   let explanation = pattern.theme;
 
   if (relationships.length > 0) {
