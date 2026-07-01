@@ -116,6 +116,15 @@ export type UserResultDomain = {
   score: number;
 };
 
+export type UserResultStoryCandidate = {
+  style: "Direct" | "Supportive" | "Insight";
+  title: string;
+  summary: string;
+  strongestResources: string[];
+  areasWorkingHard: string[];
+  areasAskingForSupport: string[];
+};
+
 export type UserResultStory = {
   headline: string;
   whatsGoingWell: string;
@@ -196,6 +205,125 @@ export function buildSystemDimensions(scan: VoiceAnalysisResult): SystemDimensio
     dimension("Adaptability", adaptabilityBase, "A, D#, F# note activity", "How responsive and change-ready the system appears."),
     dimension("Expression", expressionBase, "G, D, E expression indicators", "How available communication and emotional expression appear."),
     dimension("Cognitive Load", cognitiveBase + cognitiveAdjustment, "B, A#, F# mental-load indicators", "How much processing demand appears active."),
+  ];
+}
+
+function domainState(score: number): Pick<UserResultDomain, "activityLevel" | "functionalState"> {
+  if (score >= 75) return { activityLevel: "High", functionalState: "Working Hard" };
+  if (score >= 62) return { activityLevel: "High", functionalState: "Highly Engaged" };
+  if (score >= 45) return { activityLevel: "Moderate", functionalState: "Readily Available" };
+  if (score >= 34) return { activityLevel: "Low", functionalState: "Recovering" };
+  return { activityLevel: "Low", functionalState: "Asking for Support" };
+}
+
+function makeDomain(
+  title: UserResultDomainName,
+  score: number,
+  currentPattern: string,
+  signalSources: string[],
+  thisCouldExpressAs: string[],
+  itCanAlsoShowUpAs: string[],
+  supportiveReframe: string,
+): UserResultDomain {
+  const normalized = clampScore(score);
+  const state = domainState(normalized);
+  return {
+    title,
+    score: normalized,
+    activityLevel: state.activityLevel,
+    functionalState: state.functionalState,
+    currentPattern,
+    signalSources,
+    thisCouldExpressAs,
+    itCanAlsoShowUpAs,
+    supportiveReframe,
+  };
+}
+
+export function buildUserResultDomains(scan: VoiceAnalysisResult): UserResultDomain[] {
+  const dynamics = scan.voiceDynamics;
+  const energy = scoreForNotes(scan, ["C", "D", "E"]);
+  const recovery = scoreForNotes(scan, ["C", "G#"]) - (dynamics?.voicedFrameRatio && dynamics.voicedFrameRatio > 0.55 ? 8 : 0);
+  const communication = scoreForNotes(scan, ["G", "D", "E"]);
+  const emotional = scoreForNotes(scan, ["D", "G", "A#"]);
+  const connection = scoreForNotes(scan, ["F", "G", "C"]);
+  const focus = scoreForNotes(scan, ["B", "A#", "F#"]) + (dynamics?.pauseCount && dynamics.pauseCount >= 3 ? 10 : 0);
+  const direction = scoreForNotes(scan, ["A", "D#", "F#"]);
+  const regulation = scoreForNotes(scan, ["C", "F", "G#"]);
+
+  return [
+    makeDomain(
+      "Energy & Vitality",
+      energy,
+      "Available body-energy and activation patterns",
+      ["C", "D", "E"],
+      ["Having energy to engage", "Pushing through fatigue", "Feeling physically activated"],
+      ["Restlessness", "Momentum", "Variable stamina"],
+      "Energy is information, not a demand to overperform.",
+    ),
+    makeDomain(
+      "Recovery & Restoration",
+      recovery,
+      "Restoration capacity relative to current output",
+      ["C", "G#", "voice pacing"],
+      ["Needing deeper rest", "Feeling restored or depleted", "Capacity returning slowly"],
+      ["Low patience", "Body asking for quiet", "Sensitivity after effort"],
+      "Recovery is part of performance, not a reward after everything is done.",
+    ),
+    makeDomain(
+      "Communication & Clarity",
+      communication,
+      "Expression and verbal clarity patterns",
+      ["G", "D", "E"],
+      ["Clear communication", "Overexplaining", "Working harder to say what is true"],
+      ["Holding back", "Racing words", "Needing more time to respond"],
+      "Your words do not need to carry everything at once.",
+    ),
+    makeDomain(
+      "Emotional Expression",
+      emotional,
+      "Emotional output and range",
+      ["D", "G", "A#"],
+      ["Feeling close to the surface", "Expressing more than usual", "Trying to stay composed"],
+      ["Sensitivity", "Irritability", "Creative intensity"],
+      "Emotion is signal. It does not have to become a crisis to be valid.",
+    ),
+    makeDomain(
+      "Connection & Support",
+      connection,
+      "Relational availability and support signals",
+      ["F", "G", "C"],
+      ["Wanting support", "Being available to others", "Needing safer connection"],
+      ["Pulling back", "Giving more than receiving", "Protecting vulnerability"],
+      "Support can be practical, emotional, or simply less pressure.",
+    ),
+    makeDomain(
+      "Focus & Mental Load",
+      focus,
+      "Cognitive demand and processing load",
+      ["B", "A#", "F#", "pause pattern"],
+      ["Many mental tabs open", "Deep processing", "Difficulty disengaging"],
+      ["Overthinking", "Insight loops", "Decision fatigue"],
+      "Mental load eases when loops are closed or safely parked.",
+    ),
+    makeDomain(
+      "Direction & Adaptability",
+      direction,
+      "Forward orientation and change response",
+      ["A", "D#", "F#"],
+      ["Planning next steps", "Adapting quickly", "Staying oriented toward the future"],
+      ["Restless planning", "Pressure to decide", "Difficulty being present"],
+      "Adaptability works best when it has enough recovery behind it.",
+    ),
+    makeDomain(
+      "Regulation",
+      regulation,
+      "Return-to-balance and steadiness signals",
+      ["C", "F", "G#"],
+      ["Settling after stimulation", "Finding steadiness", "Maintaining inner balance"],
+      ["Bracing", "Needing grounding", "Slow recovery from stress"],
+      "Regulation is a rhythm you can support, not a personality test.",
+    ),
   ];
 }
 
