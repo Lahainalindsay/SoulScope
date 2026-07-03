@@ -40,15 +40,40 @@ function quietest(domains: UserResultDomain[]) {
   return [...domains].sort((a, b) => a.score - b.score)[0];
 }
 
-type CameraSignal = NonNullable<SoulScopeReport["evidence"]["camera"]>;
-
 function formatCameraPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
-function formatCameraShift(value: number, unit = "") {
-  if (Math.abs(value) < 0.01) return `held near baseline${unit ? ` ${unit}` : ""}`;
-  return `${value > 0 ? "rose" : "softened"} by ${Math.abs(value).toFixed(unit ? 1 : 0)}${unit}`;
+function domainPhrase(domain?: UserResultDomain) {
+  if (!domain) return "one part of your system";
+  return domain.title.toLowerCase();
+}
+
+function signalTone(note?: string) {
+  switch (note) {
+    case "C": return "grounding and basic steadiness";
+    case "C#": return "subtle pressure around change or transition";
+    case "D": return "drive, emotion, and outward movement";
+    case "D#": return "adaptation and quick internal adjustment";
+    case "E": return "body energy and available expression";
+    case "F": return "relational sensitivity and the need for safety";
+    case "F#": return "future focus and planning energy";
+    case "G": return "voice, connection, and expression";
+    case "G#": return "restoration and recovery signals";
+    case "A": return "momentum and forward orientation";
+    case "A#": return "mental load and emotional intensity";
+    case "B": return "cognitive processing and meaning-making";
+    default: return "the strongest available voice signal";
+  }
+}
+
+function scoreLanguage(score?: number) {
+  if (typeof score !== "number") return "present";
+  if (score >= 78) return "very pronounced";
+  if (score >= 65) return "clearly active";
+  if (score >= 45) return "moderately available";
+  if (score >= 34) return "quieter and recovering";
+  return "asking for support";
 }
 
 function buildCameraInsight(report: SoulScopeReport) {
@@ -59,48 +84,53 @@ function buildCameraInsight(report: SoulScopeReport) {
   const details: string[] = [];
 
   if (camera.trackingConfidence < 0.45) {
-    details.push("camera tracking confidence was limited, so this visual layer should be treated as directional");
+    details.push("camera tracking was limited, so the visual layer should be treated as a soft signal");
   }
   if (camera.facialTension >= 0.58) {
-    details.push("facial tension appeared elevated during the scan");
+    details.push("facial tension appeared elevated while you were answering");
+  } else if (camera.facialTension <= 0.32) {
+    details.push("facial tension stayed relatively soft during the scan");
   }
   if (camera.blinkRatePerMin >= 24) {
-    details.push("blink rate shifted upward while you were answering");
+    details.push("blink rate was more active than average during the scan");
+  } else if (camera.blinkRatePerMin <= 10) {
+    details.push("blink rate stayed low, which can happen with focused attention");
   }
   if (camera.eyeOpenness <= 0.4) {
     details.push("eye openness appeared lower during parts of the scan");
   }
-  if (camera.eyeDilationProxy >= 0.62) {
-    details.push("the eye dilation proxy appeared more activated");
-  }
 
   if (baseline && camera.trackingConfidence >= 0.45) {
-    const tensionDelta = (camera.facialTension - baseline.facialTension) * 100;
-    const blinkDelta = camera.blinkRatePerMin - baseline.blinkRatePerMin;
-    if (Math.abs(tensionDelta) >= 6 || Math.abs(blinkDelta) >= 4) {
-      details.push(
-        `relative to your opening baseline, facial tension ${formatCameraShift(tensionDelta)} and blink rate ${formatCameraShift(blinkDelta, " per minute")}`
-      );
+    const tensionDelta = Math.round((camera.facialTension - baseline.facialTension) * 100);
+    const blinkDelta = Math.round(camera.blinkRatePerMin - baseline.blinkRatePerMin);
+    if (Math.abs(tensionDelta) >= 6) {
+      details.push(`facial tension ${tensionDelta > 0 ? "rose" : "softened"} by ${Math.abs(tensionDelta)}% compared with baseline`);
+    }
+    if (Math.abs(blinkDelta) >= 4) {
+      details.push(`blink rate ${blinkDelta > 0 ? "increased" : "settled"} by ${Math.abs(blinkDelta)} per minute compared with baseline`);
     }
   }
 
-  if (!details.length) return "The camera layer was available and did not add a strong visible tension signal beyond the voice pattern.";
-
-  return `The camera layer adds a cautious signal: ${details.join("; ")}. This is not diagnostic, but it can help explain how the pattern may have shown up physically while you were speaking.`;
+  if (!details.length) return "The camera layer was available but did not add a strong visible tension signal beyond the voice pattern.";
+  return `The camera layer adds this extra context: ${details.join("; ")}. This is not diagnostic, but it helps make the reading more specific to how your body showed up during this scan.`;
 }
 
-function buildHiddenPatternTitle(domains: UserResultDomain[]) {
+function buildHiddenPatternTitle(domains: UserResultDomain[], report: SoulScopeReport) {
   const communication = getDomain(domains, "Communication & Clarity");
   const connection = getDomain(domains, "Connection & Support");
   const recovery = getDomain(domains, "Recovery & Restoration");
   const focus = getDomain(domains, "Focus & Mental Load");
   const emotional = getDomain(domains, "Emotional Expression");
   const adaptability = getDomain(domains, "Direction & Adaptability");
+  const topNote = report.evidence.topNotes[0]?.note;
 
   if (needsSupport(connection) && isWorking(communication)) return "Needing Support While Trying to Explain";
   if (needsSupport(recovery) && isWorking(focus)) return "Functioning While Running Full";
   if (needsSupport(connection) && isWorking(emotional)) return "Wanting Safety Before Vulnerability";
   if (isWorking(adaptability) && needsSupport(recovery)) return "Adapting Faster Than You Can Restore";
+  if (topNote === "B" || topNote === "A#") return "Living Mostly in Your Head";
+  if (topNote === "F" || topNote === "G") return "Wanting to Be Met More Clearly";
+  if (topNote === "C" || topNote === "G#") return "Trying to Rebuild Inner Ground";
   if (isWorking(communication)) return "Finding the Cleanest Way to Be Understood";
   if (isWorking(focus)) return "Carrying More Than You Show";
   return "Holding the Story Beneath the Surface";
@@ -116,7 +146,12 @@ function buildNarrativeProfile(domains: UserResultDomain[], report: SoulScopeRep
   const energy = getDomain(domains, "Energy & Vitality");
   const regulation = getDomain(domains, "Regulation");
   const top = strongest(domains);
+  const low = quietest(domains);
+  const topNote = report.evidence.topNotes[0];
+  const secondNote = report.evidence.topNotes[1];
   const cameraInsight = buildCameraInsight(report);
+  const pauseCount = report.evidence.pauseCount ?? 0;
+  const primarySignal = topNote ? `${topNote.note} (${topNote.system})` : report.primaryPattern.name;
 
   const connectionNeedsSupport = needsSupport(connection) || (connection?.score ?? 100) < 50;
   const communicationWorking = isWorking(communication) || (communication?.score ?? 0) > 62;
@@ -128,52 +163,52 @@ function buildNarrativeProfile(domains: UserResultDomain[], report: SoulScopeRep
   const energyNeedsSupport = needsSupport(energy) || (energy?.score ?? 100) < 50;
 
   const opening = recoveryNeedsSupport || mentalLoadHigh
-    ? "On the surface, you may appear to be functioning, but below the surface your system seems to be carrying more than it is showing. There is still movement, awareness, and capability here, but the scan suggests that some of that capability may be coming from effort rather than ease."
-    : "On the surface, there is enough steadiness here to keep moving, but the deeper pattern is more nuanced than simply being okay. Your voice suggests that some parts of you are available and expressive while other parts are asking for more honesty, support, or recovery."
+    ? `On the surface, you may appear to be functioning, but below the surface your system seems to be carrying more than it is showing. The strongest voice signal in this scan leaned toward ${signalTone(topNote?.note)}, while ${domainPhrase(low)} came through as ${scoreLanguage(low?.score)}. That combination makes this reading different from a simple stress report: it suggests where effort is being spent and where support may be missing.`
+    : `On the surface, there is enough steadiness here to keep moving, but the deeper pattern is still personal. The clearest voice signal leaned toward ${signalTone(topNote?.note)}, with ${domainPhrase(top)} appearing ${scoreLanguage(top?.score)} and ${domainPhrase(low)} appearing ${scoreLanguage(low?.score)}. That contrast is the fingerprint of this scan.`;
 
   const supportAndVoice = connectionNeedsSupport && communicationWorking
-    ? "Your voice points toward a need for safer connection and clearer support. Communication may feel harder than it should, not because you lack words, but because part of you may be trying to protect what is vulnerable while still trying to be understood. This can show up as over-explaining, choosing your words carefully, or feeling frustrated when people miss the deeper need underneath what you are saying."
+    ? `Your voice points toward a need for safer connection and clearer support. Communication may feel harder than it should, not because you lack words, but because ${domainPhrase(connection)} is quieter while ${domainPhrase(communication)} is active. This can show up as over-explaining, choosing your words carefully, or feeling frustrated when people miss the deeper need underneath what you are saying.`
     : communicationWorking
-      ? "Communication appears to be using extra energy. You may find yourself trying to organize your thoughts while you speak, repeating yourself, or working hard to make your meaning land clearly. The deeper need is not to say more; it may be to say the truer thing with less self-protection around it."
+      ? `Communication appears to be using extra energy. You may find yourself organizing your thoughts while you speak, repeating yourself, or working hard to make your meaning land clearly. The scan does not suggest that you need more words as much as a cleaner path for the words you already have.`
       : connectionNeedsSupport
-        ? "The support layer appears quieter than the output layer. You may want closeness or help, but still feel guarded about asking directly. This pattern can make you seem independent while part of you is actually waiting for a safer place to soften."
-        : "Your expression and support patterns are not telling a simple story of strength or weakness. They suggest a person who is still trying to find the right balance between being self-contained and being honestly met by others."
+        ? `The support layer appears quieter than the output layer. You may want closeness or help, but still feel guarded about asking directly. This can make you seem independent while part of you is actually waiting for a safer place to soften.`
+        : `Your expression and support patterns are not telling a simple story of strength or weakness. They suggest a person balancing ${domainPhrase(top)} with a quieter need around ${domainPhrase(low)}.`;
 
   const emotionAndLoad = emotionalHigh || mentalLoadHigh || regulationNeedsSupport
-    ? "Emotionally, there may be more sensitivity under the surface than people realize. You might feel more reactive, tender, or easily affected than usual, while still trying to stay composed. If your mind has been busy, it may be because it is trying to translate feelings into something manageable before you let anyone else see them."
-    : "Emotionally, the scan suggests that you may be processing more quietly than dramatically. The important part is not intensity; it is whether your inner experience has enough room to move instead of being managed in the background."
+    ? `Emotionally, there may be more sensitivity under the surface than people realize. ${pauseCount >= 3 ? `The pause pattern also suggests your system took extra moments to organize responses,` : `The pause pattern did not dominate the reading,`} while the ${primarySignal} signal points toward ${signalTone(topNote?.note)}. You may feel more reactive, tender, mentally full, or easily affected than you are letting on.`
+    : `Emotionally, this scan looks less like a dramatic spike and more like quiet processing. The ${primarySignal} signal points toward ${signalTone(topNote?.note)}, and the second signal${secondNote ? `, ${secondNote.note}, adds ${signalTone(secondNote.note)}` : " adds a softer supporting layer"}.`;
 
   const recoveryAndBody = recoveryNeedsSupport || energyNeedsSupport
-    ? "Your system appears to need restoration, not another demand. This is the kind of pattern where pushing harder may create less clarity, while creating space to recover may actually make your communication, focus, and emotional steadiness come back online more naturally."
-    : "There is still usable energy in this scan, but the invitation is to use it wisely. The goal is not to spend every available resource proving that you are fine; the goal is to protect the parts of you that are helping you stay coherent."
+    ? `Your system appears to need restoration, not another demand. If you push harder from here, clarity may actually get thinner. If you create recovery first, the parts connected to ${domainPhrase(communication)} and ${domainPhrase(regulation)} may have more room to come back online naturally.`
+    : `There is usable energy in this scan, but the invitation is to use it wisely. The goal is not to spend every available resource proving that you are fine; the goal is to protect the parts of you that are helping you stay coherent.`;
 
-  const hiddenPatternTitle = buildHiddenPatternTitle(domains);
+  const hiddenPatternTitle = buildHiddenPatternTitle(domains, report);
 
   const hiddenPattern = connectionNeedsSupport && communicationWorking
-    ? "The hidden pattern is not silence; it is protected expression. Something in you may want to be seen and supported, while another part is still checking whether it is safe to be fully honest."
+    ? `The hidden pattern is protected expression. You may want to be seen and supported, but part of you is still checking whether it is safe to be fully honest. The quieter ${domainPhrase(connection)} signal is important here.`
     : recoveryNeedsSupport && mentalLoadHigh
-      ? "The hidden pattern is endurance. You may be staying functional by keeping your mind active, but the system underneath is asking for fewer open loops and more restoration."
+      ? `The hidden pattern is endurance. ${domainPhrase(focus)} is taking up space while ${domainPhrase(recovery)} is asking for support, which means functioning may be happening through mental effort rather than true restoration.`
       : adaptabilityHigh && recoveryNeedsSupport
-        ? "The hidden pattern is rapid adaptation without enough refill. You can keep adjusting, but your recovery needs to become part of the strategy instead of something you only reach for after depletion."
-        : `The hidden pattern centers around ${report.primaryPattern.name.toLowerCase()}. The scan suggests that the visible behavior is only part of the story; the deeper movement is how your system is trying to stay organized while asking for more support.`;
+        ? `The hidden pattern is rapid adaptation without enough refill. ${domainPhrase(adaptability)} can help you keep moving, but ${domainPhrase(recovery)} needs to become part of the strategy instead of something you reach for only after depletion.`
+        : `The hidden pattern centers around ${report.primaryPattern.name.toLowerCase()}, shaped most strongly by ${primarySignal}. The visible behavior is only part of the story; the deeper movement is how your system is trying to stay organized while asking for something more specific.`;
 
   const feelsLike = connectionNeedsSupport || communicationWorking
-    ? "In daily life, this may feel like wanting to be understood but not wanting to expose too much, explaining yourself more than you planned, replaying conversations afterward, or feeling emotionally tired from trying to make your needs sound reasonable."
+    ? `In daily life, this may feel like wanting to be understood but not wanting to expose too much, explaining yourself more than you planned, replaying conversations afterward, or feeling emotionally tired from trying to make your needs sound reasonable.`
     : mentalLoadHigh
-      ? "In daily life, this may feel like too many mental tabs open at once, difficulty resting because your mind keeps organizing the next step, or feeling capable on the outside while internally crowded."
-      : "In daily life, this may feel like being mostly okay but still aware that something in you wants a cleaner rhythm, clearer expression, or a more honest kind of support.";
+      ? `In daily life, this may feel like too many mental tabs open at once, difficulty resting because your mind keeps organizing the next step, or feeling capable on the outside while internally crowded.`
+      : `In daily life, this may feel like being mostly okay but still aware that something in you wants a cleaner rhythm, clearer expression, or a more honest kind of support.`;
 
-  const strength = adaptabilityHigh || top
-    ? "The strength here is that you are still responding. Even where the scan shows effort, your system has not shut down; it is still trying to adapt, understand, communicate, and move toward balance."
-    : "The strength here is that the system is still communicating. Even when the pattern is not easy, your voice is still giving information that can be used for awareness and repair.";
+  const strength = top
+    ? `The strength here is ${domainPhrase(top)}. Even if other parts of the scan show effort, that area remains ${scoreLanguage(top.score)}, which means your system has not gone offline; it is still trying to adapt, understand, communicate, or move toward balance.`
+    : `The strength here is that the system is still communicating. Even when the pattern is not easy, your voice is giving information that can be used for awareness and repair.`;
 
   const balancePoint = connectionNeedsSupport && communicationWorking
-    ? "Your balance point is direct expression with less defense. Today, practice naming one need clearly without building a full case for why it is valid. Let the sentence be simple enough that your nervous system does not have to perform while asking for support."
+    ? `Your balance point is direct expression with less defense. Today, practice naming one need clearly without building a full case for why it is valid. Let the sentence be simple enough that your nervous system does not have to perform while asking for support.`
     : recoveryNeedsSupport && mentalLoadHigh
-      ? "Your balance point is reducing cognitive load before asking yourself to do more. Choose one unfinished loop to close, postpone, or write down so your mind does not have to keep carrying it in the background."
+      ? `Your balance point is reducing cognitive load before asking yourself to do more. Choose one unfinished loop to close, postpone, or write down so your mind does not have to keep carrying it in the background.`
       : emotionalHigh
-        ? "Your balance point is emotional honesty without escalation. Name what you feel before trying to solve it, explain it, or make it acceptable to someone else."
-        : "Your balance point is choosing the smallest action that creates more honesty or ease. Do not turn the recommendation into another performance. Let one clear step be enough.";
+        ? `Your balance point is emotional honesty without escalation. Name what you feel before trying to solve it, explain it, or make it acceptable to someone else.`
+        : `Your balance point is choosing one small action that supports ${domainPhrase(low)}. Do not turn the recommendation into another performance. Let one clear step be enough.`;
 
   return {
     story: [opening, supportAndVoice, emotionAndLoad, recoveryAndBody],
