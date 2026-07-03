@@ -168,7 +168,7 @@ export default function GuidedScanQuestionPage() {
             <div>
               <p className={styles.eyebrow}>{stepLabel}</p>
               <h1 className={styles.title}>Answer naturally.</h1>
-              <p className={styles.subtitle}>Keep your face comfortably in view. Recording starts automatically and moves to the next question when complete.</p>
+              <p className={styles.subtitle}>Read the question first, then keep your face comfortably in view while you answer.</p>
             </div>
             <div className={`${styles.statusPill} ${signalClass(liveSample?.dbfs ?? -120)}`}>{signalText(liveSample?.dbfs ?? -120)}</div>
           </div>
@@ -181,6 +181,13 @@ export default function GuidedScanQuestionPage() {
             <section className={styles.heroCard}>
               <div className={styles.heroInner}>
                 <div className={styles.recordStage}>
+                  <p className={styles.promptText}>{question.prompt}</p>
+
+                  <div className={styles.scanStatusRow}>
+                    <div className={styles.liveBadge}><span className={isRecording ? styles.liveDot : styles.idleDot} />{isRecording ? "Recording" : isSaving ? "Saving response" : hasCompletedRecording ? "Response captured" : "Get ready"}</div>
+                    <div className={styles.timeBadge}>{elapsedSeconds}s</div>
+                  </div>
+
                   <div className={styles.cameraGrid}>
                     <div className={styles.cameraPanel}>
                       <div className={styles.cameraHeader}>
@@ -192,13 +199,6 @@ export default function GuidedScanQuestionPage() {
                       <FaceReader active={router.isReady} tracking={isRecording} calibrating={isCalibrating} onMetricsChange={setCameraMetrics} onSummaryChange={handleCameraSummaryChange} onCalibrationComplete={handleCalibrationComplete} />
                     </div>
                   </div>
-
-                  <div className={styles.scanStatusRow}>
-                    <div className={styles.liveBadge}><span className={isRecording ? styles.liveDot : styles.idleDot} />{isRecording ? "Recording" : isSaving ? "Saving response" : hasCompletedRecording ? "Response captured" : "Get ready"}</div>
-                    <div className={styles.timeBadge}>{elapsedSeconds}s</div>
-                  </div>
-
-                  <p className={styles.promptText}>{question.prompt}</p>
 
                   <div className={styles.orbShell}>
                     <div className={styles.orbGlow} />
