@@ -10,6 +10,12 @@ type ResonanceResultsDashboardProps = {
   selectedStoryStyle?: "Direct" | "Supportive" | "Insight" | null;
 };
 
+type RecommendationGroup = {
+  title: string;
+  intro: string;
+  items: string[];
+};
+
 function safeLines(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
@@ -45,6 +51,10 @@ function domainMeaning(domain: UserResultDomain) {
   return `${base[domain.title]} Here, it looks available enough to act as a resource while the higher-load areas settle.`;
 }
 
+function getDomain(domains: UserResultDomain[], title: UserResultDomain["title"]) {
+  return domains.find((domain) => domain.title === title);
+}
+
 function buildWholeScanSummary(domains: UserResultDomain[], report: SoulScopeReport) {
   const highest = [...domains].sort((a, b) => b.score - a.score).slice(0, 2);
   const lowest = [...domains].sort((a, b) => a.score - b.score).slice(0, 2);
@@ -73,6 +83,120 @@ function buildWholeScanSummary(domains: UserResultDomain[], report: SoulScopeRep
   ];
 }
 
+function buildBalancingRecommendations(domains: UserResultDomain[]): RecommendationGroup[] {
+  const recovery = getDomain(domains, "Recovery & Restoration");
+  const focus = getDomain(domains, "Focus & Mental Load");
+  const adaptability = getDomain(domains, "Direction & Adaptability");
+  const emotional = getDomain(domains, "Emotional Expression");
+  const communication = getDomain(domains, "Communication & Clarity");
+  const connection = getDomain(domains, "Connection & Support");
+  const energy = getDomain(domains, "Energy & Vitality");
+  const regulation = getDomain(domains, "Regulation");
+
+  const groups: RecommendationGroup[] = [];
+
+  const recoveryNeedsSupport = recovery && recovery.score < 48;
+  const mentalLoadHigh = focus && focus.score > 62;
+  const adaptabilityHigh = adaptability && adaptability.score > 62;
+  const emotionalHigh = emotional && emotional.score > 62;
+  const communicationWorking = communication && ["Working Hard", "Under Pressure"].includes(communication.functionalState);
+  const connectionLow = connection && connection.score < 48;
+  const energyLow = energy && energy.score < 48;
+  const regulationLow = regulation && regulation.score < 48;
+
+  if (recoveryNeedsSupport && (mentalLoadHigh || adaptabilityHigh)) {
+    groups.push({
+      title: "Today's Focus",
+      intro: "Protect recovery without abandoning momentum. The goal is not to do nothing; it is to stop making every part of you work at the same time.",
+      items: [
+        "Choose one task to complete or consciously postpone so your mind has fewer open loops.",
+        "Create one 20-minute block with no phone, no input, and no problem-solving.",
+        "Let your next step be smaller than your ambition. Sustainable movement beats heroic overextension today.",
+      ],
+    });
+  } else if (recoveryNeedsSupport) {
+    groups.push({
+      title: "Recovery First",
+      intro: "Restoration appears to be asking for more support. This does not mean weakness; it means your system may need more refill than push right now.",
+      items: [
+        "Give yourself one clear recovery window before adding another obligation.",
+        "Reduce sensory input for a short period: dim lights, quiet room, slower pace.",
+        "Choose sleep consistency or quiet rest over squeezing in one more task.",
+      ],
+    });
+  }
+
+  if (mentalLoadHigh) {
+    groups.push({
+      title: "Mind",
+      intro: "Mental load appears active. Balance here comes from closing loops, externalizing thoughts, and reducing decision friction.",
+      items: [
+        "Do a five-minute brain dump and circle only the next real action.",
+        "Avoid starting three new things before finishing one small thing.",
+        "Give yourself permission to answer slower. Clarity often improves when the nervous system stops rushing the words.",
+      ],
+    });
+  }
+
+  if (emotionalHigh || communicationWorking) {
+    groups.push({
+      title: "Expression",
+      intro: "Your expression channel appears active. That can be creativity, truth, sensitivity, or pressure trying to find a clean path out.",
+      items: [
+        "Write the uncensored version privately before trying to explain it perfectly to someone else.",
+        "Name the feeling in plain language before solving it: mad, tired, hopeful, scared, tender, overloaded.",
+        "Use one honest sentence instead of a full courtroom presentation. Tiny truth still counts.",
+      ],
+    });
+  }
+
+  if (connectionLow) {
+    groups.push({
+      title: "Connection",
+      intro: "The support layer may be quieter than the output layer. Balance may come from safer connection, not more performance.",
+      items: [
+        "Reach for one low-pressure contact: a voice note, simple text, or short check-in.",
+        "Ask for practical support instead of trying to explain the whole emotional universe at once.",
+        "Notice where you are giving support that you are not receiving back.",
+      ],
+    });
+  }
+
+  if (energyLow || regulationLow) {
+    groups.push({
+      title: "Body & Nervous System",
+      intro: "The body layer may need grounding before more insight. Regulation is often rebuilt through simple repeatable signals of safety.",
+      items: [
+        "Take a slow walk, stretch your hips and shoulders, or step outside for natural light.",
+        "Try longer exhales for two minutes: inhale normally, exhale slowly, repeat without forcing it.",
+        "Eat, hydrate, and reduce avoidable stimulation before judging your mood or motivation.",
+      ],
+    });
+  }
+
+  if (!groups.length) {
+    groups.push({
+      title: "Maintain What Is Working",
+      intro: "Your scan shows enough available capacity to focus on maintenance rather than emergency repair.",
+      items: [
+        "Keep the rhythm that is already supporting you instead of adding unnecessary intensity.",
+        "Choose one grounding habit you can repeat tomorrow.",
+        "Notice what helped your voice feel clearer today and protect more of that.",
+      ],
+    });
+  }
+
+  groups.push({
+    title: "Your Next Step",
+    intro: "Choose one action. The point is not to fix your whole life from one scan. The point is to respond to the clearest signal.",
+    items: [
+      "Pick the recommendation that feels easiest to actually do today, then make it almost embarrassingly small.",
+    ],
+  });
+
+  return groups.slice(0, 5);
+}
+
 export default function ResonanceResultsDashboard({
   report,
   hiddenNotes = [],
@@ -82,12 +206,13 @@ export default function ResonanceResultsDashboard({
   const visibleEnergies = (report.evidence.noteEnergies ?? []).filter((entry) => !hiddenNotes.includes(entry.note));
   const domains = report.domainResults ?? [];
   const wholeScanSummary = buildWholeScanSummary(domains, report);
+  const recommendations = buildBalancingRecommendations(domains);
 
   return (
     <section className={styles.section}>
       <section className={styles.heroCard}>
         <div className={styles.heroCopy}>
-          <p className={styles.eyebrow}>Primary Pattern</p>
+          <p className={styles.eyebrow}>Your Current Story</p>
           <h2 className={styles.title}>{report.primaryPattern.name}</h2>
           <p className={styles.lead}>{report.primaryPattern.theme}</p>
           <p className={styles.noteText}>{report.primaryPattern.explanation}</p>
@@ -103,9 +228,9 @@ export default function ResonanceResultsDashboard({
       <section className={styles.notesSection}>
         <div className={styles.notesHeader}>
           <div>
-            <p className={styles.eyebrow}>Your Scan Description</p>
-            <h2 className={styles.mapTitle}>Choose the wording that feels most accurate</h2>
-            <p className={styles.lead}>These are three human-language readings of the same scan. Pick the one that sounds most like your lived experience.</p>
+            <p className={styles.eyebrow}>Help Us Build SoulScope</p>
+            <h2 className={styles.mapTitle}>Choose the description that feels most like you</h2>
+            <p className={styles.lead}>Thanks for testing the app. Please choose your favorite description out of the three energy narratives below. Your choice helps us develop a more accurate, personal, and premium experience for future users.</p>
           </div>
         </div>
 
@@ -141,6 +266,29 @@ export default function ResonanceResultsDashboard({
         </div>
       </section>
 
+      <section className={styles.notesSection}>
+        <div className={styles.notesHeader}>
+          <div>
+            <p className={styles.eyebrow}>Balancing Recommendations</p>
+            <h2 className={styles.mapTitle}>What may help bring the pattern into balance</h2>
+            <p className={styles.lead}>These are not generic wellness tips. They are based on the relationship between your most expressed areas, the areas working hardest, and the parts of your system asking for support.</p>
+          </div>
+        </div>
+        <div className={styles.storyGrid}>
+          {recommendations.map((group) => (
+            <article key={group.title} className={styles.storyCard}>
+              <p className={styles.noteStatus}>{group.title}</p>
+              <p className={styles.noteText}>{group.intro}</p>
+              <ul className={styles.storyList}>
+                {group.items.map((item) => (
+                  <li key={item} className={styles.storyItem}>{item}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </section>
+
       {report.supportingPattern || report.emergingPattern ? (
         <section className={styles.patternStrip}>
           {report.supportingPattern ? (
@@ -163,8 +311,8 @@ export default function ResonanceResultsDashboard({
       <section className={styles.notesSection}>
         <div className={styles.notesHeader}>
           <div>
-            <p className={styles.eyebrow}>Daily-Life Translation</p>
-            <h2 className={styles.mapTitle}>What each area represents</h2>
+            <p className={styles.eyebrow}>Your Resonance Story</p>
+            <h2 className={styles.mapTitle}>How the different parts of the scan connect</h2>
             <p className={styles.lead}>These cards are pieces of the same pattern: where your system is resourced, where it is spending energy, and where it may need support.</p>
           </div>
         </div>
