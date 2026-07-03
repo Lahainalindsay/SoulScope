@@ -277,7 +277,7 @@ export default function PatternHistoryDashboard() {
                 <p className={styles.insightText}>{journeyInsight}</p>
               </article>
               <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>This Week's Focus</p>
+                <p className={styles.insightLabel}>This Week&rsquo;s Focus</p>
                 <h3 className={styles.insightTitle}>Balance point</h3>
                 <p className={styles.insightText}>{weeklyFocus}</p>
               </article>
