@@ -23,6 +23,59 @@ type InsertedScanRow = { id: string; created_at: string };
 const CLOUD_REQUEST_TIMEOUT_MS = 4500;
 const ANALYSIS_REQUEST_TIMEOUT_MS = 15000;
 
+function shouldDebugScan() {
+  return (
+    process.env.NODE_ENV !== "production" ||
+    (typeof window !== "undefined" && window.localStorage.getItem("soulscope.debugScan") === "1")
+  );
+}
+
+async function hashBlob(blob: Blob) {
+  if (!crypto?.subtle) return null;
+  const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 16);
+}
+
+function topNotes(result: VoiceAnalysisResult) {
+  return (result.noteEnergies ?? [])
+    .slice()
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map((entry) => ({
+      note: entry.note,
+      score: entry.score,
+      relativeEnergy: Number(entry.relativeEnergy.toFixed(4)),
+      status: entry.status,
+    }));
+}
+
+function analysisSnapshot(result: VoiceAnalysisResult) {
+  return {
+    dominantBandLabel: result.dominantBandLabel,
+    coreFrequencyHz: result.coreFrequencyHz,
+    spectralCentroidHz: result.spectralCentroidHz,
+    resonanceScore: Number(result.resonanceScore.toFixed(3)),
+    topNoteEnergies: topNotes(result),
+    voiceDynamics: {
+      pauseCount: result.voiceDynamics?.pauseCount,
+      voicedFrameRatio: result.voiceDynamics?.voicedFrameRatio,
+      pitchRangeHz: result.voiceDynamics?.pitchRangeHz,
+      pitchRangeSemitones: result.voiceDynamics?.pitchRangeSemitones,
+      pitchStability: result.voiceDynamics?.pitchStability,
+      pitchClarity: result.voiceDynamics?.pitchClarity,
+      captureQuality: result.voiceDynamics?.captureQuality,
+      medianPitchHz: result.voiceDynamics?.medianPitchHz,
+      harmonicToNoiseRatioDb: result.voiceDynamics?.harmonicToNoiseRatioDb,
+      spectralFlatness: result.voiceDynamics?.spectralFlatness,
+      speechRateProxyPerMin: result.voiceDynamics?.speechRateProxyPerMin,
+    },
+    analysisDebug: result.analysisDebug,
+  };
+}
+
 async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string) {
   return await new Promise<T>((resolve, reject) => {
     const timer = window.setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
@@ -74,7 +127,31 @@ export default function ScanAnalyzingPage() {
         return;
       }
 
+      if (answers.length !== GUIDED_SCAN_QUESTIONS.length) {
+        setError(`Scan is incomplete: ${answers.length} of ${GUIDED_SCAN_QUESTIONS.length} answers were available. Please restart the scan.`);
+        return;
+      }
+
       try {
+        const debugScan = shouldDebugScan();
+        const blobDebug = await Promise.all(
+          answers.map(async (answer, index) => ({
+            index,
+            questionId: answer.questionId,
+            title: answer.title,
+            blobSize: answer.blob.size,
+            blobType: answer.blob.type,
+            durationMs: answer.durationMs,
+            hash: await hashBlob(answer.blob).catch(() => null),
+          }))
+        );
+
+        if (debugScan) {
+          console.groupCollapsed("[SoulScope scan] audio blobs");
+          console.table(blobDebug);
+          console.groupEnd();
+        }
+
         const settled = await Promise.allSettled(
           answers.map((answer, index) =>
             withTimeout(
@@ -94,10 +171,33 @@ export default function ScanAnalyzingPage() {
         const analysisFailure = settled.find((result): result is PromiseRejectedResult => result.status === "rejected");
         const merged = analyses.length === 1 ? analyses[0] : analyses.length > 1 ? mergeVoiceAnalyses(analyses) : null;
 
+        if (debugScan) {
+          console.groupCollapsed("[SoulScope scan] per-question analysis");
+          settled.forEach((result, index) => {
+            if (result.status === "fulfilled") {
+              console.info(`question ${index + 1} success`, analysisSnapshot(result.value));
+            } else {
+              console.warn(`question ${index + 1} failed`, result.reason);
+            }
+          });
+          console.groupEnd();
+        }
+
         if (!merged) {
           const reason = analysisFailure?.reason instanceof Error ? analysisFailure.reason.message : "No usable scan data was produced.";
           setError(reason);
           return;
+        }
+
+        if (analyses.length !== answers.length) {
+          setError(`Only ${analyses.length} of ${answers.length} recordings could be analyzed. Please retry the scan with a clearer recording.`);
+          return;
+        }
+
+        if (debugScan) {
+          console.groupCollapsed("[SoulScope scan] merged analysis");
+          console.info(analysisSnapshot(merged));
+          console.groupEnd();
         }
 
         const result: SavedScanResult = {

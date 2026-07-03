@@ -60,8 +60,8 @@ function canUseBrowserStorage() {
   return typeof window !== "undefined" && typeof indexedDB !== "undefined";
 }
 
-function getBlobKey(questionId: string) {
-  return `answer:${questionId}`;
+function getBlobKey(questionId: string, startedAt = state.startedAt) {
+  return `answer:${startedAt ?? "unknown"}:${questionId}`;
 }
 
 function openDatabase() {
@@ -235,6 +235,15 @@ export async function getGuidedScanAnswers() {
       try {
         const blob = await readBlob(answer.blobKey);
         if (!blob) return null;
+        if (typeof window !== "undefined" && window.localStorage.getItem("soulscope.debugScan") === "1") {
+          console.info("[SoulScope scan] hydrated answer blob", {
+            questionId: answer.questionId,
+            blobKey: answer.blobKey,
+            blobSize: blob.size,
+            blobType: blob.type,
+            durationMs: answer.durationMs,
+          });
+        }
 
         return {
           questionId: answer.questionId,
@@ -283,6 +292,15 @@ export async function saveGuidedScanAnswer(stepIndex: number, blob: Blob, durati
 
   const blobKey = getBlobKey(question.id);
   await writeBlob(blobKey, blob);
+  if (typeof window !== "undefined" && window.localStorage.getItem("soulscope.debugScan") === "1") {
+    console.info("[SoulScope scan] saved answer blob", {
+      questionId: question.id,
+      blobKey,
+      blobSize: blob.size,
+      blobType: blob.type,
+      durationMs,
+    });
+  }
 
   state.answers = [
     ...state.answers.filter((answer) => answer.questionId !== question.id),

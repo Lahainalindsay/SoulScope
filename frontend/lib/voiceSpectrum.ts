@@ -140,6 +140,29 @@ export type VoiceAnalysisResult = {
   voiceDynamics?: VoiceDynamics;
   captureKind?: "sustained_vowel" | "guided_speech";
   captureDurationMs?: number;
+  analysisDebug?: {
+    blobSize?: number;
+    blobType?: string;
+    decodedDurationMs?: number;
+    decodedSampleRate?: number;
+    frameCount?: number;
+    activeFrameCount?: number;
+    voicedFrameCount?: number;
+    trackedPitchCount?: number;
+    usedBroadSpectrumFallback?: boolean;
+    rejectionReason?: string;
+    topNotes?: Array<{ note: string; score: number; relativeEnergy: number }>;
+    promptAnalyses?: Array<{
+      index: number;
+      captureKind?: "sustained_vowel" | "guided_speech";
+      dominantBandLabel: string;
+      coreFrequencyHz: number;
+      spectralCentroidHz: number;
+      resonanceScore: number;
+      voiceDynamics?: VoiceDynamics;
+      topNotes: Array<{ note: string; score: number; relativeEnergy: number }>;
+    }>;
+  };
 };
 
 type RawBandConfig = {
@@ -223,6 +246,9 @@ const MAX_SPEECH_PITCH_HZ = 340;
 const MAX_SPEECH_FLATNESS = 0.38;
 const MAX_SPEECH_ZCR = 0.16;
 const MIN_PITCH_CLARITY = 0.6;
+const MIN_AUDIO_BLOB_BYTES = 4096;
+const MAX_FALLBACK_FLATNESS_FOR_REPORT = 0.32;
+const MAX_FALLBACK_ZCR_FOR_REPORT = 0.14;
 
 function round(value: number, digits = 0) {
   const factor = 10 ** digits;
@@ -259,6 +285,17 @@ function describeNoteEnergy(note: string, relativeEnergy: number): NoteEnergyRes
     status:
       score > 34 ? "overactive" : score < 26 ? "underactive" : "balanced",
   };
+}
+
+function topNoteDebug(noteEnergies: NoteEnergyResult[], count = 5) {
+  return [...noteEnergies]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count)
+    .map((entry) => ({
+      note: entry.note,
+      score: entry.score,
+      relativeEnergy: round(entry.relativeEnergy, 4),
+    }));
 }
 
 function describeBand(config: RawBandConfig, relativeEnergy: number): SpectrumBandResult {
@@ -606,7 +643,15 @@ export async function analyzeVoiceSpectrum(
     throw new Error("This browser does not support Web Audio analysis.");
   }
 
+  if (blob.size < MIN_AUDIO_BLOB_BYTES) {
+    throw new Error(`Recording blob is too small to analyze (${blob.size} bytes). Please retry the scan.`);
+  }
+
   const [{ default: Meyda }, arrayBuffer] = await Promise.all([import("meyda"), blob.arrayBuffer()]);
+
+  if (arrayBuffer.byteLength < MIN_AUDIO_BLOB_BYTES) {
+    throw new Error(`Recording data is too small to analyze (${arrayBuffer.byteLength} bytes). Please retry the scan.`);
+  }
 
   const audioContext = new AudioContextCtor();
 
@@ -901,6 +946,31 @@ export async function analyzeVoiceSpectrum(
       captureRecommendation,
       primaryNoteSource: hasTrackedPitch && !useBroadSpectrumFallback ? "tracked-pitch" : "spectral-fallback",
     };
+
+    const fallbackLooksNoisy =
+      !hasTrackedPitch &&
+      (spectralFlatness > MAX_FALLBACK_FLATNESS_FOR_REPORT ||
+        zeroCrossingRate > MAX_FALLBACK_ZCR_FOR_REPORT ||
+        activeFrameRatio < 0.12);
+
+    if (useBroadSpectrumFallback && fallbackLooksNoisy) {
+      throw new Error(
+        `Recording did not contain enough stable speech-like voice for a report. Active frames ${Math.round(
+          activeFrameRatio * 100
+        )}%, pitch frames ${trackedPitches.length}, flatness ${round(spectralFlatness, 3)}, zcr ${round(
+          zeroCrossingRate,
+          3
+        )}. Please retry in a quieter setting with your own voice close to the microphone.`
+      );
+    }
+
+    if (captureQuality === "poor" && trackedPitches.length < MIN_PITCH_FRAMES) {
+      throw new Error(
+        `Recording quality was too weak for a confident report. Pitch frames ${trackedPitches.length}, voiced frames ${analysisFrameCount}, active frames ${Math.round(
+          activeFrameRatio * 100
+        )}%. Please retry the scan.`
+      );
+    }
     const coreFrequencyHz = Math.round(
       medianPitchHz ??
         (dominantBand.rangeHz[0] +
@@ -962,6 +1032,18 @@ export async function analyzeVoiceSpectrum(
       voiceDynamics,
       captureKind: options.captureKind,
       captureDurationMs: options.captureDurationMs,
+      analysisDebug: {
+        blobSize: blob.size,
+        blobType: blob.type,
+        decodedDurationMs: round(decoded.duration * 1000),
+        decodedSampleRate: decoded.sampleRate,
+        frameCount,
+        activeFrameCount,
+        voicedFrameCount: analysisFrameCount,
+        trackedPitchCount: trackedPitches.length,
+        usedBroadSpectrumFallback: useBroadSpectrumFallback,
+        topNotes: topNoteDebug(noteEnergies),
+      },
     };
   } finally {
     void audioContext.close();
@@ -973,31 +1055,54 @@ export function mergeVoiceAnalyses(results: VoiceAnalysisResult[]): VoiceAnalysi
     throw new Error("No voice analyses were provided.");
   }
 
-  const allBands = results[0].spectrumBands.map((baseBand, index) => {
-    const avgEnergy =
-      results.reduce((sum, result) => sum + (result.spectrumBands[index]?.relativeEnergy ?? 0), 0) / results.length;
+  const resultWeight = (result: VoiceAnalysisResult) => {
+    const dynamics = result.voiceDynamics;
+    const kindWeight = result.captureKind === "sustained_vowel" ? 1.25 : 1;
+    const qualityWeight =
+      (dynamics?.captureQuality === "good" ? 1.25 : dynamics?.captureQuality === "fair" ? 1 : 0.55) *
+      (dynamics?.primaryNoteSource === "tracked-pitch" ? 1.25 : 0.75);
+    const voicedWeight = Math.max(0.35, dynamics?.voicedFrameRatio ?? 0.35);
+    return kindWeight * qualityWeight * voicedWeight;
+  };
 
-    return {
-      ...baseBand,
-      relativeEnergy: avgEnergy,
-    };
+  const totalResultWeight = Math.max(results.reduce((sum, result) => sum + resultWeight(result), 0), 1e-6);
+  const mergedRelativeByNote = new Map<string, number>(NOTE_ORDER.map((note) => [note, 0]));
+
+  NOTE_ORDER.forEach((note) => {
+    const weightedRelative =
+      results.reduce((sum, result) => {
+        const entry = result.noteEnergies?.find((noteEnergy) => noteEnergy.note === note);
+        return sum + (entry?.relativeEnergy ?? 0) * resultWeight(result);
+      }, 0) / totalResultWeight;
+    mergedRelativeByNote.set(note, weightedRelative);
+  });
+
+  const totalMergedRelative = Math.max(
+    Array.from(mergedRelativeByNote.values()).reduce((sum, value) => sum + value, 0),
+    1e-6
+  );
+  const noteEnergies = NOTE_ORDER.map((note) =>
+    describeNoteEnergy(note, (mergedRelativeByNote.get(note) ?? 0) / totalMergedRelative)
+  );
+  const maxMergedEnergy = Math.max(...noteEnergies.map((entry) => entry.relativeEnergy), 1e-6);
+  const allBands = BAND_CONFIG.map((config) => {
+    const noteState = noteEnergies.find((entry) => entry.note === config.label);
+    const band = describeBand(config, (noteState?.relativeEnergy ?? 0) / maxMergedEnergy);
+
+    if (noteState?.status === "overactive") {
+      return { ...band, status: "overrepresented" as const, note: config.overactiveNote };
+    }
+
+    if (noteState?.status === "underactive") {
+      return { ...band, status: "underrepresented" as const, note: config.underactiveNote };
+    }
+
+    return { ...band, status: "balanced" as const, note: config.balancedNote };
   });
 
   const dominantBand = [...allBands].sort((a, b) => b.relativeEnergy - a.relativeEnergy)[0];
-  const noteEnergies =
-    results[0].noteEnergies?.map((baseNote, index) => {
-      const avgScore =
-        results.reduce((sum, result) => sum + (result.noteEnergies?.[index]?.score ?? 0), 0) /
-        results.length;
-      return {
-        note: baseNote.note,
-        score: Math.round(avgScore * 10) / 10,
-        relativeEnergy: avgScore / 30,
-        status: avgScore > 34 ? "overactive" : avgScore < 26 ? "underactive" : "balanced",
-      } as NoteEnergyResult;
-    }) ?? [];
-  const coreFrequencyHz = Math.round(results.reduce((sum, result) => sum + result.coreFrequencyHz, 0) / results.length);
   const dominantNote = [...noteEnergies].sort((a, b) => b.relativeEnergy - a.relativeEnergy)[0];
+  const coreFrequencyHz = Math.round(results.reduce((sum, result) => sum + result.coreFrequencyHz, 0) / results.length);
   const analyzedDurationMs = results.reduce(
     (sum, result) => sum + (result.voiceDynamics?.analyzedDurationMs ?? 0),
     0
@@ -1237,5 +1342,18 @@ export function mergeVoiceAnalyses(results: VoiceAnalysisResult[]): VoiceAnalysi
     caution:
       "These findings combine measured voice features with SoulScope's proprietary note-meaning interpretation model. They are non-diagnostic and not a medical assessment.",
     voiceDynamics,
+    analysisDebug: {
+      promptAnalyses: results.map((result, index) => ({
+        index,
+        captureKind: result.captureKind,
+        dominantBandLabel: result.dominantBandLabel,
+        coreFrequencyHz: result.coreFrequencyHz,
+        spectralCentroidHz: result.spectralCentroidHz,
+        resonanceScore: round(result.resonanceScore, 3),
+        voiceDynamics: result.voiceDynamics,
+        topNotes: topNoteDebug(result.noteEnergies ?? []),
+      })),
+      topNotes: topNoteDebug(noteEnergies),
+    },
   };
 }
