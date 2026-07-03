@@ -21,8 +21,8 @@ function safeLines(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
-function formatList(items: string[]) {
-  if (!items.length) return "the scan";
+function formatList(items: string[], fallback = "the available signals") {
+  if (!items.length) return fallback;
   if (items.length === 1) return items[0];
   if (items.length === 2) return `${items[0]} and ${items[1]}`;
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
@@ -67,10 +67,10 @@ function buildWholeScanSummary(domains: UserResultDomain[], report: SoulScopeRep
     .sort((a, b) => a.score - b.score)
     .slice(0, 2);
 
-  const highestText = formatList(highest.map((domain) => domain.title));
-  const lowestText = formatList(lowest.map((domain) => domain.title));
-  const workingText = formatList(working.map((domain) => domain.title));
-  const supportText = formatList(support.map((domain) => domain.title));
+  const highestText = formatList(highest.map((domain) => domain.title), "the clearest signals in this scan");
+  const lowestText = formatList(lowest.map((domain) => domain.title), "the quieter signals in this scan");
+  const workingText = formatList(working.map((domain) => domain.title), "the areas carrying the most effort");
+  const supportText = formatList(support.map((domain) => domain.title), "the areas asking for support");
   const tension = working[0] && support[0]
     ? `${working[0].title} is spending energy while ${support[0].title} needs support`
     : `${highestText} is more expressed than ${lowestText}`;
@@ -94,7 +94,6 @@ function buildBalancingRecommendations(domains: UserResultDomain[]): Recommendat
   const regulation = getDomain(domains, "Regulation");
 
   const groups: RecommendationGroup[] = [];
-
   const recoveryNeedsSupport = recovery && recovery.score < 48;
   const mentalLoadHigh = focus && focus.score > 62;
   const adaptabilityHigh = adaptability && adaptability.score > 62;
@@ -189,9 +188,7 @@ function buildBalancingRecommendations(domains: UserResultDomain[]): Recommendat
   groups.push({
     title: "Your Next Step",
     intro: "Choose one action. The point is not to fix your whole life from one scan. The point is to respond to the clearest signal.",
-    items: [
-      "Pick the recommendation that feels easiest to actually do today, then make it almost embarrassingly small.",
-    ],
+    items: ["Pick the recommendation that feels easiest to actually do today, then make it almost embarrassingly small."],
   });
 
   return groups.slice(0, 5);
@@ -247,9 +244,9 @@ export default function ResonanceResultsDashboard({
                 </div>
                 <h3 className={styles.noteName}>{candidate.title}</h3>
                 <p className={styles.noteTheme}>{candidate.summary}</p>
-                <p className={styles.noteExpression}>Most expressed: {formatList(safeLines(candidate.strongestResources))}</p>
-                <p className={styles.noteExpression}>Working hardest: {formatList(safeLines(candidate.areasWorkingHard))}</p>
-                <p className={styles.noteExpression}>Needs support: {formatList(safeLines(candidate.areasAskingForSupport))}</p>
+                <p className={styles.noteExpression}>Most expressed: {formatList(safeLines(candidate.strongestResources), "not enough signal yet")}</p>
+                <p className={styles.noteExpression}>Working hardest: {formatList(safeLines(candidate.areasWorkingHard), "no clear pressure point identified")}</p>
+                <p className={styles.noteExpression}>Needs support: {formatList(safeLines(candidate.areasAskingForSupport), "no single support area stands out")}</p>
               </article>
             );
           })}
@@ -271,7 +268,7 @@ export default function ResonanceResultsDashboard({
           <div>
             <p className={styles.eyebrow}>Balancing Recommendations</p>
             <h2 className={styles.mapTitle}>What may help bring the pattern into balance</h2>
-            <p className={styles.lead}>These are not generic wellness tips. They are based on the relationship between your most expressed areas, the areas working hardest, and the parts of your system asking for support.</p>
+            <p className={styles.lead}>These are based on the relationship between your most expressed areas, the areas working hardest, and the parts of your system asking for support.</p>
           </div>
         </div>
         <div className={styles.storyGrid}>
@@ -279,11 +276,7 @@ export default function ResonanceResultsDashboard({
             <article key={group.title} className={styles.storyCard}>
               <p className={styles.noteStatus}>{group.title}</p>
               <p className={styles.noteText}>{group.intro}</p>
-              <ul className={styles.storyList}>
-                {group.items.map((item) => (
-                  <li key={item} className={styles.storyItem}>{item}</li>
-                ))}
-              </ul>
+              <ul className={styles.storyList}>{group.items.map((item) => <li key={item} className={styles.storyItem}>{item}</li>)}</ul>
             </article>
           ))}
         </div>
@@ -291,58 +284,23 @@ export default function ResonanceResultsDashboard({
 
       {report.supportingPattern || report.emergingPattern ? (
         <section className={styles.patternStrip}>
-          {report.supportingPattern ? (
-            <article className={styles.patternCard}>
-              <p className={styles.noteStatus}>Secondary Influence</p>
-              <h3 className={styles.patternTitle}>{report.supportingPattern.name}</h3>
-              <p className={styles.patternTheme}>{report.supportingPattern.theme}</p>
-            </article>
-          ) : null}
-          {report.emergingPattern ? (
-            <article className={styles.patternCard}>
-              <p className={styles.noteStatus}>Emerging Influence</p>
-              <h3 className={styles.patternTitle}>{report.emergingPattern.name}</h3>
-              <p className={styles.patternTheme}>{report.emergingPattern.theme}</p>
-            </article>
-          ) : null}
+          {report.supportingPattern ? <article className={styles.patternCard}><p className={styles.noteStatus}>Secondary Influence</p><h3 className={styles.patternTitle}>{report.supportingPattern.name}</h3><p className={styles.patternTheme}>{report.supportingPattern.theme}</p></article> : null}
+          {report.emergingPattern ? <article className={styles.patternCard}><p className={styles.noteStatus}>Emerging Influence</p><h3 className={styles.patternTitle}>{report.emergingPattern.name}</h3><p className={styles.patternTheme}>{report.emergingPattern.theme}</p></article> : null}
         </section>
       ) : null}
 
       <section className={styles.notesSection}>
-        <div className={styles.notesHeader}>
-          <div>
-            <p className={styles.eyebrow}>Your Resonance Story</p>
-            <h2 className={styles.mapTitle}>How the different parts of the scan connect</h2>
-            <p className={styles.lead}>These cards are pieces of the same pattern: where your system is resourced, where it is spending energy, and where it may need support.</p>
-          </div>
-        </div>
-
+        <div className={styles.notesHeader}><div><p className={styles.eyebrow}>Your Resonance Story</p><h2 className={styles.mapTitle}>How the different parts of the scan connect</h2><p className={styles.lead}>These cards are pieces of the same pattern: where your system is resourced, where it is spending energy, and where it may need support.</p></div></div>
         <div className={styles.domainGrid}>
           {domains.map((domain) => {
             const couldExpressAs = safeLines(domain.thisCouldExpressAs);
             const alsoShowUpAs = safeLines(domain.itCanAlsoShowUpAs);
             return (
               <article key={domain.title} className={styles.domainCard}>
-                <div className={styles.noteTop}>
-                  <div>
-                    <p className={styles.noteStatus}>{domain.title}</p>
-                    <h3 className={styles.domainState}>{domain.functionalState}</h3>
-                  </div>
-                  <span className={styles.domainActivity}>{domain.activityLevel}</span>
-                </div>
+                <div className={styles.noteTop}><div><p className={styles.noteStatus}>{domain.title}</p><h3 className={styles.domainState}>{domain.functionalState}</h3></div><span className={styles.domainActivity}>{domain.activityLevel}</span></div>
                 <p className={styles.domainPattern}>{domainMeaning(domain)}</p>
-                {couldExpressAs.length > 0 ? (
-                  <div className={styles.domainSection}>
-                    <p className={styles.domainSectionLabel}>May show up as</p>
-                    <ul className={styles.domainList}>{couldExpressAs.map((line) => <li key={line} className={styles.domainListItem}>{line}</li>)}</ul>
-                  </div>
-                ) : null}
-                {alsoShowUpAs.length > 0 ? (
-                  <div className={styles.domainSection}>
-                    <p className={styles.domainSectionLabel}>Can also feel like</p>
-                    <ul className={styles.domainList}>{alsoShowUpAs.map((line) => <li key={line} className={styles.domainListItem}>{line}</li>)}</ul>
-                  </div>
-                ) : null}
+                {couldExpressAs.length > 0 ? <div className={styles.domainSection}><p className={styles.domainSectionLabel}>May show up as</p><ul className={styles.domainList}>{couldExpressAs.map((line) => <li key={line} className={styles.domainListItem}>{line}</li>)}</ul></div> : null}
+                {alsoShowUpAs.length > 0 ? <div className={styles.domainSection}><p className={styles.domainSectionLabel}>Can also feel like</p><ul className={styles.domainList}>{alsoShowUpAs.map((line) => <li key={line} className={styles.domainListItem}>{line}</li>)}</ul></div> : null}
                 <p className={styles.domainReframe}>{domain.supportiveReframe}</p>
               </article>
             );
@@ -352,23 +310,7 @@ export default function ResonanceResultsDashboard({
 
       <details className={styles.technicalDetails}>
         <summary className={styles.technicalSummary}>View Technical Analysis</summary>
-        <div className={styles.technicalBody}>
-          <p className={styles.technicalIntro}>For power users. The technical layer stays collapsed so the report remains centered on your experience.</p>
-          <div className={styles.technicalGrid}>
-            <article className={styles.technicalCard}>
-              <p className={styles.sectionLabel}>What Influenced This Observation</p>
-              <ul className={styles.technicalList}>
-                {(report.evidence.topNotes ?? []).length ? report.evidence.topNotes.map((entry) => <li key={`${entry.note}-${entry.score}`}>{entry.note} {entry.score}% ({entry.system})</li>) : <li>No strong technical signals were available for this scan.</li>}
-              </ul>
-            </article>
-            <article className={styles.technicalCard}>
-              <p className={styles.sectionLabel}>Evidence</p>
-              <ul className={styles.technicalList}>
-                {(report.evidence.dimensions ?? []).length ? report.evidence.dimensions.map((dimension) => <li key={dimension.name}>{dimension.name} - {dimension.band} - {dimension.interpretation}</li>) : <li>No technical evidence available for this scan.</li>}
-              </ul>
-            </article>
-          </div>
-        </div>
+        <div className={styles.technicalBody}><p className={styles.technicalIntro}>For power users. The technical layer stays collapsed so the report remains centered on your experience.</p></div>
       </details>
     </section>
   );
