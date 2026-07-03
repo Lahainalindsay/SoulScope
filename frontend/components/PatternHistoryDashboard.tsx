@@ -92,11 +92,34 @@ function buildDashboardFocus(entry: HistoryEntry | null) {
     .sort((a, b) => b.score - a.score)[0];
 
   if (support && working) {
-    return `This week, protect ${support.title.toLowerCase()} while ${working.title.toLowerCase()} is carrying more effort.`;
+    return "This week, protect the part of you that needs more restoration while reducing one area that is carrying extra effort.";
   }
-  if (support) return `This week, give extra attention to ${support.title.toLowerCase()} and let that area rebuild without pressure.`;
-  if (working) return `This week, notice where ${working.title.toLowerCase()} is working hard and reduce one unnecessary demand.`;
+  if (support) return "This week, give extra attention to the quieter part of you and let it rebuild without pressure.";
+  if (working) return "This week, notice where you are working hard and reduce one unnecessary demand.";
   return "This week, keep the rhythm that is already helping you feel steady.";
+}
+
+function buildLatestHiddenPattern(entry: HistoryEntry | null) {
+  const id = entry?.report.primaryPattern.id;
+  if (id === "guarded-but-responsive") {
+    return "You may be staying present while part of you is still checking whether it is safe to soften.";
+  }
+  if (id === "overextended-achiever") {
+    return "Capability is still online, but recovery may be lagging behind output.";
+  }
+  if (id === "deep-processor") {
+    return "Your mind may be doing extra organizing before the rest of you can settle.";
+  }
+  if (id === "recovering-adapter") {
+    return "You may be rebuilding capacity while still responding to current demands.";
+  }
+  if (id === "quietly-overloaded") {
+    return "The surface may look functional while the background load is heavier than it appears.";
+  }
+  if (id === "balanced-regulator") {
+    return "The useful pattern is steadiness; protect the rhythm that is already working.";
+  }
+  return "Your latest scan will reveal the deeper pattern that sits underneath the surface story.";
 }
 
 function buildJourneyInsight(entries: HistoryEntry[]) {
@@ -203,9 +226,10 @@ export default function PatternHistoryDashboard() {
   const visibleEnergies = (latestEntry?.scan.result.noteEnergies ?? []).filter((entry) => entry.note !== "G");
   const journeyInsight = buildJourneyInsight(historyEntries);
   const weeklyFocus = buildDashboardFocus(latestEntry);
+  const latestHiddenPattern = buildLatestHiddenPattern(latestEntry);
 
   const trendSummary = useMemo(() => {
-    if (!chartScans.length) return null;
+    if (chartScans.length < 3) return null;
     const ordered = chartScans.slice();
     const first = ordered[0];
     const last = ordered[ordered.length - 1];
@@ -259,11 +283,6 @@ export default function PatternHistoryDashboard() {
                 <h2 className={styles.historyLatestTitle}>{latestEntry.report.primaryPattern.name}</h2>
                 <p className={styles.historyLatestTheme}>{latestEntry.report.primaryPattern.theme}</p>
                 <p className={styles.historyLatestText}>{latestEntry.selectedSummary}</p>
-                <div className={styles.metaRow}>
-                  <span className={styles.metaItem}>Saved scans <strong>{historyEntries.length}</strong></span>
-                  <span className={styles.metaItem}>Narrative style <strong>{latestEntry.selectedStyle ?? "Direct"}</strong></span>
-                  <span className={styles.metaItem}>{new Date(latestEntry.scan.created_at).toLocaleString()}</span>
-                </div>
               </article>
               <div className={styles.historyLatestMapContainer}>
                 <NoteAuraMap noteEnergies={visibleEnergies} title="Current Resonance Map" />
@@ -272,7 +291,12 @@ export default function PatternHistoryDashboard() {
 
             <section className={styles.trendInsightGrid}>
               <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>Insight of the Week</p>
+                <p className={styles.insightLabel}>Latest Hidden Pattern</p>
+                <h3 className={styles.insightTitle}>Under the surface</h3>
+                <p className={styles.insightText}>{latestHiddenPattern}</p>
+              </article>
+              <article className={styles.trendInsightCard}>
+                <p className={styles.insightLabel}>Journey Note</p>
                 <h3 className={styles.insightTitle}>What is shifting</h3>
                 <p className={styles.insightText}>{journeyInsight}</p>
               </article>
@@ -283,20 +307,13 @@ export default function PatternHistoryDashboard() {
               </article>
             </section>
 
-            <article className={styles.chartCard}>
+            {trendSummary ? <article className={styles.chartCard}>
               <div className={styles.chartHeader}>
                 <div>
                   <p className={styles.sectionEyebrow}>Resonance Trends</p>
                   <h2 className={styles.chartTitle}>How your system has been moving.</h2>
                   <p className={styles.chartLead}>This view tracks the signal layer across your saved scans, helping you notice what is rising, softening, or staying steady.</p>
                 </div>
-                {trendSummary ? (
-                  <div className={styles.chartStats}>
-                    <div className={styles.chartStat}><span className={styles.chartStatLabel}>Saved scans</span><strong className={styles.chartStatValue}>{trendSummary.totalScans}</strong></div>
-                    <div className={styles.chartStat}><span className={styles.chartStatLabel}>Window</span><strong className={styles.chartStatValue}>{trendSummary.windowCount}</strong></div>
-                    <div className={styles.chartStat}><span className={styles.chartStatLabel}>Avg coherence</span><strong className={styles.chartStatValue}>{trendSummary.resonanceAverage !== null ? `${trendSummary.resonanceAverage}%` : "—"}</strong></div>
-                  </div>
-                ) : null}
               </div>
 
               <div className={styles.chartShell}>
@@ -306,23 +323,21 @@ export default function PatternHistoryDashboard() {
                 </svg>
               </div>
 
-              {trendSummary ? (
-                <div className={styles.trendInsightGrid}>
-                  <article className={styles.trendInsightCard}>
-                    <p className={styles.insightLabel}>Overall direction</p>
-                    <p className={styles.insightText}>{getResonanceSystemLabel(trendSummary.earliestDominant)} → {getResonanceSystemLabel(trendSummary.latestDominant)}</p>
-                  </article>
-                  <article className={styles.trendInsightCard}>
-                    <p className={styles.insightLabel}>Rising</p>
-                    <p className={styles.insightText}>{trendSummary.rising.length ? trendSummary.rising.map((entry) => `${getResonanceSystemLabel(entry.label)} +${round(entry.delta * 100, 1)}%`).join(" · ") : "No strong upward shift yet."}</p>
-                  </article>
-                  <article className={styles.trendInsightCard}>
-                    <p className={styles.insightLabel}>Softening</p>
-                    <p className={styles.insightText}>{trendSummary.falling.length ? trendSummary.falling.map((entry) => `${getResonanceSystemLabel(entry.label)} ${round(entry.delta * 100, 1)}%`).join(" · ") : "No strong downward shift yet."}</p>
-                  </article>
-                </div>
-              ) : null}
-            </article>
+              <div className={styles.trendInsightGrid}>
+                <article className={styles.trendInsightCard}>
+                  <p className={styles.insightLabel}>Overall direction</p>
+                  <p className={styles.insightText}>{getResonanceSystemLabel(trendSummary.earliestDominant)} → {getResonanceSystemLabel(trendSummary.latestDominant)}</p>
+                </article>
+                <article className={styles.trendInsightCard}>
+                  <p className={styles.insightLabel}>Rising</p>
+                  <p className={styles.insightText}>{trendSummary.rising.length ? trendSummary.rising.map((entry) => `${getResonanceSystemLabel(entry.label)} +${round(entry.delta * 100, 1)}%`).join(" · ") : "No strong upward shift yet."}</p>
+                </article>
+                <article className={styles.trendInsightCard}>
+                  <p className={styles.insightLabel}>Softening</p>
+                  <p className={styles.insightText}>{trendSummary.falling.length ? trendSummary.falling.map((entry) => `${getResonanceSystemLabel(entry.label)} ${round(entry.delta * 100, 1)}%`).join(" · ") : "No strong downward shift yet."}</p>
+                </article>
+              </div>
+            </article> : null}
 
             <section className={styles.historySection}>
               <div className={styles.historyHeader}>

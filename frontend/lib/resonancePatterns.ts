@@ -48,6 +48,8 @@ export type PatternMatch = {
   confidence: number;
 };
 
+type CameraSignal = NonNullable<NonNullable<VoiceAnalysisResult["protocolNotes"]>["camera"]>;
+
 export type SoulScopeReport = {
   primaryPattern: PatternMatch;
   supportingPattern?: PatternMatch;
@@ -64,6 +66,13 @@ export type SoulScopeReport = {
     }>;
     dimensions: SystemDimension[];
     hasCamera: boolean;
+    camera?: CameraSignal;
+    cameraBaseline?: CameraSignal;
+    promptCameras?: Array<{
+      id: string;
+      title: string;
+      camera: CameraSignal;
+    }>;
     pauseCount: number;
     captureQuality?: NonNullable<VoiceAnalysisResult["voiceDynamics"]>["captureQuality"];
   };
@@ -447,6 +456,28 @@ function buildStoryCandidates(report: {
   const roles = summarizeDomainRoles(report.domainResults);
   const loadTitle = roles.dominantLoad?.title ?? report.primaryPattern.name;
   const resourceTitle = roles.dominantResource?.title;
+  const loadPhrase =
+    loadTitle === "Recovery & Restoration"
+      ? "recovery"
+      : loadTitle === "Communication & Clarity"
+      ? "expression"
+      : loadTitle === "Focus & Mental Load"
+      ? "mental space"
+      : loadTitle === "Connection & Support"
+      ? "support"
+      : loadTitle === "Energy & Vitality"
+      ? "energy"
+      : "one part of your system";
+  const resourcePhrase =
+    resourceTitle === "Direction & Adaptability"
+      ? "adaptability"
+      : resourceTitle === "Communication & Clarity"
+      ? "expression"
+      : resourceTitle === "Connection & Support"
+      ? "connection"
+      : resourceTitle === "Recovery & Restoration"
+      ? "restoration"
+      : "capacity";
 
   return [
     {
@@ -454,12 +485,12 @@ function buildStoryCandidates(report: {
       title:
         loadTitle === "Recovery & Restoration"
           ? "Recovery may not be keeping pace with demand."
-          : loadTitle === "Communication & Clarity"
+        : loadTitle === "Communication & Clarity"
           ? "Communication appears active but under strain."
-          : loadTitle === "Focus & Mental Load"
+        : loadTitle === "Focus & Mental Load"
           ? "Mental load is asking for more space."
-          : `${loadTitle} appears to be working harder than usual.`,
-      summary: `${report.primaryPattern.explanation} ${roles.dominantLoad ? `The clearest friction is showing up in ${roles.dominantLoad.title.toLowerCase()}.` : "The scan suggests the main pattern is still centered on how effort and recovery are interacting."}`,
+          : "Something appears to be working harder than usual.",
+      summary: `${report.primaryPattern.explanation} ${roles.dominantLoad ? `The clearest friction seems connected to ${loadPhrase}, not a lack of ability.` : "The scan suggests the main pattern is still centered on how effort and recovery are interacting."}`,
       strongestResources: roles.resources.slice(0, 2).map((domain) => domain.title),
       areasWorkingHard: roles.workingHard.slice(0, 2).map((domain) => domain.title),
       areasAskingForSupport: roles.askingSupport.slice(0, 2).map((domain) => domain.title),
@@ -476,7 +507,7 @@ function buildStoryCandidates(report: {
           : "Strength is present, but so is strain.",
       summary:
         report.supportingPattern?.theme ??
-        `You are still showing up, and several areas remain available. ${roles.dominantLoad ? `${roles.dominantLoad.title} appears to be carrying more than usual` : "Some parts of the system still need more space"} while the stronger domains continue to help keep you moving.`,
+        `You are still showing up, and ${resourcePhrase} remains available. ${roles.dominantLoad ? `The heavier part of the pattern seems connected to ${loadPhrase}` : "Some parts of the system still need more space"} while your stronger capacities continue to help keep you moving.`,
       strongestResources: roles.resources.slice(0, 2).map((domain) => domain.title),
       areasWorkingHard: roles.workingHard.slice(0, 2).map((domain) => domain.title),
       areasAskingForSupport: roles.askingSupport.slice(0, 2).map((domain) => domain.title),
@@ -493,7 +524,7 @@ function buildStoryCandidates(report: {
           : "The challenge is load, not lack of ability.",
       summary:
         report.emergingPattern?.explanation ??
-        `The dominant pattern is imbalance between output and restoration: ${roles.resources.length ? roles.resources.map((domain) => domain.title).slice(0, 2).join(" and ") : "your stronger domains"} remain usable, while ${roles.workingHard.length ? roles.workingHard.map((domain) => domain.title).slice(0, 2).join(" and ") : "several other areas"} are spending more energy than usual.`,
+        `The dominant pattern is imbalance between output and restoration: your stronger capacities remain usable, while ${roles.workingHard.length ? "the effort layer" : "several other areas"} is spending more energy than usual.`,
       strongestResources: roles.resources.slice(0, 2).map((domain) => domain.title),
       areasWorkingHard: roles.workingHard.slice(0, 2).map((domain) => domain.title),
       areasAskingForSupport: roles.askingSupport.slice(0, 2).map((domain) => domain.title),
@@ -565,6 +596,15 @@ export function buildSoulScopeReport(scan: VoiceAnalysisResult): SoulScopeReport
       topNotes: topSignals(scan),
       dimensions,
       hasCamera: Boolean(scan.protocolNotes?.camera),
+      camera: scan.protocolNotes?.camera,
+      cameraBaseline: scan.protocolNotes?.cameraBaseline,
+      promptCameras: scan.protocolNotes?.prompts
+        ?.filter((prompt): prompt is typeof prompt & { camera: CameraSignal } => Boolean(prompt.camera))
+        .map((prompt) => ({
+          id: prompt.id,
+          title: prompt.title,
+          camera: prompt.camera,
+        })),
       pauseCount: scan.voiceDynamics?.pauseCount ?? 0,
       captureQuality: scan.voiceDynamics?.captureQuality,
     },

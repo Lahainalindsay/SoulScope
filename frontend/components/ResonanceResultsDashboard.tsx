@@ -17,6 +17,7 @@ type NarrativeProfile = {
   feelsLike: string;
   strength: string;
   balancePoint: string;
+  cameraInsight: string | null;
 };
 
 function getDomain(domains: UserResultDomain[], title: UserResultDomain["title"]) {
@@ -37,6 +38,55 @@ function strongest(domains: UserResultDomain[]) {
 
 function quietest(domains: UserResultDomain[]) {
   return [...domains].sort((a, b) => a.score - b.score)[0];
+}
+
+type CameraSignal = NonNullable<SoulScopeReport["evidence"]["camera"]>;
+
+function formatCameraPercent(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatCameraShift(value: number, unit = "") {
+  if (Math.abs(value) < 0.01) return `held near baseline${unit ? ` ${unit}` : ""}`;
+  return `${value > 0 ? "rose" : "softened"} by ${Math.abs(value).toFixed(unit ? 1 : 0)}${unit}`;
+}
+
+function buildCameraInsight(report: SoulScopeReport) {
+  const camera = report.evidence.camera;
+  if (!camera) return null;
+
+  const baseline = report.evidence.cameraBaseline;
+  const details: string[] = [];
+
+  if (camera.trackingConfidence < 0.45) {
+    details.push("camera tracking confidence was limited, so this visual layer should be treated as directional");
+  }
+  if (camera.facialTension >= 0.58) {
+    details.push("facial tension appeared elevated during the scan");
+  }
+  if (camera.blinkRatePerMin >= 24) {
+    details.push("blink rate shifted upward while you were answering");
+  }
+  if (camera.eyeOpenness <= 0.4) {
+    details.push("eye openness appeared lower during parts of the scan");
+  }
+  if (camera.eyeDilationProxy >= 0.62) {
+    details.push("the eye dilation proxy appeared more activated");
+  }
+
+  if (baseline && camera.trackingConfidence >= 0.45) {
+    const tensionDelta = (camera.facialTension - baseline.facialTension) * 100;
+    const blinkDelta = camera.blinkRatePerMin - baseline.blinkRatePerMin;
+    if (Math.abs(tensionDelta) >= 6 || Math.abs(blinkDelta) >= 4) {
+      details.push(
+        `relative to your opening baseline, facial tension ${formatCameraShift(tensionDelta)} and blink rate ${formatCameraShift(blinkDelta, " per minute")}`
+      );
+    }
+  }
+
+  if (!details.length) return "The camera layer was available and did not add a strong visible tension signal beyond the voice pattern.";
+
+  return `The camera layer adds a cautious signal: ${details.join("; ")}. This is not diagnostic, but it can help explain how the pattern may have shown up physically while you were speaking.`;
 }
 
 function buildHiddenPatternTitle(domains: UserResultDomain[]) {
@@ -66,7 +116,7 @@ function buildNarrativeProfile(domains: UserResultDomain[], report: SoulScopeRep
   const energy = getDomain(domains, "Energy & Vitality");
   const regulation = getDomain(domains, "Regulation");
   const top = strongest(domains);
-  const low = quietest(domains);
+  const cameraInsight = buildCameraInsight(report);
 
   const connectionNeedsSupport = needsSupport(connection) || (connection?.score ?? 100) < 50;
   const communicationWorking = isWorking(communication) || (communication?.score ?? 0) > 62;
@@ -114,7 +164,7 @@ function buildNarrativeProfile(domains: UserResultDomain[], report: SoulScopeRep
       : "In daily life, this may feel like being mostly okay but still aware that something in you wants a cleaner rhythm, clearer expression, or a more honest kind of support.";
 
   const strength = adaptabilityHigh || top
-    ? `The strength here is that you are still responding. ${top ? `${top.title} appears to be one of the more available parts of the scan,` : "There is still availability in the system,"} which means your system has not shut down; it is still trying to adapt, understand, and move toward balance.`
+    ? "The strength here is that you are still responding. Even where the scan shows effort, your system has not shut down; it is still trying to adapt, understand, communicate, and move toward balance."
     : "The strength here is that the system is still communicating. Even when the pattern is not easy, your voice is still giving information that can be used for awareness and repair.";
 
   const balancePoint = connectionNeedsSupport && communicationWorking
@@ -132,6 +182,7 @@ function buildNarrativeProfile(domains: UserResultDomain[], report: SoulScopeRep
     feelsLike,
     strength,
     balancePoint,
+    cameraInsight,
   };
 }
 
@@ -187,6 +238,7 @@ export default function ResonanceResultsDashboard({
           {narrative.story.map((line) => (
             <p key={line} className={styles.noteText}>{line}</p>
           ))}
+          {narrative.cameraInsight ? <p className={styles.noteText}>{narrative.cameraInsight}</p> : null}
         </div>
       </section>
 
@@ -217,6 +269,43 @@ export default function ResonanceResultsDashboard({
         <summary className={styles.technicalSummary}>View Technical Analysis</summary>
         <div className={styles.technicalBody}>
           <p className={styles.technicalIntro}>The technical layer stays collapsed so the report remains centered on your lived experience.</p>
+          <div className={styles.technicalGrid}>
+            <article className={styles.technicalCard}>
+              <p className={styles.sectionLabel}>Primary Pattern</p>
+              <p className={styles.domainPattern}>{report.primaryPattern.name}</p>
+              <p className={styles.domainPattern}>Confidence {Math.round(report.primaryPattern.confidence * 100)}%</p>
+            </article>
+            <article className={styles.technicalCard}>
+              <p className={styles.sectionLabel}>Voice Signals</p>
+              <ul className={styles.technicalList}>
+                {report.evidence.topNotes.map((note) => (
+                  <li key={note.note}>{note.note}: {note.system}, {Math.round(note.score)} ({note.status})</li>
+                ))}
+              </ul>
+            </article>
+            <article className={styles.technicalCard}>
+              <p className={styles.sectionLabel}>Domain Model</p>
+              <ul className={styles.technicalList}>
+                {domains.map((domain) => (
+                  <li key={domain.title}>{domain.title}: {Math.round(domain.score)} ({domain.functionalState})</li>
+                ))}
+              </ul>
+            </article>
+            <article className={styles.technicalCard}>
+              <p className={styles.sectionLabel}>Camera Layer</p>
+              {report.evidence.camera ? (
+                <ul className={styles.technicalList}>
+                  <li>Blink rate: {report.evidence.camera.blinkRatePerMin}/min</li>
+                  <li>Facial tension: {formatCameraPercent(report.evidence.camera.facialTension)}</li>
+                  <li>Eye dilation proxy: {formatCameraPercent(report.evidence.camera.eyeDilationProxy)}</li>
+                  <li>Tracking confidence: {formatCameraPercent(report.evidence.camera.trackingConfidence)}</li>
+                  <li>Frames analyzed: {report.evidence.camera.framesAnalyzed}</li>
+                </ul>
+              ) : (
+                <p className={styles.domainPattern}>No camera data was available, so this report is based on voice signals.</p>
+              )}
+            </article>
+          </div>
         </div>
       </details>
     </section>
