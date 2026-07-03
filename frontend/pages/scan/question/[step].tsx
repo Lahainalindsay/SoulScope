@@ -40,7 +40,7 @@ export default function GuidedScanQuestionPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [liveSample, setLiveSample] = useState<RecorderSignalSample | null>(null);
-  const [cameraMetrics, setCameraMetrics] = useState<FaceReading | null>(null);
+  const [, setCameraMetrics] = useState<FaceReading | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [hasCompletedRecording, setHasCompletedRecording] = useState(false);
   const [isAutoStarting, setIsAutoStarting] = useState(true);
@@ -151,7 +151,8 @@ export default function GuidedScanQuestionPage() {
   if (!question) return null;
 
   const orbScale = 1 + Math.max(0.02, (liveSample?.rms ?? 0.08) * 0.18);
-  const stepLabel = `Step ${step} of ${GUIDED_SCAN_QUESTIONS.length}`;
+  const stepLabel = `Question ${step} of ${GUIDED_SCAN_QUESTIONS.length}`;
+  const progressPercent = Math.round((step / GUIDED_SCAN_QUESTIONS.length) * 100);
 
   return (
     <>
@@ -166,34 +167,39 @@ export default function GuidedScanQuestionPage() {
           <div className={styles.header}>
             <div>
               <p className={styles.eyebrow}>{stepLabel}</p>
-              <h1 className={styles.title}>Just speak naturally.</h1>
-              <p className={styles.subtitle}>Read the question first. Recording starts 3 seconds later and runs for 10 seconds.</p>
+              <h1 className={styles.title}>Answer naturally.</h1>
+              <p className={styles.subtitle}>Keep your face comfortably in view. Recording starts automatically and moves to the next question when complete.</p>
             </div>
             <div className={`${styles.statusPill} ${signalClass(liveSample?.dbfs ?? -120)}`}>{signalText(liveSample?.dbfs ?? -120)}</div>
           </div>
 
-          <div className={styles.stepperRow}>
-            <div className={styles.stepper}>
-              {GUIDED_SCAN_QUESTIONS.map((prompt, index) => (
-                <div key={prompt.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div className={[styles.stepNode, index === questionIndex ? styles.stepNodeActive : "", index < questionIndex ? styles.stepNodeDone : ""].join(" ")}>{index < questionIndex ? "✓" : index + 1}</div>
-                  {index < GUIDED_SCAN_QUESTIONS.length - 1 ? <div className={styles.stepLine} /> : null}
-                </div>
-              ))}
-            </div>
+          <div className={styles.progressTrack} aria-hidden="true">
+            <div className={styles.progressFill} style={{ width: `${progressPercent}%` }} />
           </div>
 
           <div className={styles.main}>
             <section className={styles.heroCard}>
               <div className={styles.heroInner}>
                 <div className={styles.recordStage}>
-                  <div className={styles.mobileGuideRow}>
-                    <div className={styles.mobileGuideCard}><span className={styles.mobileGuideLabel}>Read</span><strong className={styles.mobileGuideValue}>3s</strong></div>
-                    <div className={styles.mobileGuideCard}><span className={styles.mobileGuideLabel}>Answer</span><strong className={styles.mobileGuideValue}>10s</strong></div>
-                    <div className={styles.mobileGuideCard}><span className={styles.mobileGuideLabel}>Camera</span><strong className={styles.mobileGuideValue}>Stay framed</strong></div>
+                  <div className={styles.cameraGrid}>
+                    <div className={styles.cameraPanel}>
+                      <div className={styles.cameraHeader}>
+                        <div>
+                          <p className={styles.sectionLabel}>Camera</p>
+                          <p className={styles.cameraNote}>Keep your face comfortably in view while answering naturally.</p>
+                        </div>
+                      </div>
+                      <FaceReader active={router.isReady} tracking={isRecording} calibrating={isCalibrating} onMetricsChange={setCameraMetrics} onSummaryChange={handleCameraSummaryChange} onCalibrationComplete={handleCalibrationComplete} />
+                    </div>
                   </div>
-                  <div className={styles.liveBadge}><span className={isRecording ? styles.liveDot : styles.idleDot} />{isRecording ? "Recording" : isSaving ? "Saving response" : hasCompletedRecording ? "Response captured" : "Ready"}</div>
+
+                  <div className={styles.scanStatusRow}>
+                    <div className={styles.liveBadge}><span className={isRecording ? styles.liveDot : styles.idleDot} />{isRecording ? "Recording" : isSaving ? "Saving response" : hasCompletedRecording ? "Response captured" : "Get ready"}</div>
+                    <div className={styles.timeBadge}>{elapsedSeconds}s</div>
+                  </div>
+
                   <p className={styles.promptText}>{question.prompt}</p>
+
                   <div className={styles.orbShell}>
                     <div className={styles.orbGlow} />
                     <div className={styles.orbFrame}>
@@ -202,43 +208,23 @@ export default function GuidedScanQuestionPage() {
                       </div>
                     </div>
                   </div>
-                  <div className={styles.controlRow}>
-                    <div className={styles.recordMeta}>
-                      <div className={styles.timeBadge}>{elapsedSeconds}s</div>
-                      <p className={styles.ctaHint}>
-                        {isSaving
-                          ? "Saving your response before moving on."
-                          : isAutoStarting
-                            ? step === 1
-                              ? "Hold steady and read the question. Camera baseline and recording start in 3 seconds."
-                              : "Get ready. Recording starts automatically."
-                            : isRecording
-                              ? question.captureKind === "sustained_vowel"
-                                ? `You have ${Math.max(1, Math.round(recordingDurationMs / 1000))} seconds. Hold the sound steadily and keep your face in frame.`
-                                : `You have ${Math.max(1, Math.round(recordingDurationMs / 1000))} seconds. Speak naturally and keep your face in frame.`
-                              : hasCompletedRecording
-                                ? "Response captured. Loading the next prompt."
-                                : "Preparing your microphone."}
-                      </p>
-                    </div>
-                  </div>
-                  <div className={styles.cameraGrid}>
-                    <div className={styles.cameraPanel}>
-                      <div className={styles.cameraHeader}>
-                        <div>
-                          <p className={styles.sectionLabel}>Camera read</p>
-                          <p className={styles.cameraNote}>Blink rate and facial tension are measured directly from landmarks. Eye dilation is a webcam proxy, not a clinical pupil measurement.</p>
-                        </div>
-                      </div>
-                      <FaceReader active={router.isReady} tracking={isRecording} calibrating={isCalibrating} onMetricsChange={setCameraMetrics} onSummaryChange={handleCameraSummaryChange} onCalibrationComplete={handleCalibrationComplete} />
-                    </div>
-                    <div className={styles.cameraMetrics}>
-                      <article className={styles.cameraMetricCard}><span className={styles.cameraMetricLabel}>Blink rate</span><strong className={styles.cameraMetricValue}>{cameraMetrics ? `${cameraMetrics.blinkRatePerMin}/min` : "—"}</strong></article>
-                      <article className={styles.cameraMetricCard}><span className={styles.cameraMetricLabel}>Facial tension</span><strong className={styles.cameraMetricValue}>{cameraMetrics ? `${Math.round(cameraMetrics.facialTension * 100)}%` : "—"}</strong></article>
-                      <article className={styles.cameraMetricCard}><span className={styles.cameraMetricLabel}>Eye dilation proxy</span><strong className={styles.cameraMetricValue}>{cameraMetrics ? `${Math.round(cameraMetrics.eyeDilationProxy * 100)}%` : "—"}</strong></article>
-                      <article className={styles.cameraMetricCard}><span className={styles.cameraMetricLabel}>Tracking confidence</span><strong className={styles.cameraMetricValue}>{cameraMetrics ? `${Math.round(cameraMetrics.trackingConfidence * 100)}%` : "—"}</strong></article>
-                    </div>
-                  </div>
+
+                  <p className={styles.ctaHint}>
+                    {isSaving
+                      ? "Saving your response before moving on."
+                      : isAutoStarting
+                        ? step === 1
+                          ? "Hold steady. Camera baseline and recording start in 3 seconds."
+                          : "Get ready. Recording starts automatically."
+                        : isRecording
+                          ? question.captureKind === "sustained_vowel"
+                            ? `Hold the sound steadily for ${Math.max(1, Math.round(recordingDurationMs / 1000))} seconds.`
+                            : `Speak naturally for ${Math.max(1, Math.round(recordingDurationMs / 1000))} seconds.`
+                          : hasCompletedRecording
+                            ? "Response captured. Loading the next prompt."
+                            : "Preparing your microphone."}
+                  </p>
+
                   {error ? <p className={styles.errorText}>{error}</p> : null}
                 </div>
               </div>
