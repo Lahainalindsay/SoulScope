@@ -10,188 +10,129 @@ type ResonanceResultsDashboardProps = {
   selectedStoryStyle?: "Direct" | "Supportive" | "Insight" | null;
 };
 
-type RecommendationGroup = {
-  title: string;
-  intro: string;
-  items: string[];
+type NarrativeProfile = {
+  story: string[];
+  hiddenPatternTitle: string;
+  hiddenPattern: string;
+  feelsLike: string;
+  strength: string;
+  balancePoint: string;
 };
-
-function safeLines(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
-}
-
-function formatList(items: string[], fallback = "the available signals") {
-  if (!items.length) return fallback;
-  if (items.length === 1) return items[0];
-  if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
-}
-
-function domainMeaning(domain: UserResultDomain) {
-  const base: Record<string, string> = {
-    "Energy & Vitality": "This is the body-energy layer: stamina, activation, and available fuel for daily life.",
-    "Recovery & Restoration": "This shows whether restoration is keeping pace with what the system is spending.",
-    "Communication & Clarity": "This reflects how easily words, expression, and meaning are coming through.",
-    "Emotional Expression": "This is the emotional-output channel: how close feelings are to the surface and how much effort it takes to stay composed.",
-    "Connection & Support": "This reflects the relational layer: support, trust, and how safe connection feels right now.",
-    "Focus & Mental Load": "This is the mental-tabs-open layer: processing, planning, replaying, and pattern recognition.",
-    "Direction & Adaptability": "This shows forward motion, flexibility, and how quickly the system is orienting toward what comes next.",
-    Regulation: "This reflects return-to-balance: how easily the system settles after stimulation, stress, or emotional charge.",
-  };
-
-  if (["Working Hard", "Under Pressure"].includes(domain.functionalState)) {
-    return `${base[domain.title]} Here, it looks active but effortful, so the key question is how much energy it takes to keep this part of you online.`;
-  }
-
-  if (["Asking for Support", "Less Accessible", "Recovering"].includes(domain.functionalState)) {
-    return `${base[domain.title]} Here, it looks less available or in recovery, which means this area may need more space, pacing, or support before it feels natural again.`;
-  }
-
-  return `${base[domain.title]} Here, it looks available enough to act as a resource while the higher-load areas settle.`;
-}
 
 function getDomain(domains: UserResultDomain[], title: UserResultDomain["title"]) {
   return domains.find((domain) => domain.title === title);
 }
 
-function buildWholeScanSummary(domains: UserResultDomain[], report: SoulScopeReport) {
-  const highest = [...domains].sort((a, b) => b.score - a.score).slice(0, 2);
-  const lowest = [...domains].sort((a, b) => a.score - b.score).slice(0, 2);
-  const working = domains
-    .filter((domain) => ["Working Hard", "Under Pressure"].includes(domain.functionalState))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 2);
-  const support = domains
-    .filter((domain) => ["Asking for Support", "Less Accessible", "Recovering"].includes(domain.functionalState))
-    .sort((a, b) => a.score - b.score)
-    .slice(0, 2);
-
-  const highestText = formatList(highest.map((domain) => domain.title), "the clearest signals in this scan");
-  const lowestText = formatList(lowest.map((domain) => domain.title), "the quieter signals in this scan");
-  const workingText = formatList(working.map((domain) => domain.title), "the areas carrying the most effort");
-  const supportText = formatList(support.map((domain) => domain.title), "the areas asking for support");
-  const tension = working[0] && support[0]
-    ? `${working[0].title} is spending energy while ${support[0].title} needs support`
-    : `${highestText} is more expressed than ${lowestText}`;
-
-  return [
-    `Your scan reads as a whole-system pattern: ${report.primaryPattern.name}. ${report.primaryPattern.theme}`,
-    `The most expressed areas are ${highestText}. The least expressed or least available areas are ${lowestText}. This contrast suggests the system may be relying on ${workingText} while ${supportText} needs more room to restore or come back online.`,
-    `In daily life, this may feel like being capable in one area while another part of you is asking to slow down. You may still be functioning, planning, communicating, supporting others, or moving forward, but the deeper story is how output and recovery are interacting.`,
-    `The main tension appears to be: ${tension}. This is where the scan becomes more personal, because it points to the cost of keeping everything coordinated right now.`,
-  ];
+function isWorking(domain?: UserResultDomain) {
+  return Boolean(domain && ["Working Hard", "Under Pressure"].includes(domain.functionalState));
 }
 
-function buildBalancingRecommendations(domains: UserResultDomain[]): RecommendationGroup[] {
-  const recovery = getDomain(domains, "Recovery & Restoration");
-  const focus = getDomain(domains, "Focus & Mental Load");
-  const adaptability = getDomain(domains, "Direction & Adaptability");
-  const emotional = getDomain(domains, "Emotional Expression");
+function needsSupport(domain?: UserResultDomain) {
+  return Boolean(domain && ["Asking for Support", "Less Accessible", "Recovering"].includes(domain.functionalState));
+}
+
+function strongest(domains: UserResultDomain[]) {
+  return [...domains].sort((a, b) => b.score - a.score)[0];
+}
+
+function quietest(domains: UserResultDomain[]) {
+  return [...domains].sort((a, b) => a.score - b.score)[0];
+}
+
+function buildHiddenPatternTitle(domains: UserResultDomain[]) {
   const communication = getDomain(domains, "Communication & Clarity");
   const connection = getDomain(domains, "Connection & Support");
+  const recovery = getDomain(domains, "Recovery & Restoration");
+  const focus = getDomain(domains, "Focus & Mental Load");
+  const emotional = getDomain(domains, "Emotional Expression");
+  const adaptability = getDomain(domains, "Direction & Adaptability");
+
+  if (needsSupport(connection) && isWorking(communication)) return "Needing Support While Trying to Explain";
+  if (needsSupport(recovery) && isWorking(focus)) return "Functioning While Running Full";
+  if (needsSupport(connection) && isWorking(emotional)) return "Wanting Safety Before Vulnerability";
+  if (isWorking(adaptability) && needsSupport(recovery)) return "Adapting Faster Than You Can Restore";
+  if (isWorking(communication)) return "Finding the Cleanest Way to Be Understood";
+  if (isWorking(focus)) return "Carrying More Than You Show";
+  return "Holding the Story Beneath the Surface";
+}
+
+function buildNarrativeProfile(domains: UserResultDomain[], report: SoulScopeReport): NarrativeProfile {
+  const communication = getDomain(domains, "Communication & Clarity");
+  const connection = getDomain(domains, "Connection & Support");
+  const recovery = getDomain(domains, "Recovery & Restoration");
+  const focus = getDomain(domains, "Focus & Mental Load");
+  const emotional = getDomain(domains, "Emotional Expression");
+  const adaptability = getDomain(domains, "Direction & Adaptability");
   const energy = getDomain(domains, "Energy & Vitality");
   const regulation = getDomain(domains, "Regulation");
+  const top = strongest(domains);
+  const low = quietest(domains);
 
-  const groups: RecommendationGroup[] = [];
-  const recoveryNeedsSupport = recovery && recovery.score < 48;
-  const mentalLoadHigh = focus && focus.score > 62;
-  const adaptabilityHigh = adaptability && adaptability.score > 62;
-  const emotionalHigh = emotional && emotional.score > 62;
-  const communicationWorking = communication && ["Working Hard", "Under Pressure"].includes(communication.functionalState);
-  const connectionLow = connection && connection.score < 48;
-  const energyLow = energy && energy.score < 48;
-  const regulationLow = regulation && regulation.score < 48;
+  const connectionNeedsSupport = needsSupport(connection) || (connection?.score ?? 100) < 50;
+  const communicationWorking = isWorking(communication) || (communication?.score ?? 0) > 62;
+  const recoveryNeedsSupport = needsSupport(recovery) || (recovery?.score ?? 100) < 50;
+  const mentalLoadHigh = isWorking(focus) || (focus?.score ?? 0) > 62;
+  const emotionalHigh = isWorking(emotional) || (emotional?.score ?? 0) > 62;
+  const adaptabilityHigh = isWorking(adaptability) || (adaptability?.score ?? 0) > 62;
+  const regulationNeedsSupport = needsSupport(regulation) || (regulation?.score ?? 100) < 50;
+  const energyNeedsSupport = needsSupport(energy) || (energy?.score ?? 100) < 50;
 
-  if (recoveryNeedsSupport && (mentalLoadHigh || adaptabilityHigh)) {
-    groups.push({
-      title: "Today's Focus",
-      intro: "Protect recovery without abandoning momentum. The goal is not to do nothing; it is to stop making every part of you work at the same time.",
-      items: [
-        "Choose one task to complete or consciously postpone so your mind has fewer open loops.",
-        "Create one 20-minute block with no phone, no input, and no problem-solving.",
-        "Let your next step be smaller than your ambition. Sustainable movement beats heroic overextension today.",
-      ],
-    });
-  } else if (recoveryNeedsSupport) {
-    groups.push({
-      title: "Recovery First",
-      intro: "Restoration appears to be asking for more support. This does not mean weakness; it means your system may need more refill than push right now.",
-      items: [
-        "Give yourself one clear recovery window before adding another obligation.",
-        "Reduce sensory input for a short period: dim lights, quiet room, slower pace.",
-        "Choose sleep consistency or quiet rest over squeezing in one more task.",
-      ],
-    });
-  }
+  const opening = recoveryNeedsSupport || mentalLoadHigh
+    ? "On the surface, you may appear to be functioning, but below the surface your system seems to be carrying more than it is showing. There is still movement, awareness, and capability here, but the scan suggests that some of that capability may be coming from effort rather than ease."
+    : "On the surface, there is enough steadiness here to keep moving, but the deeper pattern is more nuanced than simply being okay. Your voice suggests that some parts of you are available and expressive while other parts are asking for more honesty, support, or recovery."
 
-  if (mentalLoadHigh) {
-    groups.push({
-      title: "Mind",
-      intro: "Mental load appears active. Balance here comes from closing loops, externalizing thoughts, and reducing decision friction.",
-      items: [
-        "Do a five-minute brain dump and circle only the next real action.",
-        "Avoid starting three new things before finishing one small thing.",
-        "Give yourself permission to answer slower. Clarity often improves when the nervous system stops rushing the words.",
-      ],
-    });
-  }
+  const supportAndVoice = connectionNeedsSupport && communicationWorking
+    ? "Your voice points toward a need for safer connection and clearer support. Communication may feel harder than it should, not because you lack words, but because part of you may be trying to protect what is vulnerable while still trying to be understood. This can show up as over-explaining, choosing your words carefully, or feeling frustrated when people miss the deeper need underneath what you are saying."
+    : communicationWorking
+      ? "Communication appears to be using extra energy. You may find yourself trying to organize your thoughts while you speak, repeating yourself, or working hard to make your meaning land clearly. The deeper need is not to say more; it may be to say the truer thing with less self-protection around it."
+      : connectionNeedsSupport
+        ? "The support layer appears quieter than the output layer. You may want closeness or help, but still feel guarded about asking directly. This pattern can make you seem independent while part of you is actually waiting for a safer place to soften."
+        : "Your expression and support patterns are not telling a simple story of strength or weakness. They suggest a person who is still trying to find the right balance between being self-contained and being honestly met by others."
 
-  if (emotionalHigh || communicationWorking) {
-    groups.push({
-      title: "Expression",
-      intro: "Your expression channel appears active. That can be creativity, truth, sensitivity, or pressure trying to find a clean path out.",
-      items: [
-        "Write the uncensored version privately before trying to explain it perfectly to someone else.",
-        "Name the feeling in plain language before solving it: mad, tired, hopeful, scared, tender, overloaded.",
-        "Use one honest sentence instead of a full courtroom presentation. Tiny truth still counts.",
-      ],
-    });
-  }
+  const emotionAndLoad = emotionalHigh || mentalLoadHigh || regulationNeedsSupport
+    ? "Emotionally, there may be more sensitivity under the surface than people realize. You might feel more reactive, tender, or easily affected than usual, while still trying to stay composed. If your mind has been busy, it may be because it is trying to translate feelings into something manageable before you let anyone else see them."
+    : "Emotionally, the scan suggests that you may be processing more quietly than dramatically. The important part is not intensity; it is whether your inner experience has enough room to move instead of being managed in the background."
 
-  if (connectionLow) {
-    groups.push({
-      title: "Connection",
-      intro: "The support layer may be quieter than the output layer. Balance may come from safer connection, not more performance.",
-      items: [
-        "Reach for one low-pressure contact: a voice note, simple text, or short check-in.",
-        "Ask for practical support instead of trying to explain the whole emotional universe at once.",
-        "Notice where you are giving support that you are not receiving back.",
-      ],
-    });
-  }
+  const recoveryAndBody = recoveryNeedsSupport || energyNeedsSupport
+    ? "Your system appears to need restoration, not another demand. This is the kind of pattern where pushing harder may create less clarity, while creating space to recover may actually make your communication, focus, and emotional steadiness come back online more naturally."
+    : "There is still usable energy in this scan, but the invitation is to use it wisely. The goal is not to spend every available resource proving that you are fine; the goal is to protect the parts of you that are helping you stay coherent."
 
-  if (energyLow || regulationLow) {
-    groups.push({
-      title: "Body & Nervous System",
-      intro: "The body layer may need grounding before more insight. Regulation is often rebuilt through simple repeatable signals of safety.",
-      items: [
-        "Take a slow walk, stretch your hips and shoulders, or step outside for natural light.",
-        "Try longer exhales for two minutes: inhale normally, exhale slowly, repeat without forcing it.",
-        "Eat, hydrate, and reduce avoidable stimulation before judging your mood or motivation.",
-      ],
-    });
-  }
+  const hiddenPatternTitle = buildHiddenPatternTitle(domains);
 
-  if (!groups.length) {
-    groups.push({
-      title: "Maintain What Is Working",
-      intro: "Your scan shows enough available capacity to focus on maintenance rather than emergency repair.",
-      items: [
-        "Keep the rhythm that is already supporting you instead of adding unnecessary intensity.",
-        "Choose one grounding habit you can repeat tomorrow.",
-        "Notice what helped your voice feel clearer today and protect more of that.",
-      ],
-    });
-  }
+  const hiddenPattern = connectionNeedsSupport && communicationWorking
+    ? "The hidden pattern is not silence; it is protected expression. Something in you may want to be seen and supported, while another part is still checking whether it is safe to be fully honest."
+    : recoveryNeedsSupport && mentalLoadHigh
+      ? "The hidden pattern is endurance. You may be staying functional by keeping your mind active, but the system underneath is asking for fewer open loops and more restoration."
+      : adaptabilityHigh && recoveryNeedsSupport
+        ? "The hidden pattern is rapid adaptation without enough refill. You can keep adjusting, but your recovery needs to become part of the strategy instead of something you only reach for after depletion."
+        : `The hidden pattern centers around ${report.primaryPattern.name.toLowerCase()}. The scan suggests that the visible behavior is only part of the story; the deeper movement is how your system is trying to stay organized while asking for more support.`;
 
-  groups.push({
-    title: "Your Next Step",
-    intro: "Choose one action. The point is not to fix your whole life from one scan. The point is to respond to the clearest signal.",
-    items: ["Pick the recommendation that feels easiest to actually do today, then make it almost embarrassingly small."],
-  });
+  const feelsLike = connectionNeedsSupport || communicationWorking
+    ? "In daily life, this may feel like wanting to be understood but not wanting to expose too much, explaining yourself more than you planned, replaying conversations afterward, or feeling emotionally tired from trying to make your needs sound reasonable."
+    : mentalLoadHigh
+      ? "In daily life, this may feel like too many mental tabs open at once, difficulty resting because your mind keeps organizing the next step, or feeling capable on the outside while internally crowded."
+      : "In daily life, this may feel like being mostly okay but still aware that something in you wants a cleaner rhythm, clearer expression, or a more honest kind of support.";
 
-  return groups.slice(0, 5);
+  const strength = adaptabilityHigh || top
+    ? `The strength here is that you are still responding. ${top ? `${top.title} appears to be one of the more available parts of the scan,` : "There is still availability in the system,"} which means your system has not shut down; it is still trying to adapt, understand, and move toward balance.`
+    : "The strength here is that the system is still communicating. Even when the pattern is not easy, your voice is still giving information that can be used for awareness and repair.";
+
+  const balancePoint = connectionNeedsSupport && communicationWorking
+    ? "Your balance point is direct expression with less defense. Today, practice naming one need clearly without building a full case for why it is valid. Let the sentence be simple enough that your nervous system does not have to perform while asking for support."
+    : recoveryNeedsSupport && mentalLoadHigh
+      ? "Your balance point is reducing cognitive load before asking yourself to do more. Choose one unfinished loop to close, postpone, or write down so your mind does not have to keep carrying it in the background."
+      : emotionalHigh
+        ? "Your balance point is emotional honesty without escalation. Name what you feel before trying to solve it, explain it, or make it acceptable to someone else."
+        : "Your balance point is choosing the smallest action that creates more honesty or ease. Do not turn the recommendation into another performance. Let one clear step be enough.";
+
+  return {
+    story: [opening, supportAndVoice, emotionAndLoad, recoveryAndBody],
+    hiddenPatternTitle,
+    hiddenPattern,
+    feelsLike,
+    strength,
+    balancePoint,
+  };
 }
 
 export default function ResonanceResultsDashboard({
@@ -202,20 +143,10 @@ export default function ResonanceResultsDashboard({
 }: ResonanceResultsDashboardProps) {
   const visibleEnergies = (report.evidence.noteEnergies ?? []).filter((entry) => !hiddenNotes.includes(entry.note));
   const domains = report.domainResults ?? [];
-  const wholeScanSummary = buildWholeScanSummary(domains, report);
-  const recommendations = buildBalancingRecommendations(domains);
+  const narrative = buildNarrativeProfile(domains, report);
 
   return (
     <section className={styles.section}>
-      <section className={styles.heroCard}>
-        <div className={styles.heroCopy}>
-          <p className={styles.eyebrow}>Your Current Story</p>
-          <h2 className={styles.title}>{report.primaryPattern.name}</h2>
-          <p className={styles.lead}>{report.primaryPattern.theme}</p>
-          <p className={styles.noteText}>{report.primaryPattern.explanation}</p>
-        </div>
-      </section>
-
       <section className={styles.mapSection}>
         <div className={styles.mapFrame}>
           <NoteAuraMap noteEnergies={visibleEnergies} title="Your Resonance Map" />
@@ -227,7 +158,7 @@ export default function ResonanceResultsDashboard({
           <div>
             <p className={styles.eyebrow}>Help Us Build SoulScope</p>
             <h2 className={styles.mapTitle}>Choose the description that feels most like you</h2>
-            <p className={styles.lead}>Thanks for testing the app. Please choose your favorite description out of the three energy narratives below. Your choice helps us develop a more accurate, personal, and premium experience for future users.</p>
+            <p className={styles.lead}>Thanks for testing the app. Please choose the energy narrative that feels most accurate. Your choice helps us make SoulScope more personal, clear, and premium.</p>
           </div>
         </div>
 
@@ -244,9 +175,6 @@ export default function ResonanceResultsDashboard({
                 </div>
                 <h3 className={styles.noteName}>{candidate.title}</h3>
                 <p className={styles.noteTheme}>{candidate.summary}</p>
-                <p className={styles.noteExpression}>Most expressed: {formatList(safeLines(candidate.strongestResources), "not enough signal yet")}</p>
-                <p className={styles.noteExpression}>Working hardest: {formatList(safeLines(candidate.areasWorkingHard), "no clear pressure point identified")}</p>
-                <p className={styles.noteExpression}>Needs support: {formatList(safeLines(candidate.areasAskingForSupport), "no single support area stands out")}</p>
               </article>
             );
           })}
@@ -255,62 +183,41 @@ export default function ResonanceResultsDashboard({
 
       <section className={styles.heroCard}>
         <div className={styles.heroCopy}>
-          <p className={styles.eyebrow}>Whole Scan Summary</p>
-          <h2 className={styles.mapTitle}>What the full pattern may mean</h2>
-          {wholeScanSummary.map((line) => (
+          <p className={styles.eyebrow}>Your Resonance Story</p>
+          {narrative.story.map((line) => (
             <p key={line} className={styles.noteText}>{line}</p>
           ))}
         </div>
       </section>
 
-      <section className={styles.notesSection}>
-        <div className={styles.notesHeader}>
-          <div>
-            <p className={styles.eyebrow}>Balancing Recommendations</p>
-            <h2 className={styles.mapTitle}>What may help bring the pattern into balance</h2>
-            <p className={styles.lead}>These are based on the relationship between your most expressed areas, the areas working hardest, and the parts of your system asking for support.</p>
-          </div>
-        </div>
-        <div className={styles.storyGrid}>
-          {recommendations.map((group) => (
-            <article key={group.title} className={styles.storyCard}>
-              <p className={styles.noteStatus}>{group.title}</p>
-              <p className={styles.noteText}>{group.intro}</p>
-              <ul className={styles.storyList}>{group.items.map((item) => <li key={item} className={styles.storyItem}>{item}</li>)}</ul>
-            </article>
-          ))}
-        </div>
+      <section className={styles.patternStrip}>
+        <article className={styles.patternCard}>
+          <p className={styles.noteStatus}>Hidden Pattern</p>
+          <h3 className={styles.patternTitle}>{narrative.hiddenPatternTitle}</h3>
+          <p className={styles.patternTheme}>{narrative.hiddenPattern}</p>
+        </article>
+        <article className={styles.patternCard}>
+          <p className={styles.noteStatus}>What This May Feel Like</p>
+          <p className={styles.patternTheme}>{narrative.feelsLike}</p>
+        </article>
       </section>
 
-      {report.supportingPattern || report.emergingPattern ? (
-        <section className={styles.patternStrip}>
-          {report.supportingPattern ? <article className={styles.patternCard}><p className={styles.noteStatus}>Secondary Influence</p><h3 className={styles.patternTitle}>{report.supportingPattern.name}</h3><p className={styles.patternTheme}>{report.supportingPattern.theme}</p></article> : null}
-          {report.emergingPattern ? <article className={styles.patternCard}><p className={styles.noteStatus}>Emerging Influence</p><h3 className={styles.patternTitle}>{report.emergingPattern.name}</h3><p className={styles.patternTheme}>{report.emergingPattern.theme}</p></article> : null}
-        </section>
-      ) : null}
-
-      <section className={styles.notesSection}>
-        <div className={styles.notesHeader}><div><p className={styles.eyebrow}>Your Resonance Story</p><h2 className={styles.mapTitle}>How the different parts of the scan connect</h2><p className={styles.lead}>These cards are pieces of the same pattern: where your system is resourced, where it is spending energy, and where it may need support.</p></div></div>
-        <div className={styles.domainGrid}>
-          {domains.map((domain) => {
-            const couldExpressAs = safeLines(domain.thisCouldExpressAs);
-            const alsoShowUpAs = safeLines(domain.itCanAlsoShowUpAs);
-            return (
-              <article key={domain.title} className={styles.domainCard}>
-                <div className={styles.noteTop}><div><p className={styles.noteStatus}>{domain.title}</p><h3 className={styles.domainState}>{domain.functionalState}</h3></div><span className={styles.domainActivity}>{domain.activityLevel}</span></div>
-                <p className={styles.domainPattern}>{domainMeaning(domain)}</p>
-                {couldExpressAs.length > 0 ? <div className={styles.domainSection}><p className={styles.domainSectionLabel}>May show up as</p><ul className={styles.domainList}>{couldExpressAs.map((line) => <li key={line} className={styles.domainListItem}>{line}</li>)}</ul></div> : null}
-                {alsoShowUpAs.length > 0 ? <div className={styles.domainSection}><p className={styles.domainSectionLabel}>Can also feel like</p><ul className={styles.domainList}>{alsoShowUpAs.map((line) => <li key={line} className={styles.domainListItem}>{line}</li>)}</ul></div> : null}
-                <p className={styles.domainReframe}>{domain.supportiveReframe}</p>
-              </article>
-            );
-          })}
-        </div>
+      <section className={styles.patternStrip}>
+        <article className={styles.patternCard}>
+          <p className={styles.noteStatus}>Your Strength</p>
+          <p className={styles.patternTheme}>{narrative.strength}</p>
+        </article>
+        <article className={styles.patternCard}>
+          <p className={styles.noteStatus}>Your Balance Point</p>
+          <p className={styles.patternTheme}>{narrative.balancePoint}</p>
+        </article>
       </section>
 
       <details className={styles.technicalDetails}>
         <summary className={styles.technicalSummary}>View Technical Analysis</summary>
-        <div className={styles.technicalBody}><p className={styles.technicalIntro}>For power users. The technical layer stays collapsed so the report remains centered on your experience.</p></div>
+        <div className={styles.technicalBody}>
+          <p className={styles.technicalIntro}>The technical layer stays collapsed so the report remains centered on your lived experience.</p>
+        </div>
       </details>
     </section>
   );
