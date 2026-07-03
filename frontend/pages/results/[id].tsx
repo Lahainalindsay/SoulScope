@@ -3,6 +3,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import BetaFeedbackForm from "../../components/BetaFeedbackForm";
 import ResonanceResultsDashboard from "../../components/ResonanceResultsDashboard";
 import { supabase } from "../../lib/supabaseClient";
 import { buildSoulScopeReport, type SoulScopeReport } from "../../lib/buildSoulScopeReport";
@@ -182,6 +183,12 @@ export default function ResultDetailPage() {
               hiddenNotes={["G"]}
               selectedStoryStyle={selectedStory?.style ?? null}
               onSelectStory={handleStorySelect}
+            />
+
+            <BetaFeedbackForm
+              page="results"
+              scanId={typeof id === "string" ? id : null}
+              selectedSummaryStyle={selectedStory?.style ?? null}
             />
 
             <section className={styles.footerNote}>
