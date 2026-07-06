@@ -5,26 +5,19 @@ import Link from "next/link";
 import { useSession, useSessionContext } from "@supabase/auth-helpers-react";
 import { supabase } from "../lib/supabaseClient";
 import { getLocalDevSession, LOCAL_SCAN_LIST_KEY } from "../lib/localSession";
-import { NOTE_ORDER, getSoulScopeNoteColor } from "../lib/noteSystem";
-import { getResonanceSystemLabel } from "../lib/resonanceLanguage";
+import { getSoulScopeNoteColor } from "../lib/noteSystem";
 import { buildSoulScopeReport } from "../lib/buildSoulScopeReport";
 import { type NoteEnergyResult, type VoiceAnalysisResult } from "../lib/voiceSpectrum";
 import NoteAuraMap from "./NoteAuraMap";
 import styles from "../pages/History.module.css";
 
-type SpectrumBand = { label: string; relativeEnergy: number };
-
 type ScanRow = {
   id?: string;
   created_at: string;
   result: VoiceAnalysisResult & {
-    summary?: string;
     dominantBandLabel?: string;
-    coreFrequencyHz?: number;
-    spectrumBands?: SpectrumBand[];
     noteInterpretation?: { primaryNote?: string };
     noteEnergies?: NoteEnergyResult[];
-    resonanceScore?: number;
   };
 };
 
@@ -42,37 +35,6 @@ type HistoryEntry = {
   selectedSummary: string;
 };
 
-const BAND_LABELS = [...NOTE_ORDER];
-const BAND_COLORS = Object.fromEntries(BAND_LABELS.map((label) => [label, getSoulScopeNoteColor(label)])) as Record<(typeof BAND_LABELS)[number], string>;
-
-function buildSeries(scans: ScanRow[], label: (typeof BAND_LABELS)[number]) {
-  const points = scans
-    .slice()
-    .sort((a, b) => a.created_at.localeCompare(b.created_at))
-    .slice(-12)
-    .map((scan, index) => ({ x: index, y: getBandValue(scan, label) }));
-  if (!points.length) return "";
-  return points.map((point, index) => {
-    const x = (index / Math.max(points.length - 1, 1)) * 100;
-    const y = 100 - point.y * 100;
-    return `${index === 0 ? "M" : "L"} ${x},${y}`;
-  }).join(" ");
-}
-
-function getBandValue(scan: ScanRow, label: string) {
-  return scan.result.spectrumBands?.find((band) => band.label === label)?.relativeEnergy ?? scan.result.noteEnergies?.find((band) => band.note === label)?.relativeEnergy ?? 0;
-}
-
-function average(values: number[]) {
-  if (!values.length) return 0;
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function round(value: number, digits = 0) {
-  const factor = 10 ** digits;
-  return Math.round(value * factor) / factor;
-}
-
 function preferenceKey(scan: ScanRow) {
   return scan.id ?? scan.created_at;
 }
@@ -84,52 +46,61 @@ function getSelectedVariant(report: ReturnType<typeof buildSoulScopeReport>, sel
 
 function buildDashboardFocus(entry: HistoryEntry | null) {
   const domains = entry?.report.domainResults ?? [];
-  const support = domains
-    .filter((domain) => ["Asking for Support", "Less Accessible", "Recovering"].includes(domain.functionalState))
-    .sort((a, b) => a.score - b.score)[0];
-  const working = domains
-    .filter((domain) => ["Working Hard", "Under Pressure"].includes(domain.functionalState))
-    .sort((a, b) => b.score - a.score)[0];
-
-  if (support && working) {
-    return "This week, protect the part of you that needs more restoration while reducing one area that is carrying extra effort.";
-  }
-  if (support) return "This week, give extra attention to the quieter part of you and let it rebuild without pressure.";
-  if (working) return "This week, notice where you are working hard and reduce one unnecessary demand.";
-  return "This week, keep the rhythm that is already helping you feel steady.";
+  const support = domains.filter((domain) => ["Asking for Support", "Less Accessible", "Recovering"].includes(domain.functionalState)).sort((a, b) => a.score - b.score)[0];
+  const working = domains.filter((domain) => ["Working Hard", "Under Pressure"].includes(domain.functionalState)).sort((a, b) => b.score - a.score)[0];
+  if (support && working) return "Protect what needs restoration while reducing one area that is carrying extra effort.";
+  if (support) return "Give extra attention to the quieter part of you and let it rebuild without pressure.";
+  if (working) return "Notice where you are working hard and reduce one unnecessary demand.";
+  return "Keep the rhythm that is already helping you feel steady.";
 }
 
 function buildLatestHiddenPattern(entry: HistoryEntry | null) {
   const id = entry?.report.primaryPattern.id;
-  if (id === "guarded-but-responsive") {
-    return "You may be staying present while part of you is still checking whether it is safe to soften.";
-  }
-  if (id === "overextended-achiever") {
-    return "Capability is still online, but recovery may be lagging behind output.";
-  }
-  if (id === "deep-processor") {
-    return "Your mind may be doing extra organizing before the rest of you can settle.";
-  }
-  if (id === "recovering-adapter") {
-    return "You may be rebuilding capacity while still responding to current demands.";
-  }
-  if (id === "quietly-overloaded") {
-    return "The surface may look functional while the background load is heavier than it appears.";
-  }
-  if (id === "balanced-regulator") {
-    return "The useful pattern is steadiness; protect the rhythm that is already working.";
-  }
-  return "Your latest scan will reveal the deeper pattern that sits underneath the surface story.";
+  if (id === "guarded-but-responsive") return "You may be staying present while part of you is checking whether it is safe to soften.";
+  if (id === "overextended-achiever") return "Capability is online, but recovery may be lagging behind output.";
+  if (id === "deep-processor") return "Your mind may be doing extra organizing before the rest of you can settle.";
+  if (id === "recovering-adapter") return "You may be rebuilding capacity while still responding to current demands.";
+  if (id === "quietly-overloaded") return "The surface may look functional while the background load is heavier than it appears.";
+  if (id === "balanced-regulator") return "The useful pattern is steadiness; protect the rhythm that is already working.";
+  return "Your latest scan will reveal the deeper pattern underneath the surface story.";
 }
 
 function buildJourneyInsight(entries: HistoryEntry[]) {
   if (!entries.length) return "Your resonance journey begins with your first saved scan.";
-  if (entries.length === 1) return "You have one saved reflection so far. Your next scan will begin showing how your patterns shift over time.";
-
+  if (entries.length === 1) return "You have one saved reflection so far. Your next scan will begin showing what changes over time.";
   const latest = entries[0].report.primaryPattern.name;
   const previous = entries[1].report.primaryPattern.name;
-  if (latest === previous) return `${latest} is repeating across your latest scans, which may point to a pattern worth observing over time.`;
-  return `Your latest pattern shifted from ${previous} into ${latest}, suggesting your current state is already moving rather than staying fixed.`;
+  if (latest === previous) return `${latest} is repeating across your latest scans.`;
+  return `Your latest pattern shifted from ${previous} into ${latest}.`;
+}
+
+function softDomainName(title: string) {
+  if (title === "Recovery & Restoration") return "Recovery";
+  if (title === "Communication & Clarity") return "Communication";
+  if (title === "Connection & Support") return "Connection";
+  if (title === "Focus & Mental Load") return "Mental load";
+  if (title === "Emotional Expression") return "Emotional expression";
+  if (title === "Energy & Vitality") return "Energy";
+  if (title === "Direction & Adaptability") return "Adaptability";
+  return title;
+}
+
+function buildMovement(entries: HistoryEntry[]) {
+  if (entries.length < 2) return [];
+  const latest = entries[0].report.domainResults ?? [];
+  const previous = new Map((entries[1].report.domainResults ?? []).map((domain) => [domain.title, domain.score]));
+  return latest
+    .map((domain) => {
+      const before = previous.get(domain.title);
+      if (typeof before !== "number") return null;
+      const delta = domain.score - before;
+      const amount = Math.abs(delta);
+      const direction = amount < 4 ? "Steady" : delta > 0 ? "Rising" : "Softening";
+      return { title: softDomainName(domain.title), direction, amount };
+    })
+    .filter((item): item is { title: string; direction: string; amount: number } => Boolean(item))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 3);
 }
 
 export default function PatternHistoryDashboard() {
@@ -153,8 +124,7 @@ export default function PatternHistoryDashboard() {
         setScans(raw ? (JSON.parse(raw) as ScanRow[]) : []);
         setPreferences({});
         setError(null);
-      } catch (localError) {
-        console.error("Failed to load local scan history", localError);
+      } catch {
         setError("Could not load your resonance journey.");
       } finally {
         setLoading(false);
@@ -166,47 +136,26 @@ export default function PatternHistoryDashboard() {
         loadLocal();
         return;
       }
-
-      const { data, error: fetchError } = await supabase
-        .from("scans")
-        .select("id, created_at, result")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false })
-        .limit(24);
-
+      const { data, error: fetchError } = await supabase.from("scans").select("id, created_at, result").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(24);
       if (fetchError) {
         setError(fetchError.message);
         setLoading(false);
         return;
       }
-
       const nextScans = (data ?? []) as ScanRow[];
       setScans(nextScans);
-
       const scanIds = nextScans.map((scan) => scan.id).filter((id): id is string => typeof id === "string" && id.length > 0);
       if (scanIds.length) {
-        const { data: preferenceData, error: preferenceError } = await supabase
-          .from("scan_story_preferences")
-          .select("scan_id, selected_style, selected_title, selected_summary")
-          .eq("user_id", session.user.id)
-          .in("scan_id", scanIds);
-
-        if (!preferenceError) {
-          setPreferences((preferenceData ?? []).reduce<Record<string, StoryPreferenceRow>>((acc, row) => {
-            acc[row.scan_id] = row as StoryPreferenceRow;
-            return acc;
-          }, {}));
-        }
-      } else {
-        setPreferences({});
+        const { data: preferenceData } = await supabase.from("scan_story_preferences").select("scan_id, selected_style, selected_title, selected_summary").eq("user_id", session.user.id).in("scan_id", scanIds);
+        setPreferences((preferenceData ?? []).reduce<Record<string, StoryPreferenceRow>>((acc, row) => {
+          acc[row.scan_id] = row as StoryPreferenceRow;
+          return acc;
+        }, {}));
       }
-
       setError(null);
       setLoading(false);
     };
-
-    if (sessionLoading) return;
-    void load();
+    if (!sessionLoading) void load();
   }, [session, sessionLoading]);
 
   const historyEntries = useMemo<HistoryEntry[]>(() => scans.map((scan) => {
@@ -222,39 +171,8 @@ export default function PatternHistoryDashboard() {
   }), [preferences, scans]);
 
   const latestEntry = historyEntries[0] ?? null;
-  const chartScans = useMemo(() => scans.slice().reverse().slice(-12), [scans]);
   const visibleEnergies = (latestEntry?.scan.result.noteEnergies ?? []).filter((entry) => entry.note !== "G");
-  const journeyInsight = buildJourneyInsight(historyEntries);
-  const weeklyFocus = buildDashboardFocus(latestEntry);
-  const latestHiddenPattern = buildLatestHiddenPattern(latestEntry);
-
-  const trendSummary = useMemo(() => {
-    if (chartScans.length < 3) return null;
-    const ordered = chartScans.slice();
-    const first = ordered[0];
-    const last = ordered[ordered.length - 1];
-    const latestDominant = last.result.noteInterpretation?.primaryNote ?? last.result.dominantBandLabel ?? "Unknown";
-    const earliestDominant = first.result.noteInterpretation?.primaryNote ?? first.result.dominantBandLabel ?? "Unknown";
-    const noteDeltas = BAND_LABELS.map((label) => ({
-      label,
-      first: getBandValue(first, label),
-      last: getBandValue(last, label),
-      delta: getBandValue(last, label) - getBandValue(first, label),
-      average: average(ordered.map((scan) => getBandValue(scan, label))),
-    })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-    const rising = noteDeltas.filter((entry) => entry.delta > 0.015).slice(0, 3);
-    const falling = noteDeltas.filter((entry) => entry.delta < -0.015).slice(0, 3);
-    const resonanceValues = ordered.map((scan) => scan.result.resonanceScore).filter((value): value is number => typeof value === "number");
-    return {
-      totalScans: scans.length,
-      windowCount: ordered.length,
-      latestDominant,
-      earliestDominant,
-      resonanceAverage: resonanceValues.length ? round(average(resonanceValues) * 100) : null,
-      rising,
-      falling,
-    };
-  }, [chartScans, scans.length]);
+  const movement = useMemo(() => buildMovement(historyEntries), [historyEntries]);
 
   return (
     <div className={styles.page}>
@@ -263,9 +181,7 @@ export default function PatternHistoryDashboard() {
         <section className={styles.newScanSection}>
           <p className={styles.eyebrow}>Your Resonance Journey</p>
           <h1 className={styles.newScanTitle}>Welcome back.</h1>
-          <p className={styles.newScanLead}>
-            This is your living record of how your voice patterns shift over time. Each scan becomes a reflection point — not a label, but a snapshot of how your inner landscape is expressing itself.
-          </p>
+          <p className={styles.newScanLead}>This is your living record of how your voice patterns shift over time.</p>
           <div className={styles.newScanActions}>
             <Link href="/scan" className={styles.primaryButton}>Start New Scan</Link>
             {latestEntry?.scan.id ? <Link href={`/results/${latestEntry.scan.id}`} className={styles.secondaryButton}>View Latest Report</Link> : null}
@@ -293,51 +209,40 @@ export default function PatternHistoryDashboard() {
               <article className={styles.trendInsightCard}>
                 <p className={styles.insightLabel}>Latest Hidden Pattern</p>
                 <h3 className={styles.insightTitle}>Under the surface</h3>
-                <p className={styles.insightText}>{latestHiddenPattern}</p>
+                <p className={styles.insightText}>{buildLatestHiddenPattern(latestEntry)}</p>
               </article>
               <article className={styles.trendInsightCard}>
                 <p className={styles.insightLabel}>Journey Note</p>
                 <h3 className={styles.insightTitle}>What is shifting</h3>
-                <p className={styles.insightText}>{journeyInsight}</p>
+                <p className={styles.insightText}>{buildJourneyInsight(historyEntries)}</p>
               </article>
               <article className={styles.trendInsightCard}>
                 <p className={styles.insightLabel}>This Week&rsquo;s Focus</p>
                 <h3 className={styles.insightTitle}>Balance point</h3>
-                <p className={styles.insightText}>{weeklyFocus}</p>
+                <p className={styles.insightText}>{buildDashboardFocus(latestEntry)}</p>
               </article>
             </section>
 
-            {trendSummary ? <article className={styles.chartCard}>
-              <div className={styles.chartHeader}>
-                <div>
-                  <p className={styles.sectionEyebrow}>Resonance Trends</p>
-                  <h2 className={styles.chartTitle}>How your system has been moving.</h2>
-                  <p className={styles.chartLead}>This view tracks the signal layer across your saved scans, helping you notice what is rising, softening, or staying steady.</p>
+            {movement.length ? (
+              <article className={styles.chartCard}>
+                <div className={styles.chartHeader}>
+                  <div>
+                    <p className={styles.sectionEyebrow}>Movement Since Last Scan</p>
+                    <h2 className={styles.chartTitle}>What changed most.</h2>
+                    <p className={styles.chartLead}>No spaghetti graph. Just the clearest shifts from your previous scan.</p>
+                  </div>
                 </div>
-              </div>
-
-              <div className={styles.chartShell}>
-                <svg viewBox="0 0 100 100" className={styles.chart} aria-hidden="true">
-                  {Array.from({ length: 5 }).map((_, index) => <line key={index} x1="0" x2="100" y1={index * 25} y2={index * 25} className={styles.chartLine} />)}
-                  {BAND_LABELS.map((label) => <path key={label} d={buildSeries(chartScans, label)} fill="none" stroke={BAND_COLORS[label]} strokeWidth="1.8" strokeLinecap="round" />)}
-                </svg>
-              </div>
-
-              <div className={styles.trendInsightGrid}>
-                <article className={styles.trendInsightCard}>
-                  <p className={styles.insightLabel}>Overall direction</p>
-                  <p className={styles.insightText}>{getResonanceSystemLabel(trendSummary.earliestDominant)} → {getResonanceSystemLabel(trendSummary.latestDominant)}</p>
-                </article>
-                <article className={styles.trendInsightCard}>
-                  <p className={styles.insightLabel}>Rising</p>
-                  <p className={styles.insightText}>{trendSummary.rising.length ? trendSummary.rising.map((entry) => `${getResonanceSystemLabel(entry.label)} +${round(entry.delta * 100, 1)}%`).join(" · ") : "No strong upward shift yet."}</p>
-                </article>
-                <article className={styles.trendInsightCard}>
-                  <p className={styles.insightLabel}>Softening</p>
-                  <p className={styles.insightText}>{trendSummary.falling.length ? trendSummary.falling.map((entry) => `${getResonanceSystemLabel(entry.label)} ${round(entry.delta * 100, 1)}%`).join(" · ") : "No strong downward shift yet."}</p>
-                </article>
-              </div>
-            </article> : null}
+                <div className={styles.trendInsightGrid}>
+                  {movement.map((item) => (
+                    <article key={item.title} className={styles.trendInsightCard}>
+                      <p className={styles.insightLabel}>{item.direction}</p>
+                      <h3 className={styles.insightTitle}>{item.title}</h3>
+                      <p className={styles.insightText}>{Math.round(item.amount)} point shift from last scan.</p>
+                    </article>
+                  ))}
+                </div>
+              </article>
+            ) : null}
 
             <section className={styles.historySection}>
               <div className={styles.historyHeader}>
@@ -369,9 +274,7 @@ export default function PatternHistoryDashboard() {
           </>
         ) : null}
 
-        {!loading && !error && !latestEntry ? (
-          <div className={styles.stateCard}>No scans saved yet. Start a Resonance Scan to begin your Resonance Journey.</div>
-        ) : null}
+        {!loading && !error && !latestEntry ? <div className={styles.stateCard}>No scans saved yet. Start a Resonance Scan to begin your Resonance Journey.</div> : null}
       </main>
     </div>
   );
