@@ -56,6 +56,10 @@ let state: GuidedScanSessionState = {
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
+function shouldDebugScan() {
+  return typeof window !== "undefined" && window.localStorage.getItem("soulscope.debugScan") !== "0";
+}
+
 function canUseBrowserStorage() {
   return typeof window !== "undefined" && typeof indexedDB !== "undefined";
 }
@@ -235,7 +239,7 @@ export async function getGuidedScanAnswers() {
       try {
         const blob = await readBlob(answer.blobKey);
         if (!blob) return null;
-        if (typeof window !== "undefined" && window.localStorage.getItem("soulscope.debugScan") === "1") {
+        if (shouldDebugScan()) {
           console.info("[SoulScope scan] hydrated answer blob", {
             questionId: answer.questionId,
             blobKey: answer.blobKey,
@@ -292,7 +296,7 @@ export async function saveGuidedScanAnswer(stepIndex: number, blob: Blob, durati
 
   const blobKey = getBlobKey(question.id);
   await writeBlob(blobKey, blob);
-  if (typeof window !== "undefined" && window.localStorage.getItem("soulscope.debugScan") === "1") {
+  if (shouldDebugScan()) {
     console.info("[SoulScope scan] saved answer blob", {
       questionId: question.id,
       blobKey,

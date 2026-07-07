@@ -25,8 +25,8 @@ const ANALYSIS_REQUEST_TIMEOUT_MS = 15000;
 
 function shouldDebugScan() {
   return (
-    process.env.NODE_ENV !== "production" ||
-    (typeof window !== "undefined" && window.localStorage.getItem("soulscope.debugScan") === "1")
+    typeof window === "undefined" ||
+    window.localStorage.getItem("soulscope.debugScan") !== "0"
   );
 }
 
