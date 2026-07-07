@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import BetaFeedbackForm from "../../components/BetaFeedbackForm";
+import DeveloperAnalysisDebug from "../../components/DeveloperAnalysisDebug";
 import ResonanceResultsDashboard from "../../components/ResonanceResultsDashboard";
 import { supabase } from "../../lib/supabaseClient";
 import { buildSoulScopeReport, type SoulScopeReport } from "../../lib/buildSoulScopeReport";
@@ -22,6 +23,8 @@ type ScanResult = VoiceAnalysisResult & {
 };
 
 type ScanRow = {
+  id?: string;
+  created_at?: string;
   result: ScanResult;
 };
 
@@ -50,6 +53,7 @@ async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label:
 export default function ResultDetailPage() {
   const router = useRouter();
   const { id } = router.query;
+  const [scanRow, setScanRow] = useState<ScanRow | null>(null);
   const [scan, setScan] = useState<ScanResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,20 +68,23 @@ export default function ResultDetailPage() {
 
       try {
         const { data, error: fetchError } = await withTimeout(
-          supabase.from("scans").select("result").eq("id", id).single<ScanRow>(),
+          supabase.from("scans").select("id, created_at, result").eq("id", id).single<ScanRow>(),
           CLOUD_REQUEST_TIMEOUT_MS,
           "Supabase scan"
         );
 
         if (fetchError) {
           setError(fetchError.message);
+          setScanRow(null);
           setScan(null);
         } else {
+          setScanRow(data ?? null);
           setScan(data?.result ?? null);
         }
       } catch (fetchError) {
         console.error("Failed to fetch scan from Supabase", fetchError);
         setError(fetchError instanceof Error ? fetchError.message : "Could not load this Resonance Report.");
+        setScanRow(null);
         setScan(null);
       } finally {
         setLoading(false);
@@ -176,7 +183,7 @@ export default function ResultDetailPage() {
           <div className={styles.stateCard}>No pattern report found for this scan.</div>
         ) : null}
 
-        {!loading && !error && report ? (
+        {!loading && !error && report && scan ? (
           <>
             <ResonanceResultsDashboard
               report={report}
@@ -184,6 +191,8 @@ export default function ResultDetailPage() {
               selectedStoryStyle={selectedStory?.style ?? null}
               onSelectStory={handleStorySelect}
             />
+
+            <DeveloperAnalysisDebug scanId={scanRow?.id ?? (typeof id === "string" ? id : null)} createdAt={scanRow?.created_at ?? null} scan={scan} report={report} />
 
             <BetaFeedbackForm
               page="results"
