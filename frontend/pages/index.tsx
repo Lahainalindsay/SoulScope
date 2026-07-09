@@ -22,6 +22,7 @@ export default function Home() {
   }, [hasLocalSession, router, user]);
 
   const canScan = Boolean(user) || hasLocalSession;
+  const scanHref = canScan ? "/scan" : "/auth/login";
 
   return (
     <>
@@ -36,77 +37,80 @@ export default function Home() {
         <div className={styles.shell}>
           <section className={styles.hero}>
             <div className={styles.heroMain}>
-              <p className={styles.eyebrow}>Private Self-Observation</p>
-              <h1 className={styles.wordmark}>SOULSCOPE</h1>
-              <p className={styles.headline}>
-                See what your inner world may be expressing.
-              </p>
-              <p className={styles.heroCopy}>
-                SoulScope helps make subtle internal patterns more visible. Your voice is the first
-                lens: a natural signal translated into clear, personal observation.
-              </p>
+              <div className={styles.heroCopyBlock}>
+                <p className={styles.eyebrow}>PRIVATE SELF-OBSERVATION</p>
+                <h1 className={styles.wordmark}>SOULSCOPE</h1>
+                <p className={styles.headline}>Every conversation reveals more than the words you choose.</p>
+                <div className={styles.heroText}>
+                  <p>Your voice naturally changes with stress, recovery, confidence, emotion, focus, and adaptation.</p>
+                  <p>Most of these changes happen outside conscious awareness.</p>
+                  <p>SoulScope helps make those patterns visible, giving you a new way to observe how your inner world may be expressing itself.</p>
+                </div>
 
+                <div className={styles.heroActions}>
+                  <Link href={scanHref} className={styles.primaryButton}>
+                    Begin Observation
+                  </Link>
+                  <Link href="/how-it-works" className={styles.secondaryButton}>
+                    How It Works
+                  </Link>
+                </div>
+
+                <p className={styles.heroMetaLine}>Observation, not diagnosis • About 60 seconds • Private by design</p>
+              </div>
               <div className={styles.resonanceStage} aria-hidden="true" />
-
-              <div className={styles.heroActions}>
-                {canScan ? (
-                  <Link href="/scan" className={styles.primaryButton}>
-                    Start New Scan
-                  </Link>
-                ) : (
-                  <Link href="/auth/login" className={styles.primaryButton}>
-                    Start New Scan
-                  </Link>
-                )}
-                <Link href="/how-it-works" className={styles.secondaryButton}>
-                  See How It Works
-                </Link>
-              </div>
-
-              <p className={styles.disclaimer}>
-                Observation, not diagnosis. The goal is to make the pattern visible, not reduce you to a score.
-              </p>
-
-              <div className={styles.heroMeta}>
-                <span className={styles.metaPill}>About 60 seconds</span>
-                <span className={styles.metaPill}>Private</span>
-                <span className={styles.metaPill}>No downloads</span>
-              </div>
             </div>
           </section>
 
-          <div className={styles.sections}>
-            <section className={styles.statementSection}>
-              <p className={styles.eyebrow}>What SoulScope Does</p>
-              <h2 className={styles.sectionTitle}>A private read on the patterns your voice may be carrying.</h2>
+          <main className={styles.sections}>
+            <section className={styles.editorialSection}>
+              <h2 className={styles.sectionTitle}>What SoulScope Observes</h2>
+              <p className={styles.sectionCopy}>Your voice naturally changes as your mind and body adapt to life.</p>
+              <p className={styles.sectionCopy}>SoulScope organizes these changes into meaningful observations, including:</p>
+              <ul className={styles.observationList}>
+                <li>Recovery and restoration</li>
+                <li>Mental load</li>
+                <li>Emotional expression</li>
+                <li>Energy and vitality</li>
+                <li>Adaptability</li>
+                <li>Communication patterns</li>
+                <li>Overall regulation</li>
+              </ul>
+              <p className={styles.sectionCopy}>No labels.<br />No personality types.<br />Just patterns observed in the present moment.</p>
+            </section>
+
+            <section className={styles.editorialSection}>
+              <h2 className={styles.sectionTitle}>Why Voice?</h2>
+              <p className={styles.sectionCopy}>We often notice changes in someone&apos;s voice before they tell us how they&apos;re feeling.</p>
+              <p className={styles.sectionCopy}>Stress, fatigue, confidence, focus, emotion, and recovery can subtly influence how we speak.</p>
+              <p className={styles.sectionCopy}>SoulScope uses these naturally occurring patterns as the first lens for understanding your current state.</p>
+              <p className={styles.sectionCopy}>Voice is only the beginning.</p>
               <p className={styles.sectionCopy}>
-                Speak naturally for about a minute. SoulScope looks at voice, timing, and expression,
-                then returns a clear pattern insight across clarity, load, recovery, support, and direction.
+                Future observations will expand to include additional signals that help build a more complete picture of the whole self.
               </p>
             </section>
 
-            <section className={styles.statementSection}>
-              <p className={styles.eyebrow}>Trust</p>
-              <h2 className={styles.sectionTitle}>Careful by design.</h2>
-              <p className={styles.sectionCopy}>
-                SoulScope is not a medical, psychological, or diagnostic assessment. It is built for
-                private self-observation: clear language, restrained claims, and patterns you can revisit over time.
-              </p>
+            <section className={styles.editorialSection}>
+              <h2 className={styles.sectionTitle}>A Different Kind of Self-Reflection</h2>
+              <p className={styles.sectionCopy}>Most self-assessments ask you to describe yourself.</p>
+              <p className={styles.sectionCopy}>SoulScope begins by listening.</p>
+              <p className={styles.sectionCopy}>Instead of asking you to rate your stress or guess how you&apos;re feeling, it starts with a signal your body is already expressing.</p>
+              <p className={styles.sectionCopy}>The goal isn&apos;t to tell you who you are.</p>
+              <p className={styles.sectionCopy}>The goal is to help you notice what may have been difficult to see on your own.</p>
             </section>
 
             <section className={styles.finalCta}>
-              <p className={styles.eyebrow}>Begin</p>
-              <h2 className={styles.sectionTitle}>Start with one scan.</h2>
+              <h2 className={styles.sectionTitle}>Begin with one observation.</h2>
+              <p className={styles.closingLine}>One minute.</p>
+              <p className={styles.closingLine}>One conversation.</p>
+              <p className={styles.closingLine}>A new perspective on yourself.</p>
               <div className={styles.heroActions}>
-                <Link href={canScan ? "/scan" : "/auth/login"} className={styles.primaryButton}>
-                  Start New Scan
-                </Link>
-                <Link href="/how-it-works" className={styles.secondaryButton}>
-                  See How It Works
+                <Link href={scanHref} className={styles.primaryButton}>
+                  Begin Observation
                 </Link>
               </div>
             </section>
-          </div>
+          </main>
 
           <footer className={styles.footer}>
             <p>
