@@ -42,14 +42,13 @@ export default function PitchReferenceCard({
   return (
     <section className={styles.card} style={{ "--accent": accent } as React.CSSProperties}>
       <div className={styles.copy}>
-        <p className={styles.eyebrow}>Core Resonance Reference</p>
+        <p className={styles.eyebrow}>Signal Reference</p>
         <h2 className={styles.title}>
           {getResonanceSystemLabel(note)}
         </h2>
         <p className={styles.lead}>
-          The note remains visible as an internal organizing marker, while the human-system meaning
-          stays primary. This signal may indicate which pattern is most available in the current
-          Resonance Profile.
+          The note remains visible as a supporting marker, while the human-system meaning stays primary.
+          This signal may indicate which pattern is most available in the current scan.
         </p>
       </div>
 
@@ -113,7 +112,7 @@ export default function PitchReferenceCard({
         </div>
 
         <div className={styles.meta}>
-          <span className={styles.metaPill}>Core Resonance {getResonanceSystemLabel(note)}</span>
+          <span className={styles.metaPill}>Signal {getResonanceSystemLabel(note)}</span>
           <span className={styles.metaPill}>Internal note marker {noteWithOctave}</span>
           <span className={styles.metaPill}>Octave {octave}</span>
         </div>

@@ -26,6 +26,7 @@
 }
 
 .newScanSection,
+.instrumentHero,
 .latestCard,
 .chartCard,
 .historySection,
@@ -44,6 +45,92 @@
   background:
     radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 30%),
     linear-gradient(145deg, rgba(7, 16, 31, 0.95), rgba(8, 19, 40, 0.78));
+}
+
+.instrumentHero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1.08fr);
+  gap: 28px;
+  align-items: center;
+  padding: 34px;
+  margin-bottom: 18px;
+  background:
+    radial-gradient(circle at 62% 34%, rgba(103, 232, 249, 0.13), transparent 34%),
+    linear-gradient(145deg, rgba(5, 12, 24, 0.96), rgba(8, 18, 34, 0.72));
+}
+
+.instrumentCopy {
+  min-width: 0;
+}
+
+.instrumentTitle {
+  margin: 18px 0 0;
+  max-width: 780px;
+  font-family: var(--font-serif);
+  font-size: clamp(42px, 6.8vw, 82px);
+  line-height: 0.94;
+}
+
+.instrumentLead {
+  max-width: 760px;
+  margin: 22px 0 0;
+  font-size: clamp(18px, 2vw, 23px);
+  line-height: 1.75;
+  color: rgba(248, 251, 255, 0.88);
+}
+
+.reflectionQuestion {
+  max-width: 680px;
+  margin: 22px 0 0;
+  padding-left: 18px;
+  border-left: 1px solid rgba(103, 232, 249, 0.42);
+  font-size: 15px;
+  line-height: 1.8;
+  color: rgba(186, 230, 253, 0.86);
+}
+
+.instrumentMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.instrumentMap {
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.instrumentMap > section {
+  width: 100%;
+}
+
+.instrumentFlow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 0 26px;
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.instrumentFlow span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
 .newScanTitle {
@@ -576,6 +663,7 @@
 @media (max-width: 980px) {
   .topGrid,
   .historyLatestSection,
+  .instrumentHero,
   .heroLayout {
     grid-template-columns: 1fr;
   }
@@ -592,6 +680,7 @@
   }
 
   .newScanSection,
+  .instrumentHero,
   .latestCard,
   .chartCard,
   .historySection,
@@ -599,6 +688,15 @@
   .stateCard {
     border-radius: 28px;
     padding: 22px;
+  }
+
+  .instrumentTitle {
+    font-size: 38px;
+    line-height: 1;
+  }
+
+  .instrumentLead {
+    font-size: 16px;
   }
 
   .title {

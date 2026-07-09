@@ -37,7 +37,7 @@ export default function PremiumResultsDashboard({
       <section className={styles.heroSection}>
         <div className={styles.heroContent}>
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>Your Current Pattern</p>
+            <p className={styles.eyebrow}>Latest Pattern</p>
             <h1 className={styles.heroTitle}>{synthesis.primaryPattern.name}</h1>
             <p className={styles.heroTheme}>{synthesis.primaryPattern.theme}</p>
             <p className={styles.heroExplanation}>{synthesis.primaryPattern.explanation}</p>
@@ -51,12 +51,12 @@ export default function PremiumResultsDashboard({
         </div>
       </section>
 
-      {/* What This Pattern Actually Means */}
+      {/* What This Pattern May Reflect */}
       <section className={styles.meaningSection}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>What This May Feel Like</h2>
           <p className={styles.sectionLead}>
-            These are not clinical descriptions. This is what your current pattern might actually feel like day-to-day.
+            These are observational descriptions of how this pattern may feel day to day.
           </p>
         </div>
 
@@ -69,12 +69,12 @@ export default function PremiumResultsDashboard({
         </div>
       </section>
 
-      {/* The Drivers: Why This Is Happening */}
+      {/* Pattern Drivers */}
       <section className={styles.driversSection}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>What Is Actually Creating This Pattern</h2>
+          <h2 className={styles.sectionTitle}>What May Be Creating This Pattern</h2>
           <p className={styles.sectionLead}>
-            The core drivers of your current state:
+            The strongest drivers in your current state:
           </p>
         </div>
 
@@ -88,12 +88,12 @@ export default function PremiumResultsDashboard({
         </div>
       </section>
 
-      {/* What Is Still Working */}
+      {/* What Is Supporting The System */}
       <section className={styles.protectiveSection}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>What Is Still Protecting This System</h2>
+          <h2 className={styles.sectionTitle}>What Is Supporting The System</h2>
           <p className={styles.sectionLead}>
-            Even in this pattern, several things are working for you:
+            Even in this pattern, several signals appear supportive:
           </p>
         </div>
 
@@ -110,21 +110,21 @@ export default function PremiumResultsDashboard({
       <section className={styles.focusSection}>
         <article className={styles.focusCard}>
           <p className={styles.focusEyebrow}>Where to Start</p>
-          <h3 className={styles.focusTitle}>Suggested Focus Point</h3>
+          <h3 className={styles.focusTitle}>What deserves attention first</h3>
           <p className={styles.focusText}>{synthesis.suggestedFocus}</p>
         </article>
       </section>
 
-      {/* Resonance Map */}
+      {/* Signal Map */}
       <section className={styles.mapSection}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Your Resonance Map</h2>
+          <h2 className={styles.sectionTitle}>Signal Map</h2>
           <p className={styles.sectionLead}>
-            Visual representation of your vocal signature:
+            A visual layer for the underlying scan signals:
           </p>
         </div>
         <div className={styles.mapFrame}>
-          <NoteAuraMap noteEnergies={visibleEnergies} title="Your Resonance Map" />
+          <NoteAuraMap noteEnergies={visibleEnergies} title="Signal Map" />
         </div>
       </section>
 
@@ -161,10 +161,10 @@ export default function PremiumResultsDashboard({
       {/* Preference Learning: Story Selection */}
       <section className={styles.notesSection}>
         <div className={styles.notesHeader}>
-          <p className={styles.eyebrow}>Preference Learning</p>
-          <h2 className={styles.mapTitle}>Which summary style feels most accurate?</h2>
+          <p className={styles.eyebrow}>Summary Style</p>
+          <h2 className={styles.mapTitle}>Which version feels clearest?</h2>
           <p className={styles.lead}>
-            All three options come from the same scan data. Your selection helps SoulScope learn which communication style resonates most with you.
+            All three options come from the same scan data. Your selection helps SoulScope learn which communication style is most useful for you.
           </p>
         </div>
 
@@ -181,7 +181,7 @@ export default function PremiumResultsDashboard({
                     onClick={() => onSelectStory?.(candidate.style)}
                     aria-pressed={isSelected}
                   >
-                    {isSelected ? "Selected" : "This feels most accurate"}
+                    {isSelected ? "Selected" : "Select Version"}
                   </button>
                 </div>
                 <h3 className={styles.noteName}>{candidate.title}</h3>
@@ -204,7 +204,7 @@ export default function PremiumResultsDashboard({
       {/* Human-Centered Domains */}
       <section className={styles.notesSection}>
         <div className={styles.notesHeader}>
-          <p className={styles.eyebrow}>Human-Centered Domains</p>
+          <p className={styles.eyebrow}>Human Signals</p>
           <h2 className={styles.mapTitle}>What this means in daily life</h2>
           <p className={styles.lead}>
             Each of these seven domains represents something you experience every day. How is each one showing up right now?
@@ -263,10 +263,10 @@ export default function PremiumResultsDashboard({
 
       {/* Technical Details (Collapsed) */}
       <details className={styles.technicalDetails}>
-        <summary className={styles.technicalSummary}>View Technical Analysis</summary>
+        <summary className={styles.technicalSummary}>View Signal Details</summary>
         <div className={styles.technicalBody}>
           <p className={styles.technicalIntro}>
-            For power users. The technical layer stays collapsed so the report remains centered on your lived experience.
+            The technical layer stays collapsed so the insight remains centered on the human pattern.
           </p>
 
           <div className={styles.technicalGrid}>

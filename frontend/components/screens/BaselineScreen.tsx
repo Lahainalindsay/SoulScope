@@ -28,11 +28,6 @@ export default function BaselineScreen({
         isStarting={isStarting}
         onStart={onStart}
       />
-      <p className="panel__description">
-        Backend: Collect HR/HRV, EDA, breath → populate <code>baseline_*</code> metrics and add to
-        PhysioTimeSeries.
-      </p>
     </div>
   );
 }
-

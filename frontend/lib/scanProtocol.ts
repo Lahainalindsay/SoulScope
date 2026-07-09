@@ -17,9 +17,9 @@ export type ResearchReference = {
 
 export const SCAN_OVERVIEW_LINES = [
   "SoulScope uses a sustained vowel capture followed by guided speech prompts instead of one unstructured clip.",
-  "The scan starts with a short held ahh or ohh for pitch stability, jitter, shimmer, and resonance support, then moves into everyday expression, relationships, emotional weight, body awareness, and future orientation.",
-  "We analyze voiced speech, note the breaks between speaking, and map pitch center, resonance patterns, note balance, and recovery signals across the full response set.",
-  "The report is reflective and educational. It is not a diagnosis and it does not replace clinical evaluation.",
+  "The scan starts with a short held ahh or ohh, then moves into everyday expression, relationships, current load, body awareness, and future orientation.",
+  "We observe voiced speech, pauses, pitch center, signal balance, and recovery markers across the full response set.",
+  "The insight is reflective and educational. It is not a diagnosis and it does not replace clinical evaluation.",
 ];
 
 export const GUIDED_SCAN_QUESTIONS: GuidedScanQuestion[] = [
@@ -30,7 +30,7 @@ export const GUIDED_SCAN_QUESTIONS: GuidedScanQuestion[] = [
     prompt:
       "Hold an ahhh or ohhh sound steadily for five seconds.",
     rationale:
-      "Captures a sustained vowel, which is especially useful for jitter, shimmer, HNR, pitch stability, and resonance support.",
+      "Captures a steady voice sample for pitch stability, texture, and support markers.",
     durationMs: 5000,
     captureKind: "sustained_vowel",
   },
@@ -40,7 +40,7 @@ export const GUIDED_SCAN_QUESTIONS: GuidedScanQuestion[] = [
     rangeLabel: "Opening",
     prompt: "Let's start simple. Tell me about something you enjoy doing.",
     rationale:
-      "Opens with natural, low-pressure speech so the scan can hear your everyday expression.",
+      "Opens with natural, low-pressure speech so the scan can observe everyday expression.",
     durationMs: 10000,
     captureKind: "guided_speech",
   },
@@ -60,7 +60,7 @@ export const GUIDED_SCAN_QUESTIONS: GuidedScanQuestion[] = [
     rangeLabel: "Depth",
     prompt: "Let's go a little deeper. What's been weighing on you lately?",
     rationale:
-      "Introduces stress-related content and listens for changes in tension, pace, and support.",
+      "Introduces current load and listens for changes in tension, pace, and support.",
     durationMs: 10000,
     captureKind: "guided_speech",
   },
@@ -70,7 +70,7 @@ export const GUIDED_SCAN_QUESTIONS: GuidedScanQuestion[] = [
     rangeLabel: "Feeling",
     prompt: "How does this make you feel?",
     rationale:
-      "Focuses the voice on emotional naming and affective expression.",
+      "Focuses the voice on emotional naming and expression.",
     durationMs: 10000,
     captureKind: "guided_speech",
   },

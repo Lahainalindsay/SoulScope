@@ -11,9 +11,9 @@ type BetaFeedbackFormProps = {
 type RatingKey = "graphics" | "wording" | "clarity";
 
 const ratingFields: Array<{ key: RatingKey; label: string }> = [
-  { key: "graphics", label: "How are the graphics?" },
+  { key: "graphics", label: "How does the interface feel?" },
   { key: "wording", label: "How is the wording?" },
-  { key: "clarity", label: "Do you understand what SoulScope is for?" },
+  { key: "clarity", label: "Is the insight easy to understand?" },
 ];
 
 export default function BetaFeedbackForm({ page, scanId = null, selectedSummaryStyle = null }: BetaFeedbackFormProps) {
@@ -51,24 +51,24 @@ export default function BetaFeedbackForm({ page, scanId = null, selectedSummaryS
       }
 
       setStatus("success");
-      setMessage("Thank you — this helps us make SoulScope better.");
+      setMessage("Thank you. This helps us make SoulScope clearer and more useful.");
       setConfusing("");
       setChangeOrAdd("");
       setRatings({ graphics: null, wording: null, clarity: null });
     } catch (error) {
       console.error("Failed to save SoulScope beta feedback", error);
       setStatus("error");
-      setMessage("Feedback could not be saved yet. If the feedback table has not been created in Supabase, add it first.");
+      setMessage("Feedback could not be saved yet. Please try again later.");
     }
   };
 
   return (
     <section className={styles.card}>
       <div className={styles.header}>
-        <p className={styles.eyebrow}>Beta Feedback</p>
-        <h2 className={styles.title}>Help us build SoulScope</h2>
+        <p className={styles.eyebrow}>Feedback</p>
+        <h2 className={styles.title}>Help refine SoulScope</h2>
         <p className={styles.copy}>
-          Thanks for testing the app. Your feedback helps us create a more accurate, beautiful, and premium experience for future users.
+          Your feedback helps us make each insight clearer, calmer, and more useful.
         </p>
       </div>
 
@@ -113,7 +113,7 @@ export default function BetaFeedbackForm({ page, scanId = null, selectedSummaryS
             className={styles.textarea}
             value={changeOrAdd}
             onChange={(event) => setChangeOrAdd(event.target.value)}
-            placeholder="Tell us what would make SoulScope feel better, clearer, or more useful."
+            placeholder="Tell us what would make SoulScope feel clearer, more personal, or more useful."
           />
         </label>
 

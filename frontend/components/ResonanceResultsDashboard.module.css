@@ -23,10 +23,10 @@
 
 .heroCard {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 420px);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 24px;
-  padding: 30px;
+  padding: clamp(28px, 5vw, 52px);
   background:
     radial-gradient(circle at top left, rgba(103, 232, 249, 0.12), transparent 26%),
     linear-gradient(145deg, rgba(7, 16, 31, 0.95), rgba(8, 19, 40, 0.78));
@@ -34,6 +34,7 @@
 
 .heroCopy {
   min-width: 0;
+  max-width: 900px;
 }
 
 .eyebrow {

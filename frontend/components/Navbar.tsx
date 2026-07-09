@@ -9,9 +9,9 @@ import { clearLocalDevSession, getLocalDevSession } from "../lib/localSession";
 import styles from "./Navbar.module.css";
 
 const NAV_ITEMS = [
-  { href: "/scan", label: "New Scan" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/how-it-works", label: "How it works" },
+  { href: "/dashboard", label: "Today" },
+  { href: "/scan", label: "Observe" },
+  { href: "/how-it-works", label: "How It Works" },
 ];
 
 export default function Navbar() {
@@ -52,7 +52,7 @@ export default function Navbar() {
           <div className={styles.mark}>S</div>
           <div>
             <p className={styles.brandTitle}>SoulScope™</p>
-            <p className={styles.brandSub}>Private Human Pattern Interpretation</p>
+            <p className={styles.brandSub}>Private Pattern Observation</p>
           </div>
         </Link>
 

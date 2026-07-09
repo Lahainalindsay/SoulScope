@@ -28,7 +28,7 @@ export default function SignupPage() {
       }
       clearLocalDevSession();
       if (!data.session) {
-        setError("Account created. Confirm your email, then log in before running a Supabase-backed Resonance Scan.");
+        setError("Account created. Confirm your email, then sign in before starting a saved scan.");
         return;
       }
       router.push("/dashboard");
@@ -42,7 +42,7 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black to-violet-950 flex items-center justify-center text-white px-4">
       <form className="bg-zinc-900 p-8 rounded-xl shadow-xl w-full max-w-md" onSubmit={handleSignup}>
-        <h2 className="text-2xl font-bold mb-4 text-yellow-300">Create Account</h2>
+        <h2 className="text-2xl font-bold mb-4 text-yellow-300">Create your account</h2>
         <input
           type="email"
           placeholder="Email"
@@ -61,7 +61,7 @@ export default function SignupPage() {
         />
         {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
         <button type="submit" className="w-full bg-yellow-300 text-black py-2 rounded font-semibold shadow">
-          Sign Up
+          Create Account
         </button>
         <p className="mt-4 text-sm text-center">
           Already have an account?{" "}

@@ -94,9 +94,9 @@ export default function DeveloperAnalysisDebug({ scanId, createdAt, scan, report
   }
 
   return (
-    <details open style={{ marginTop: 24, border: "1px solid rgba(103,232,249,.25)", borderRadius: 24, padding: 18, background: "rgba(2,6,23,.68)" }}>
-      <summary style={{ cursor: "pointer", fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase" }}>Developer Analysis Debug</summary>
-      <p style={{ color: "rgba(226,232,240,.8)" }}>Compare this block across scans. Different voices, TV audio, music, and silence should produce different values.</p>
+    <details style={{ marginTop: 24, border: "1px solid rgba(103,232,249,.18)", borderRadius: 24, padding: 18, background: "rgba(2,6,23,.52)" }}>
+      <summary style={{ cursor: "pointer", fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase" }}>Signal Details</summary>
+      <p style={{ color: "rgba(226,232,240,.8)" }}>Technical capture values used to support this scan. This section is optional.</p>
       <pre style={{ whiteSpace: "pre-wrap", overflowX: "auto", fontSize: 12, lineHeight: 1.45, color: "#dbeafe" }}>{JSON.stringify(debugObject, null, 2)}</pre>
     </details>
   );

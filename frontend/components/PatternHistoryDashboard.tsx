@@ -83,7 +83,7 @@ function buildLatestPatternSignal(entry: HistoryEntry | null) {
   if (id === "recovering-adapter") return "You may be rebuilding capacity while still responding to current demands.";
   if (id === "quietly-overloaded") return "The surface may look functional while the background load is heavier than it appears.";
   if (id === "balanced-regulator") return "The useful pattern is steadiness; protect the rhythm that is already working.";
-  return "Your latest scan will reveal the deeper pattern underneath the surface story.";
+  return "Your latest scan will show the first pattern SoulScope can read today.";
 }
 
 function buildPatternHistoryInsight(entries: HistoryEntry[]) {
@@ -92,7 +92,18 @@ function buildPatternHistoryInsight(entries: HistoryEntry[]) {
   const latest = entries[0].report.primaryPattern.name;
   const previous = entries[1].report.primaryPattern.name;
   if (latest === previous) return `${latest} is repeating across your latest scans. That consistency is worth watching with care.`;
-  return `Your latest pattern moved from ${previous} into ${latest}. Your state is changing, not staying fixed.`;
+  return `Your latest pattern moved from ${previous} into ${latest}. Your state is changing over time.`;
+}
+
+function buildReflectionPrompt(entry: HistoryEntry | null) {
+  const id = entry?.report.primaryPattern.id;
+  if (id === "overextended-achiever") return "Where have you been relying on effort more than restoration?";
+  if (id === "deep-processor") return "What would feel clearer if you gave it more time before deciding?";
+  if (id === "guarded-but-responsive") return "Where does your system seem ready, but still cautious?";
+  if (id === "recovering-adapter") return "What feels more available than it did before?";
+  if (id === "quietly-overloaded") return "What load have you normalized that may need to be seen more clearly?";
+  if (id === "balanced-regulator") return "What rhythm is helping you stay steady?";
+  return "What do you notice when you look at this pattern without trying to fix it?";
 }
 
 function movementCategory(title: string) {
@@ -136,7 +147,7 @@ export default function PatternHistoryDashboard() {
     const loadLocal = () => {
       const localSession = getLocalDevSession();
       if (!localSession) {
-        setError("Please sign in to view your dashboard.");
+        setError("Please sign in to view today's reflection.");
         setLoading(false);
         return;
       }
@@ -147,7 +158,7 @@ export default function PatternHistoryDashboard() {
         setError(null);
       } catch (localError) {
         console.error("Failed to load local scan history", localError);
-        setError("Could not load your dashboard.");
+        setError("Could not load today's reflection.");
       } finally {
         setLoading(false);
       }
@@ -198,74 +209,63 @@ export default function PatternHistoryDashboard() {
   const latestPatternSignal = buildLatestPatternSignal(latestEntry);
   const patternHistoryInsight = buildPatternHistoryInsight(historyEntries);
   const weeklyFocus = buildDashboardFocus(latestEntry);
+  const reflectionPrompt = buildReflectionPrompt(latestEntry);
   const movement = useMemo(() => buildMovement(historyEntries), [historyEntries]);
 
   return (
     <div className={styles.page}>
       <div className={styles.gridOverlay} />
       <main className={styles.shell}>
-        <section className={styles.newScanSection}>
-          <p className={styles.eyebrow}>Dashboard</p>
-          <div className={styles.heroLayout}>
-            <div>
-              <p className={styles.heroMeta}>Latest Pattern</p>
-              <h1 className={styles.newScanTitle}>{latestEntry?.report.primaryPattern.name ?? "Your private pattern home."}</h1>
-              <p className={styles.newScanLead}>
-                {latestEntry?.report.primaryPattern.theme ?? "Start a scan to build a clear, personal record of your internal state over time."}
-              </p>
+        <section className={styles.instrumentHero}>
+          <div className={styles.instrumentCopy}>
+            <p className={styles.eyebrow}>Today&rsquo;s Reflection</p>
+            <h1 className={styles.instrumentTitle}>{latestEntry?.report.primaryPattern.name ?? "Start with a short scan."}</h1>
+            <p className={styles.instrumentLead}>
+              {latestEntry?.selectedSummary ?? "Use your voice as the first lens for a private check-in with your current state."}
+            </p>
+            <p className={styles.reflectionQuestion}>{reflectionPrompt}</p>
+            <div className={styles.instrumentMeta}>
+              <span>Last scan: {formatScanDate(latestEntry?.scan.created_at)}</span>
+              {latestEntry?.preferredStyle ? <span>Summary: {latestEntry.preferredStyle}</span> : null}
             </div>
-            <div className={styles.heroSummaryPanel}>
-              <span className={styles.heroPanelLabel}>Last scan</span>
-              <strong>{formatScanDate(latestEntry?.scan.created_at)}</strong>
-              {latestEntry?.preferredStyle ? <span>Preferred summary: {latestEntry.preferredStyle}</span> : null}
+            <div className={styles.newScanActions}>
+              {latestEntry?.scan.id ? <Link href={`/results/${latestEntry.scan.id}`} className={styles.primaryButton}>Open Insight</Link> : null}
+              <Link href="/scan" className={latestEntry?.scan.id ? styles.secondaryButton : styles.primaryButton}>Start New Scan</Link>
             </div>
           </div>
-          <div className={styles.newScanActions}>
-            {latestEntry?.scan.id ? <Link href={`/results/${latestEntry.scan.id}`} className={styles.primaryButton}>Open Latest Insight</Link> : null}
-            <Link href="/scan" className={latestEntry?.scan.id ? styles.secondaryButton : styles.primaryButton}>Start New Scan</Link>
+          <div className={styles.instrumentMap}>
+            <NoteAuraMap noteEnergies={visibleEnergies} title="Resonance Map" />
           </div>
         </section>
 
-        {loading ? <div className={styles.stateCard}>Loading your dashboard...</div> : null}
+        <div className={styles.instrumentFlow} aria-label="SoulScope pattern flow">
+          <span>Signals</span>
+          <span>Reflection</span>
+          <span>Patterns</span>
+          <span>Next Step</span>
+          <span>Growth</span>
+        </div>
+
+        {loading ? <div className={styles.stateCard}>Opening today&rsquo;s reflection...</div> : null}
         {error ? <div className={`${styles.stateCard} ${styles.stateError}`}>{error}</div> : null}
 
         {!loading && !error && latestEntry ? (
           <>
-            <section className={styles.historyLatestSection}>
-              <article className={styles.historyLatestCard}>
-                <p className={styles.sectionEyebrow}>Latest Insight</p>
-                <h2 className={styles.historyLatestTitle}>{latestEntry.report.primaryPattern.name}</h2>
-                <p className={styles.historyLatestTheme}>{latestEntry.report.primaryPattern.theme}</p>
-                <div className={styles.metaRow}>
-                  <span className={styles.metaItem}><strong>Scanned</strong> {formatScanTime(latestEntry.scan.created_at)}</span>
-                  {latestEntry.preferredStyle ? <span className={styles.metaItem}><strong>Summary</strong> {latestEntry.preferredStyle}</span> : null}
-                </div>
-                <p className={styles.historyLatestText}>{latestEntry.selectedSummary}</p>
-                <div className={styles.historyLatestActions}>
-                  {latestEntry.scan.id ? <Link href={`/results/${latestEntry.scan.id}`} className={styles.primaryButton}>Open Latest Insight</Link> : null}
-                  <Link href="/scan" className={styles.secondaryButton}>Start New Scan</Link>
-                </div>
-              </article>
-              <div className={styles.historyLatestMapContainer}>
-                <NoteAuraMap noteEnergies={visibleEnergies} title="Signal Detail" />
-              </div>
-            </section>
-
             <section className={styles.trendInsightGrid}>
               <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>Latest Pattern</p>
-                <h3 className={styles.insightTitle}>What it may mean</h3>
+                <p className={styles.insightLabel}>Current Patterns</p>
+                <h3 className={styles.insightTitle}>What this may reflect</h3>
                 <p className={styles.insightText}>{latestPatternSignal}</p>
               </article>
               <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>Pattern History</p>
-                <h3 className={styles.insightTitle}>What is shifting</h3>
-                <p className={styles.insightText}>{patternHistoryInsight}</p>
+                <p className={styles.insightLabel}>What May Help</p>
+                <h3 className={styles.insightTitle}>Start here</h3>
+                <p className={styles.insightText}>{weeklyFocus}</p>
               </article>
               <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>Next Action</p>
-                <h3 className={styles.insightTitle}>Today&rsquo;s focus</h3>
-                <p className={styles.insightText}>{weeklyFocus}</p>
+                <p className={styles.insightLabel}>Growth Over Time</p>
+                <h3 className={styles.insightTitle}>What is changing</h3>
+                <p className={styles.insightText}>{patternHistoryInsight}</p>
               </article>
             </section>
 
@@ -273,9 +273,9 @@ export default function PatternHistoryDashboard() {
               <article className={styles.chartCard}>
                 <div className={styles.chartHeader}>
                   <div>
-                    <p className={styles.sectionEyebrow}>Movement Over Time</p>
+                    <p className={styles.sectionEyebrow}>Growth Over Time</p>
                     <h2 className={styles.chartTitle}>What changed most.</h2>
-                    <p className={styles.chartLead}>A clear read on the strongest shifts from your previous scan.</p>
+                    <p className={styles.chartLead}>A simple comparison of what shifted since your previous scan.</p>
                   </div>
                 </div>
                 <div className={styles.trendInsightGrid}>
@@ -283,7 +283,7 @@ export default function PatternHistoryDashboard() {
                     <article key={`${item.title}-${item.direction}`} className={styles.trendInsightCard}>
                       <p className={styles.insightLabel}>{item.direction}</p>
                       <h3 className={styles.insightTitle}>{item.title}</h3>
-                      <p className={styles.insightText}>{Math.round(item.amount)} point shift from last scan.</p>
+                      <p className={styles.insightText}>{Math.round(item.amount)} point movement since the last scan.</p>
                     </article>
                   ))}
                 </div>
@@ -294,7 +294,7 @@ export default function PatternHistoryDashboard() {
               <div className={styles.historyHeader}>
                 <div>
                   <p className={styles.sectionEyebrow}>Pattern History</p>
-                  <h2 className={styles.historyTitle}>Your evolving record.</h2>
+                  <h2 className={styles.historyTitle}>Your record over time.</h2>
                 </div>
               </div>
               <div className={styles.historyList}>
@@ -307,7 +307,7 @@ export default function PatternHistoryDashboard() {
                         <p className={styles.historyTheme}>{entry.report.primaryPattern.theme}</p>
                         <p className={styles.historySummary}>{entry.selectedSummary}</p>
                         <div className={styles.historyPills}>
-                          {entry.preferredStyle ? <span className={styles.historyPill}>Preferred summary: {entry.preferredStyle}</span> : null}
+                          {entry.preferredStyle ? <span className={styles.historyPill}>Summary: {entry.preferredStyle}</span> : null}
                           <span className={styles.historyPill} style={{ borderColor: `${getSoulScopeNoteColor(supportingNote)}44`, color: getSoulScopeNoteColor(supportingNote), background: `${getSoulScopeNoteColor(supportingNote)}12` }}>Signal detail: {supportingNote}</span>
                         </div>
                         <div className={styles.historyDate}>{formatScanTime(entry.scan.created_at)}</div>
@@ -322,7 +322,7 @@ export default function PatternHistoryDashboard() {
         ) : null}
 
         {!loading && !error && !latestEntry ? (
-          <div className={styles.stateCard}>No scans saved yet. Start a scan to create your first pattern record.</div>
+          <div className={styles.stateCard}>No scans saved yet. Start a scan to see your first pattern.</div>
         ) : null}
       </main>
     </div>

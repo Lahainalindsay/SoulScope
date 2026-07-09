@@ -17,7 +17,7 @@ function polarToCartesian(cx: number, cy: number, radius: number, angleDeg: numb
 
 export default function NoteAuraMap({
   noteEnergies,
-  title = "Your Resonance Map",
+  title = "Signal Map",
 }: NoteAuraMapProps) {
   if (!noteEnergies.length) return null;
 

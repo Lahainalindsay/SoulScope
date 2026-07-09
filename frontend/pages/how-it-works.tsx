@@ -7,25 +7,25 @@ import styles from "./HowItWorks.module.css";
 
 const steps = [
   {
-    title: "Guided Whole-Self Capture",
-    description: "A short guided voice reflection creates a natural sample for analysis.",
+    title: "Guided Capture",
+    description: "A short guided reflection creates a natural first signal.",
     details: [
-      "Prompts are merged into one Resonance Profile",
+      "Prompts are combined into one pattern view",
       "The protocol samples baseline speech, emotional expression, and reflective language",
       "You speak naturally; there is no performance standard",
     ],
   },
   {
     title: "Pattern Measurement",
-    description: "Voice characteristics are measured and organized into broader pattern groups.",
+    description: "Voice characteristics are measured and organized into broader human patterns.",
     details: [
-      "The voice remains the sensing mechanism, not the product",
+      "Voice is the first sensing lens, not the whole product",
       "Musical notes are kept internally as a stable organizing model",
       "The interface translates those notes into human systems and observed tendencies",
     ],
   },
   {
-    title: "Whole-Self Interpretation",
+    title: "Whole-Self Observation",
     description:
       "Observed patterns are translated into practical insights across mental, emotional, physical, and behavioral systems.",
     details: [
@@ -35,7 +35,7 @@ const steps = [
     ],
   },
   {
-    title: "Rebalancing Guidance",
+    title: "Practical Next Step",
     description:
       "Insights are paired with supportive actions designed to encourage balance, recovery, and adaptability.",
     details: [
@@ -59,14 +59,14 @@ export default function HowItWorks() {
         <main className={styles.shell}>
           <section className={styles.hero}>
             <p className={styles.eyebrow}>How It Works</p>
-            <h1 className={styles.title}>Voice analysis translated into whole-self insight.</h1>
+            <h1 className={styles.title}>A new way to observe yourself.</h1>
             <p className={styles.lead}>
-              SoulScope treats the voice as a sensing mechanism for patterns that may correlate with
-              mental clarity, emotional expression, physical load, recovery, and behavioral momentum.
+              SoulScope starts with the voice as a natural signal, then translates subtle patterns into
+              observations about clarity, expression, load, recovery, and direction.
             </p>
             <div className={styles.actions}>
               <Link href="/scan" className={styles.primaryButton}>
-                Start Resonance Scan
+                Start New Scan
               </Link>
             </div>
           </section>
@@ -90,17 +90,17 @@ export default function HowItWorks() {
 
           <section className={styles.frameCard}>
             <p className={styles.sectionEyebrow}>How the result is framed</p>
-            <h2 className={styles.sectionTitle}>Observed patterns first. Human meaning second.</h2>
+            <h2 className={styles.sectionTitle}>Observed signals first. Human meaning second.</h2>
             <p className={styles.frameText}>
-              The Resonance Report starts with observed voice patterns. Those patterns are then translated
-              through the SoulScope system into human themes such as clarity, expression, tension,
-              recovery, motivation, and adaptability.
+              The insight starts with observed signal patterns. Those patterns are then translated through
+              the SoulScope system into human themes such as clarity, expression, tension, recovery,
+              motivation, and adaptability.
             </p>
           </section>
 
           <section className={styles.researchCard}>
             <p className={styles.sectionEyebrow}>Research Context</p>
-            <h2 className={styles.sectionTitle}>The evidence base behind the framing.</h2>
+            <h2 className={styles.sectionTitle}>The evidence context behind the framing.</h2>
             <p className={styles.validationNote}>{VALIDATION_NOTE}</p>
             <div className={styles.referenceGrid}>
               {RESEARCH_REFERENCES.map((reference) => (

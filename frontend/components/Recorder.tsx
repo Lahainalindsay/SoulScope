@@ -293,7 +293,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(
             disabled={isRecording}
             className="rounded-full border px-4 py-2"
           >
-            {isRecording ? "Listening…" : "Start Resonance Scan"}
+            {isRecording ? "Listening…" : "Start Scan"}
           </button>
         )}
 

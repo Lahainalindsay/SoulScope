@@ -18,7 +18,7 @@ export default function LoginPage() {
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    setStatus("Signing in with Supabase...");
+    setStatus("Opening your private space...");
     setIsSubmitting(true);
 
     try {
@@ -30,17 +30,17 @@ export default function LoginPage() {
       }
 
       if (!data.session) {
-        setError("Supabase accepted the request but did not return a session. Confirm your email, then try again.");
+        setError("We could not open a session yet. Confirm your email, then try again.");
         setStatus("");
         return;
       }
 
       clearLocalDevSession();
-      setStatus("Signed in. Redirecting...");
+      setStatus("Signed in. Opening today.");
       await router.push(DEFAULT_AUTH_HOME);
     } catch (error) {
       console.error("Login request failed", error);
-      setError(error instanceof Error ? error.message : "Login request failed.");
+      setError(error instanceof Error ? error.message : "Sign in could not be completed.");
       setStatus("");
     } finally {
       setIsSubmitting(false);
@@ -50,7 +50,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black to-violet-900 flex items-center justify-center text-white px-4">
       <form className="bg-zinc-900 p-8 rounded-xl shadow-xl w-full max-w-md" onSubmit={handleLogin}>
-        <h2 className="text-2xl font-bold mb-4 text-yellow-300">Log In</h2>
+        <h2 className="text-2xl font-bold mb-4 text-yellow-300">Sign in</h2>
         <input
           type="email"
           placeholder="Email"
@@ -74,10 +74,10 @@ export default function LoginPage() {
           disabled={isSubmitting}
           className="w-full bg-yellow-300 text-black py-2 rounded font-semibold shadow disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting ? "Signing in..." : "Login"}
+          {isSubmitting ? "Signing in..." : "Open Today"}
         </button>
         <p className="mt-4 text-sm text-center">
-          No account?{" "}
+          New to SoulScope?{" "}
           <Link href="/auth/signup" className="text-yellow-300 underline">
             Sign up
           </Link>

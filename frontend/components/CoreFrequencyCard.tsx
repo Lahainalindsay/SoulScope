@@ -7,8 +7,8 @@ interface Props {
 
 const statusCopy: Record<Status, string> = {
   idle: "Calibrating",
-  loading: "Analyzing",
-  done: "Synchronized",
+  loading: "Observing",
+  done: "Ready",
 };
 
 const statusClasses: Record<Status, string> = {
@@ -24,16 +24,15 @@ export default function CoreFrequencyCard({ status, onSimulate }: Props) {
     <section className="frequency-card">
       <div className="frequency-card__header">
         <div>
-          <p className="hero__eyebrow">Core Resonance</p>
-          <p className="frequency-card__value">Resonance Profile</p>
+          <p className="hero__eyebrow">Core Signal</p>
+          <p className="frequency-card__value">Pattern Insight</p>
         </div>
         <span className={statusClasses[status]}>{statusCopy[status]}</span>
       </div>
 
       <p className="frequency-card__copy">
-        Monitoring observed tendencies across mental clarity, physical load, recovery, and behavioral
-        momentum. When the profile is ready, SoulScope surfaces practical guidance for the current state
-        of your system.
+        Observing tendencies across mental clarity, physical load, recovery, and behavioral momentum.
+        When the insight is ready, SoulScope surfaces practical guidance for the current state of your system.
       </p>
 
       <div className="frequency-card__controls">
@@ -42,7 +41,7 @@ export default function CoreFrequencyCard({ status, onSimulate }: Props) {
           onClick={onSimulate}
           disabled={status === "loading"}
         >
-          {status === "loading" ? "Mapping patterns..." : "Simulate analysis"}
+          {status === "loading" ? "Reading patterns..." : "Simulate insight"}
         </button>
         <div className="frequency-card__signal">
           {signalPills.map((pill) => (

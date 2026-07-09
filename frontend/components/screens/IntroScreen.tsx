@@ -11,12 +11,12 @@ export default function IntroScreen({ eyebrow, title, summary }: IntroScreenProp
       <h2 className="panel__title">{title}</h2>
       <p className="panel__description">{summary}</p>
       <ul>
-        <li>Sustained vowel → jitter, shimmer, HNR, pitch stability, resonance support.</li>
-        <li>Guided speech → pauses, cadence, expression, cognitive load, and directional change.</li>
-        <li>ReactivityMetrics → baseline vs challenge vs recovery.</li>
+        <li>Sustained vowel to pitch stability, texture, and support markers.</li>
+        <li>Guided speech to pauses, cadence, expression, cognitive load, and directional change.</li>
+        <li>Reactivity signals to baseline, challenge, and recovery comparison.</li>
       </ul>
       <p className="panel__description">
-        After the guided capture, SoulScope translates the available patterns into a Resonance Profile.
+        After the guided capture, SoulScope translates the available patterns into a personal insight.
       </p>
     </div>
   );

@@ -300,7 +300,7 @@ export default function ScanAnalyzingPage() {
   return (
     <>
       <Head>
-        <title>Building Your Pattern Report | SoulScope</title>
+        <title>Preparing Your Insight | SoulScope</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <div className={styles.page}>
@@ -308,20 +308,20 @@ export default function ScanAnalyzingPage() {
         <main className={styles.shell}>
           <section className={styles.panel}>
             <article className={styles.heroCard}>
-              <p className={styles.eyebrow}>Building Pattern Report</p>
-              <h1 className={styles.title}>Mapping your current resonance…</h1>
-              <p className={styles.lead}>Analyzing, saving, and opening your results.</p>
+              <p className={styles.eyebrow}>Preparing Insight</p>
+              <h1 className={styles.title}>Reading your current pattern...</h1>
+              <p className={styles.lead}>Analyzing your signals, saving the scan, and opening your insight.</p>
               <div className={styles.mapVisual}><span /><span /><span /></div>
               {error ? (
                 <div className={styles.errorBox}>
                   <p>{error}</p>
-                  <button type="button" className={styles.retryButton} onClick={() => router.replace("/scan")}>Start New Scan</button>
+                  <button type="button" className={styles.retryButton} onClick={() => router.replace("/scan")}>Begin Again</button>
                 </div>
               ) : (
                 <ul className={styles.statusList}>
-                  <li>Analyzing guided prompts</li>
+                  <li>Reading guided responses</li>
                   <li>Saving scan result</li>
-                  <li>Opening results page</li>
+                  <li>Opening your insight</li>
                 </ul>
               )}
             </article>

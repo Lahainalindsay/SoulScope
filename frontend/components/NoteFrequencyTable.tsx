@@ -216,7 +216,7 @@ const SINGING_BOWL_ROWS: SingingBowlRow[] = [
     note: "F#",
     chakra: "Thought-form / joy center",
     themes: "Thought-form manifestation, instant karma, direct physical response to thought, joy, and spontaneous laughter.",
-    bodyAreas: "Thought-form body / energetic center",
+    bodyAreas: "Thought-form body / reference center",
     use: "Used to assist alignment between thought and embodiment and support joy.",
   },
   {
@@ -428,11 +428,11 @@ export default function NoteFrequencyTable() {
         </div>
 
         <div className={styles.infoCard}>
-          <p className={styles.blockEyebrow}>Energy Centers</p>
+          <p className={styles.blockEyebrow}>Reference Centers</p>
           <h3 className={styles.cardTitle}>Chakra and sense-note alignment.</h3>
           <p className={styles.cardText}>
             This section captures the chakra-based solfege interpretation you provided as a separate
-            Western energetic reference layer.
+            Western reference layer.
           </p>
           <div className={styles.tableShell}>
             <table className={styles.table}>
@@ -544,7 +544,7 @@ export default function NoteFrequencyTable() {
           </div>
 
           <div className={styles.infoCard}>
-            <p className={styles.blockEyebrow}>Method</p>
+            <p className={styles.blockEyebrow}>Practice</p>
             <h3 className={styles.cardTitle}>Practice steps captured from the paper.</h3>
             <ul className={styles.findingsList}>
               {SWARASAN_METHOD_STEPS.map((step) => (

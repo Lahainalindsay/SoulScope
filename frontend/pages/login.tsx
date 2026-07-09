@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: any) => {
     e.preventDefault();
-    setStatus("Logging in...");
+    setStatus("Opening your private space...");
     setIsSubmitting(true);
 
     try {
@@ -28,16 +28,16 @@ export default function LoginPage() {
       }
 
       if (!data.session) {
-        setStatus("Supabase accepted the request but did not return a session. Confirm your email, then try again.");
+        setStatus("We could not open a session yet. Confirm your email, then try again.");
         return;
       } else {
         clearLocalDevSession();
-        setStatus("Success! Redirecting...");
+        setStatus("Signed in. Opening today.");
         await router.push(DEFAULT_AUTH_HOME);
       }
     } catch (error) {
       console.error("Login request failed", error);
-      setStatus(error instanceof Error ? error.message : "Login request failed.");
+      setStatus(error instanceof Error ? error.message : "Sign in could not be completed.");
     } finally {
       setIsSubmitting(false);
     }
@@ -45,7 +45,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-[#0D0D0D] to-[#1c1c1c] text-white flex items-center justify-center relative">
-      {/* Sacred SVG overlay */}
       <svg className="absolute top-10 left-1/2 -translate-x-1/2 opacity-5" width="400" height="400" viewBox="0 0 200 200">
         <circle cx="100" cy="100" r="90" stroke="#F5C144" strokeWidth="0.5" fill="none" />
         <path d="M100,10 Q190,100 100,190 Q10,100 100,10" stroke="#6C4D9F" strokeWidth="0.3" fill="none" />
@@ -53,7 +52,7 @@ export default function LoginPage() {
 
       <form onSubmit={handleLogin} className="w-full max-w-md bg-black/60 backdrop-blur-md p-8 rounded-xl border border-[#333] shadow-2xl">
         <h1 className="text-3xl font-serif mb-4 text-[var(--cosmic-violet)] tracking-wide">Welcome to SoulScope</h1>
-        <p className="text-sm text-gray-400 mb-6">Log in to access your energetic dashboard.</p>
+        <p className="text-sm text-gray-400 mb-6">Sign in to return to your private pattern home.</p>
 
         <label className="block mb-4">
           <span className="text-sm text-gray-300">Email</span>
@@ -82,13 +81,13 @@ export default function LoginPage() {
           disabled={isSubmitting}
           className="w-full bg-[var(--electric-cyan)] text-black py-2 rounded font-bold transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting ? "Signing in..." : "Enter SoulScope"}
+          {isSubmitting ? "Signing in..." : "Open Today"}
         </button>
 
         <p className="text-sm text-center mt-4 text-gray-400">
           Don&apos;t have an account?{" "}
           <Link href="/auth/signup" className="text-[var(--gold-illumination)] hover:underline">
-            Start your free trial →
+            Create an account
           </Link>
         </p>
 

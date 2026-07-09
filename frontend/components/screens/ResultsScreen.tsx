@@ -16,7 +16,7 @@ export default function ResultsScreen({ ready, loading, result, error }: Results
   return (
     <div className="results-grid">
       <div className="result-gauge">
-        <p>Core Resonance</p>
+        <p>Core Signal</p>
         <div className="result-gauge__circle">
           <span>{gaugeDisplay}</span>
           <small>{gaugeLabel}</small>
@@ -25,7 +25,7 @@ export default function ResultsScreen({ ready, loading, result, error }: Results
       </div>
       <div className="result-cards">
         <article className="result-card">
-          <h4>Body Resonance</h4>
+          <h4>Body Signal</h4>
           <p>
             Index:{" "}
             {result ? result.body_resonance.toFixed(2) : loading ? "…" : "—"}
@@ -37,7 +37,7 @@ export default function ResultsScreen({ ready, loading, result, error }: Results
           </ul>
         </article>
         <article className="result-card">
-          <h4>Expression Resonance</h4>
+          <h4>Expression Signal</h4>
           <p>
             Index:{" "}
             {result ? result.soul_resonance.toFixed(2) : loading ? "…" : "—"}
@@ -48,7 +48,7 @@ export default function ResultsScreen({ ready, loading, result, error }: Results
           </ul>
         </article>
         <article className="result-card">
-          <h4>Heart–Mind Resonance</h4>
+          <h4>Heart-Mind Signal</h4>
           <p>
             Index:{" "}
             {result ? result.heart_mind_resonance.toFixed(2) : loading ? "…" : "—"}
@@ -61,7 +61,7 @@ export default function ResultsScreen({ ready, loading, result, error }: Results
       </div>
       <div className="result-actions">
         <button className="wizard-button" disabled={!result}>
-          View Rebalancing Guidance
+          View Suggested Focus
         </button>
         <button className="wizard-button wizard-button--ghost" disabled={!result}>
           View Load Patterns
@@ -71,12 +71,12 @@ export default function ResultsScreen({ ready, loading, result, error }: Results
         </button>
       </div>
       <p className="panel__description">
-        Patterns are organized into a Resonance Profile for reflection, not diagnosis.
+        Patterns are organized into an insight for reflection, not diagnosis.
       </p>
       {error && <p className="wizard-error">{error}</p>}
       {!ready && (
         <p className="wizard-hint">
-          The Resonance Report becomes available after baseline, voice, challenge, and recovery data are captured.
+          Your insight becomes available after baseline, voice, challenge, and recovery data are captured.
         </p>
       )}
     </div>

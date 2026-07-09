@@ -157,7 +157,7 @@ export default function GuidedScanQuestionPage() {
   return (
     <>
       <Head>
-        <title>{question.title} | SoulScope Resonance Scan</title>
+        <title>{question.title} | SoulScope Scan</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -168,7 +168,7 @@ export default function GuidedScanQuestionPage() {
             <div>
               <p className={styles.eyebrow}>{stepLabel}</p>
               <h1 className={styles.title}>Answer naturally.</h1>
-              <p className={styles.subtitle}>Read the question first, then keep your face comfortably in view while you answer.</p>
+              <p className={styles.subtitle}>Read the prompt first, then keep your face comfortably in view while you respond.</p>
             </div>
             <div className={`${styles.statusPill} ${signalClass(liveSample?.dbfs ?? -120)}`}>{signalText(liveSample?.dbfs ?? -120)}</div>
           </div>
@@ -192,8 +192,8 @@ export default function GuidedScanQuestionPage() {
                     <div className={styles.cameraPanel}>
                       <div className={styles.cameraHeader}>
                         <div>
-                          <p className={styles.sectionLabel}>Camera</p>
-                          <p className={styles.cameraNote}>Keep your face comfortably in view while answering naturally.</p>
+                          <p className={styles.sectionLabel}>Visual Signal</p>
+                          <p className={styles.cameraNote}>Keep your face comfortably in view while responding naturally.</p>
                         </div>
                       </div>
                       <FaceReader active={router.isReady} tracking={isRecording} calibrating={isCalibrating} onMetricsChange={setCameraMetrics} onSummaryChange={handleCameraSummaryChange} onCalibrationComplete={handleCalibrationComplete} />

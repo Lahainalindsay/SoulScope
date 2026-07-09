@@ -83,7 +83,7 @@ export default function ResultDetailPage() {
         }
       } catch (fetchError) {
         console.error("Failed to fetch scan from Supabase", fetchError);
-        setError(fetchError instanceof Error ? fetchError.message : "Could not load this Resonance Report.");
+        setError(fetchError instanceof Error ? fetchError.message : "Could not load this insight.");
         setScanRow(null);
         setScan(null);
       } finally {
@@ -114,7 +114,7 @@ export default function ResultDetailPage() {
           report,
         });
       } catch (persistError) {
-        console.error("Failed to backfill canonical resonance report", persistError);
+        console.error("Failed to backfill canonical report", persistError);
       }
     })();
   }, [id, report]);
@@ -177,10 +177,10 @@ export default function ResultDetailPage() {
     <div className={styles.page}>
       <div className={styles.gridOverlay} />
       <main className={styles.shell}>
-        {loading ? <div className={styles.stateCard}>Retrieving your latest insight...</div> : null}
+        {loading ? <div className={styles.stateCard}>Opening your reflection...</div> : null}
         {!loading && error ? <div className={`${styles.stateCard} ${styles.stateError}`}>{error}</div> : null}
         {!loading && !error && !report ? (
-          <div className={styles.stateCard}>No pattern report found for this scan.</div>
+          <div className={styles.stateCard}>No reflection found for this scan.</div>
         ) : null}
 
         {!loading && !error && report && scan ? (
@@ -202,8 +202,8 @@ export default function ResultDetailPage() {
 
             <section className={styles.footerNote}>
               <p>
-                SoulScope uses voice as the sensing mechanism and translates observed tendencies into a
-                private human pattern interpretation system.
+                SoulScope uses voice as the first sensing lens and translates observed tendencies into a
+                private human pattern insight.
               </p>
               <p>{scan?.caution}</p>
               <div className={styles.footerAction}>

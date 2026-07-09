@@ -89,7 +89,7 @@ export default function AuthDebugPage() {
             Log In
           </Link>
           <Link href="/scan" className="rounded border border-white/20 px-4 py-2 text-sm text-white">
-            Resonance Scan
+            New Scan
           </Link>
         </div>
       </section>

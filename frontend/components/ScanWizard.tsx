@@ -50,9 +50,9 @@ const steps: StepDefinition[] = [
     id: "intro",
     label: "Intro",
     eyebrow: "Screen 1",
-    title: "Resonance Scan",
+    title: "New Scan",
     summary:
-      "This Resonance Scan uses voice as a sensing mechanism to surface patterns that may be associated with clarity, expression, load, recovery, and adaptability.",
+      "This scan uses voice as the first sensing lens to surface patterns that may be associated with clarity, expression, load, recovery, and adaptability.",
   },
   {
     id: "sensors",
@@ -60,7 +60,7 @@ const steps: StepDefinition[] = [
     eyebrow: "Screen 2",
     title: "Sensor check",
     summary:
-      "Verify that optional sensors are streaming clean signals before the Resonance Scan begins.",
+      "Verify that optional sensors are streaming clean signals before the scan begins.",
   },
   {
     id: "baseline",
@@ -98,9 +98,9 @@ const steps: StepDefinition[] = [
     id: "results",
     label: "Insights",
     eyebrow: "Screen 7",
-    title: "Resonance Report",
+    title: "Pattern Insight",
     summary:
-      "Combine available signals into a Resonance Profile focused on mental, emotional, physical, and behavioral insight.",
+      "Combine available signals into a pattern insight focused on mental, emotional, physical, and behavioral state.",
   },
 ];
 
