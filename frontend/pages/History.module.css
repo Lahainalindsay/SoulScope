@@ -63,6 +63,54 @@
   color: rgba(226, 232, 240, 0.82);
 }
 
+.heroLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 28px;
+  align-items: end;
+}
+
+.heroMeta {
+  margin: 20px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.68);
+}
+
+.heroSummaryPanel {
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(226, 232, 240, 0.76);
+}
+
+.heroSummaryPanel strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 24px;
+  line-height: 1.1;
+  color: #ffffff;
+}
+
+.heroSummaryPanel span {
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.heroPanelLabel {
+  margin-top: 0 !important;
+  font-size: 10px !important;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(103, 232, 249, 0.82);
+}
+
 .newScanActions {
   display: flex;
   flex-wrap: wrap;
@@ -402,7 +450,7 @@
 
 .trendInsightGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-top: 20px;
 }
@@ -475,6 +523,13 @@
   color: rgba(226, 232, 240, 0.8);
 }
 
+.historyTheme {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: rgba(226, 232, 240, 0.9);
+}
+
 .historyPills {
   display: flex;
   flex-wrap: wrap;
@@ -520,7 +575,8 @@
 
 @media (max-width: 980px) {
   .topGrid,
-  .historyLatestSection {
+  .historyLatestSection,
+  .heroLayout {
     grid-template-columns: 1fr;
   }
 

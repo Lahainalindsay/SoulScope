@@ -9,8 +9,8 @@ import { clearLocalDevSession, getLocalDevSession } from "../lib/localSession";
 import styles from "./Navbar.module.css";
 
 const NAV_ITEMS = [
-  { href: "/scan", label: "Resonance Scan" },
-  { href: "/dashboard", label: "Pattern History" },
+  { href: "/scan", label: "New Scan" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/how-it-works", label: "How it works" },
 ];
 

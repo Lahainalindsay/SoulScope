@@ -32,11 +32,32 @@ type HistoryEntry = {
   scan: ScanRow;
   report: ReturnType<typeof buildSoulScopeReport>;
   selectedStyle: StoryPreferenceRow["selected_style"] | null;
+  preferredStyle: StoryPreferenceRow["selected_style"] | null;
   selectedSummary: string;
 };
 
 function preferenceKey(scan: ScanRow) {
   return scan.id ?? scan.created_at;
+}
+
+function formatScanDate(value?: string) {
+  if (!value) return "No scan recorded yet";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function formatScanTime(value?: string) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function getSelectedVariant(report: ReturnType<typeof buildSoulScopeReport>, selectedStyle: HistoryEntry["selectedStyle"]) {
@@ -54,7 +75,7 @@ function buildDashboardFocus(entry: HistoryEntry | null) {
   return "Keep the rhythm that is already helping you feel steady.";
 }
 
-function buildLatestHiddenPattern(entry: HistoryEntry | null) {
+function buildLatestPatternSignal(entry: HistoryEntry | null) {
   const id = entry?.report.primaryPattern.id;
   if (id === "guarded-but-responsive") return "You may be staying present while part of you is checking whether it is safe to soften.";
   if (id === "overextended-achiever") return "Capability is online, but recovery may be lagging behind output.";
@@ -65,24 +86,24 @@ function buildLatestHiddenPattern(entry: HistoryEntry | null) {
   return "Your latest scan will reveal the deeper pattern underneath the surface story.";
 }
 
-function buildJourneyInsight(entries: HistoryEntry[]) {
-  if (!entries.length) return "Your resonance journey begins with your first saved scan.";
-  if (entries.length === 1) return "You have one saved reflection so far. Your next scan will begin showing what changes over time.";
+function buildPatternHistoryInsight(entries: HistoryEntry[]) {
+  if (!entries.length) return "Your pattern history begins with your first saved scan.";
+  if (entries.length === 1) return "One scan is saved. A second scan will begin showing how your internal state changes over time.";
   const latest = entries[0].report.primaryPattern.name;
   const previous = entries[1].report.primaryPattern.name;
-  if (latest === previous) return `${latest} is repeating across your latest scans.`;
-  return `Your latest pattern shifted from ${previous} into ${latest}.`;
+  if (latest === previous) return `${latest} is repeating across your latest scans. That consistency is worth watching with care.`;
+  return `Your latest pattern moved from ${previous} into ${latest}. Your state is changing, not staying fixed.`;
 }
 
-function softDomainName(title: string) {
+function movementCategory(title: string) {
   if (title === "Recovery & Restoration") return "Recovery";
-  if (title === "Communication & Clarity") return "Communication";
-  if (title === "Connection & Support") return "Connection";
-  if (title === "Focus & Mental Load") return "Mental load";
-  if (title === "Emotional Expression") return "Emotional expression";
-  if (title === "Energy & Vitality") return "Energy";
+  if (title === "Communication & Clarity") return "Clarity";
+  if (title === "Connection & Support") return "Expression";
+  if (title === "Focus & Mental Load") return "Load";
+  if (title === "Emotional Expression") return "Expression";
+  if (title === "Energy & Vitality") return "Recovery";
   if (title === "Direction & Adaptability") return "Adaptability";
-  return title;
+  return "Direction";
 }
 
 function buildMovement(entries: HistoryEntry[]) {
@@ -96,7 +117,7 @@ function buildMovement(entries: HistoryEntry[]) {
       const delta = domain.score - before;
       const amount = Math.abs(delta);
       const direction = amount < 4 ? "Steady" : delta > 0 ? "Rising" : "Softening";
-      return { title: softDomainName(domain.title), direction, amount };
+      return { title: movementCategory(domain.title), direction, amount };
     })
     .filter((item): item is { title: string; direction: string; amount: number } => Boolean(item))
     .sort((a, b) => b.amount - a.amount)
@@ -115,7 +136,7 @@ export default function PatternHistoryDashboard() {
     const loadLocal = () => {
       const localSession = getLocalDevSession();
       if (!localSession) {
-        setError("Please sign in to view your resonance journey.");
+        setError("Please sign in to view your dashboard.");
         setLoading(false);
         return;
       }
@@ -124,8 +145,9 @@ export default function PatternHistoryDashboard() {
         setScans(raw ? (JSON.parse(raw) as ScanRow[]) : []);
         setPreferences({});
         setError(null);
-      } catch {
-        setError("Could not load your resonance journey.");
+      } catch (localError) {
+        console.error("Failed to load local scan history", localError);
+        setError("Could not load your dashboard.");
       } finally {
         setLoading(false);
       }
@@ -166,12 +188,16 @@ export default function PatternHistoryDashboard() {
       scan,
       report,
       selectedStyle: preference?.selected_style ?? selectedVariant?.style ?? null,
+      preferredStyle: preference?.selected_style ?? null,
       selectedSummary: preference?.selected_summary ?? selectedVariant?.summary ?? report.primaryPattern.explanation,
     };
   }), [preferences, scans]);
 
   const latestEntry = historyEntries[0] ?? null;
   const visibleEnergies = (latestEntry?.scan.result.noteEnergies ?? []).filter((entry) => entry.note !== "G");
+  const latestPatternSignal = buildLatestPatternSignal(latestEntry);
+  const patternHistoryInsight = buildPatternHistoryInsight(historyEntries);
+  const weeklyFocus = buildDashboardFocus(latestEntry);
   const movement = useMemo(() => buildMovement(historyEntries), [historyEntries]);
 
   return (
@@ -179,47 +205,67 @@ export default function PatternHistoryDashboard() {
       <div className={styles.gridOverlay} />
       <main className={styles.shell}>
         <section className={styles.newScanSection}>
-          <p className={styles.eyebrow}>Your Resonance Journey</p>
-          <h1 className={styles.newScanTitle}>Welcome back.</h1>
-          <p className={styles.newScanLead}>This is your living record of how your voice patterns shift over time.</p>
+          <p className={styles.eyebrow}>Dashboard</p>
+          <div className={styles.heroLayout}>
+            <div>
+              <p className={styles.heroMeta}>Latest Pattern</p>
+              <h1 className={styles.newScanTitle}>{latestEntry?.report.primaryPattern.name ?? "Your private pattern home."}</h1>
+              <p className={styles.newScanLead}>
+                {latestEntry?.report.primaryPattern.theme ?? "Start a scan to build a clear, personal record of your internal state over time."}
+              </p>
+            </div>
+            <div className={styles.heroSummaryPanel}>
+              <span className={styles.heroPanelLabel}>Last scan</span>
+              <strong>{formatScanDate(latestEntry?.scan.created_at)}</strong>
+              {latestEntry?.preferredStyle ? <span>Preferred summary: {latestEntry.preferredStyle}</span> : null}
+            </div>
+          </div>
           <div className={styles.newScanActions}>
-            <Link href="/scan" className={styles.primaryButton}>Start New Scan</Link>
-            {latestEntry?.scan.id ? <Link href={`/results/${latestEntry.scan.id}`} className={styles.secondaryButton}>View Latest Report</Link> : null}
+            {latestEntry?.scan.id ? <Link href={`/results/${latestEntry.scan.id}`} className={styles.primaryButton}>Open Latest Insight</Link> : null}
+            <Link href="/scan" className={latestEntry?.scan.id ? styles.secondaryButton : styles.primaryButton}>Start New Scan</Link>
           </div>
         </section>
 
-        {loading ? <div className={styles.stateCard}>Loading your resonance journey...</div> : null}
+        {loading ? <div className={styles.stateCard}>Loading your dashboard...</div> : null}
         {error ? <div className={`${styles.stateCard} ${styles.stateError}`}>{error}</div> : null}
 
         {!loading && !error && latestEntry ? (
           <>
             <section className={styles.historyLatestSection}>
               <article className={styles.historyLatestCard}>
-                <p className={styles.sectionEyebrow}>Current Story</p>
+                <p className={styles.sectionEyebrow}>Latest Insight</p>
                 <h2 className={styles.historyLatestTitle}>{latestEntry.report.primaryPattern.name}</h2>
                 <p className={styles.historyLatestTheme}>{latestEntry.report.primaryPattern.theme}</p>
+                <div className={styles.metaRow}>
+                  <span className={styles.metaItem}><strong>Scanned</strong> {formatScanTime(latestEntry.scan.created_at)}</span>
+                  {latestEntry.preferredStyle ? <span className={styles.metaItem}><strong>Summary</strong> {latestEntry.preferredStyle}</span> : null}
+                </div>
                 <p className={styles.historyLatestText}>{latestEntry.selectedSummary}</p>
+                <div className={styles.historyLatestActions}>
+                  {latestEntry.scan.id ? <Link href={`/results/${latestEntry.scan.id}`} className={styles.primaryButton}>Open Latest Insight</Link> : null}
+                  <Link href="/scan" className={styles.secondaryButton}>Start New Scan</Link>
+                </div>
               </article>
               <div className={styles.historyLatestMapContainer}>
-                <NoteAuraMap noteEnergies={visibleEnergies} title="Current Resonance Map" />
+                <NoteAuraMap noteEnergies={visibleEnergies} title="Signal Detail" />
               </div>
             </section>
 
             <section className={styles.trendInsightGrid}>
               <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>Latest Hidden Pattern</p>
-                <h3 className={styles.insightTitle}>Under the surface</h3>
-                <p className={styles.insightText}>{buildLatestHiddenPattern(latestEntry)}</p>
+                <p className={styles.insightLabel}>Latest Pattern</p>
+                <h3 className={styles.insightTitle}>What it may mean</h3>
+                <p className={styles.insightText}>{latestPatternSignal}</p>
               </article>
               <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>Journey Note</p>
+                <p className={styles.insightLabel}>Pattern History</p>
                 <h3 className={styles.insightTitle}>What is shifting</h3>
-                <p className={styles.insightText}>{buildJourneyInsight(historyEntries)}</p>
+                <p className={styles.insightText}>{patternHistoryInsight}</p>
               </article>
               <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>This Week&rsquo;s Focus</p>
-                <h3 className={styles.insightTitle}>Balance point</h3>
-                <p className={styles.insightText}>{buildDashboardFocus(latestEntry)}</p>
+                <p className={styles.insightLabel}>Next Action</p>
+                <h3 className={styles.insightTitle}>Today&rsquo;s focus</h3>
+                <p className={styles.insightText}>{weeklyFocus}</p>
               </article>
             </section>
 
@@ -227,14 +273,14 @@ export default function PatternHistoryDashboard() {
               <article className={styles.chartCard}>
                 <div className={styles.chartHeader}>
                   <div>
-                    <p className={styles.sectionEyebrow}>Movement Since Last Scan</p>
+                    <p className={styles.sectionEyebrow}>Movement Over Time</p>
                     <h2 className={styles.chartTitle}>What changed most.</h2>
-                    <p className={styles.chartLead}>No spaghetti graph. Just the clearest shifts from your previous scan.</p>
+                    <p className={styles.chartLead}>A clear read on the strongest shifts from your previous scan.</p>
                   </div>
                 </div>
                 <div className={styles.trendInsightGrid}>
                   {movement.map((item) => (
-                    <article key={item.title} className={styles.trendInsightCard}>
+                    <article key={`${item.title}-${item.direction}`} className={styles.trendInsightCard}>
                       <p className={styles.insightLabel}>{item.direction}</p>
                       <h3 className={styles.insightTitle}>{item.title}</h3>
                       <p className={styles.insightText}>{Math.round(item.amount)} point shift from last scan.</p>
@@ -247,25 +293,26 @@ export default function PatternHistoryDashboard() {
             <section className={styles.historySection}>
               <div className={styles.historyHeader}>
                 <div>
-                  <p className={styles.sectionEyebrow}>Resonance Journal</p>
-                  <h2 className={styles.historyTitle}>Your previous reflections</h2>
+                  <p className={styles.sectionEyebrow}>Pattern History</p>
+                  <h2 className={styles.historyTitle}>Your evolving record.</h2>
                 </div>
               </div>
               <div className={styles.historyList}>
                 {historyEntries.map((entry) => {
-                  const supportingNote = entry.scan.result.noteInterpretation?.primaryNote ?? entry.scan.result.dominantBandLabel ?? "—";
+                  const supportingNote = entry.scan.result.noteInterpretation?.primaryNote ?? entry.scan.result.dominantBandLabel ?? "-";
                   return (
                     <article key={entry.scan.id ?? entry.scan.created_at} className={styles.historyCard}>
                       <div className={styles.historyMain}>
                         <h3 className={styles.historyBand}>{entry.report.primaryPattern.name}</h3>
+                        <p className={styles.historyTheme}>{entry.report.primaryPattern.theme}</p>
                         <p className={styles.historySummary}>{entry.selectedSummary}</p>
                         <div className={styles.historyPills}>
-                          <span className={styles.historyPill} style={{ borderColor: `${getSoulScopeNoteColor(supportingNote)}44`, color: getSoulScopeNoteColor(supportingNote), background: `${getSoulScopeNoteColor(supportingNote)}12` }}>Marker {supportingNote}</span>
-                          <span className={styles.historyPill}>{entry.selectedStyle ?? "Direct"}</span>
+                          {entry.preferredStyle ? <span className={styles.historyPill}>Preferred summary: {entry.preferredStyle}</span> : null}
+                          <span className={styles.historyPill} style={{ borderColor: `${getSoulScopeNoteColor(supportingNote)}44`, color: getSoulScopeNoteColor(supportingNote), background: `${getSoulScopeNoteColor(supportingNote)}12` }}>Signal detail: {supportingNote}</span>
                         </div>
-                        <div className={styles.historyDate}>{new Date(entry.scan.created_at).toLocaleString()}</div>
+                        <div className={styles.historyDate}>{formatScanTime(entry.scan.created_at)}</div>
                       </div>
-                      <Link href={entry.scan.id ? `/results/${entry.scan.id}` : "/dashboard"} className={styles.secondaryButton}>Read Reflection</Link>
+                      <Link href={entry.scan.id ? `/results/${entry.scan.id}` : "/dashboard"} className={styles.secondaryButton}>Open Insight</Link>
                     </article>
                   );
                 })}
@@ -274,7 +321,9 @@ export default function PatternHistoryDashboard() {
           </>
         ) : null}
 
-        {!loading && !error && !latestEntry ? <div className={styles.stateCard}>No scans saved yet. Start a Resonance Scan to begin your Resonance Journey.</div> : null}
+        {!loading && !error && !latestEntry ? (
+          <div className={styles.stateCard}>No scans saved yet. Start a scan to create your first pattern record.</div>
+        ) : null}
       </main>
     </div>
   );

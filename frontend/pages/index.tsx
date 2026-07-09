@@ -111,7 +111,7 @@ export default function Home() {
               </p>
               <div className={styles.featureGrid}>
                 <div className={styles.featureCard}>
-                  <h3 className={styles.featureTitle}>1. Your Current Story</h3>
+                  <h3 className={styles.featureTitle}>1. Your Latest Pattern</h3>
                 </div>
                 <div className={styles.featureCard}>
                   <h3 className={styles.featureTitle}>2. What Is Working</h3>
