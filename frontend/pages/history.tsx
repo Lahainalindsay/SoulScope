@@ -1,14 +1,5 @@
-"use client";
+import PatternHistoryDashboard from "../components/PatternHistoryDashboard";
 
-import { useEffect } from "react";
-import { useRouter } from "next/router";
-
-export default function HistoryRedirectPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    void router.replace("/dashboard");
-  }, [router]);
-
-  return null;
+export default function HistoryPage() {
+  return <PatternHistoryDashboard mode="history" />;
 }

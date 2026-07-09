@@ -722,6 +722,11 @@
     grid-template-columns: 1fr;
   }
 
+  .historyHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .chartStats,
   .trendInsightGrid {
     grid-template-columns: 1fr;

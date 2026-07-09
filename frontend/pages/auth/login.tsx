@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabaseClient";
 import { clearLocalDevSession } from "../../lib/localSession";
+import styles from "../Auth.module.css";
 const DEFAULT_AUTH_HOME = "/dashboard";
 
 export default function LoginPage() {
@@ -48,41 +49,32 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black to-violet-900 flex items-center justify-center text-white px-4">
-      <form className="bg-zinc-900 p-8 rounded-xl shadow-xl w-full max-w-md" onSubmit={handleLogin}>
-        <h2 className="text-2xl font-bold mb-4 text-yellow-300">Sign in</h2>
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full px-4 py-2 mb-4 bg-black border border-zinc-700 rounded"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full px-4 py-2 mb-6 bg-black border border-zinc-700 rounded"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          required
-        />
-        {status && <p className="text-cyan-200 text-sm mb-4">{status}</p>}
-        {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-yellow-300 text-black py-2 rounded font-semibold shadow disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isSubmitting ? "Signing in..." : "Open Today"}
-        </button>
-        <p className="mt-4 text-sm text-center">
-          New to SoulScope?{" "}
-          <Link href="/auth/signup" className="text-yellow-300 underline">
-            Sign up
-          </Link>
+    <main className={styles.page}>
+      <section className={styles.card}>
+        <p className={styles.brand}>SoulScope</p>
+        <h1 className={styles.title}>Sign in</h1>
+        <p className={styles.lead}>Return to your private pattern space.</p>
+
+        <form className={styles.form} onSubmit={handleLogin}>
+          <label className={styles.field}>
+            <span className={styles.label}>Email</span>
+            <input className={styles.input} type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          </label>
+          <label className={styles.field}>
+            <span className={styles.label}>Password</span>
+            <input className={styles.input} type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+          </label>
+          {status ? <p className={styles.message}>{status}</p> : null}
+          {error ? <p className={styles.error}>{error}</p> : null}
+          <button type="submit" disabled={isSubmitting} className={styles.button}>
+            {isSubmitting ? "Signing in..." : "Open Today"}
+          </button>
+        </form>
+
+        <p className={styles.secondary}>
+          New to SoulScope? <Link href="/auth/signup" className={styles.link}>Create an account</Link>
         </p>
-      </form>
-    </div>
+      </section>
+    </main>
   );
 }

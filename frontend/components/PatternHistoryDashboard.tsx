@@ -135,7 +135,12 @@ function buildMovement(entries: HistoryEntry[]) {
     .slice(0, 3);
 }
 
-export default function PatternHistoryDashboard() {
+type PatternHistoryDashboardProps = {
+  mode?: "dashboard" | "history";
+};
+
+export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternHistoryDashboardProps) {
+  const isArchive = mode === "history";
   const session = useSession();
   const { isLoading: sessionLoading } = useSessionContext();
   const [loading, setLoading] = useState(true);
@@ -169,7 +174,7 @@ export default function PatternHistoryDashboard() {
         loadLocal();
         return;
       }
-      const { data, error: fetchError } = await supabase.from("scans").select("id, created_at, result").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(24);
+      const { data, error: fetchError } = await supabase.from("scans").select("id, created_at, result").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(isArchive ? 100 : 24);
       if (fetchError) {
         setError(fetchError.message);
         setLoading(false);
@@ -189,7 +194,7 @@ export default function PatternHistoryDashboard() {
       setLoading(false);
     };
     if (!sessionLoading) void load();
-  }, [session, sessionLoading]);
+  }, [isArchive, session, sessionLoading]);
 
   const historyEntries = useMemo<HistoryEntry[]>(() => scans.map((scan) => {
     const report = buildSoulScopeReport(scan.result);
@@ -211,6 +216,7 @@ export default function PatternHistoryDashboard() {
   const weeklyFocus = buildDashboardFocus(latestEntry);
   const reflectionPrompt = buildReflectionPrompt(latestEntry);
   const movement = useMemo(() => buildMovement(historyEntries), [historyEntries]);
+  const displayedHistoryEntries = isArchive ? historyEntries : historyEntries.slice(0, 3);
 
   return (
     <div className={styles.page}>
@@ -293,23 +299,26 @@ export default function PatternHistoryDashboard() {
             <section className={styles.historySection}>
               <div className={styles.historyHeader}>
                 <div>
-                  <p className={styles.sectionEyebrow}>Pattern History</p>
-                  <h2 className={styles.historyTitle}>Your record over time.</h2>
+                  <p className={styles.sectionEyebrow}>{isArchive ? "Pattern History" : "Recent Pattern History"}</p>
+                  <h2 className={styles.historyTitle}>{isArchive ? "Your complete record." : "Your latest scans."}</h2>
                 </div>
+                {!isArchive ? <Link href="/history" className={styles.secondaryButton}>View Full Pattern History</Link> : null}
               </div>
               <div className={styles.historyList}>
-                {historyEntries.map((entry) => {
+                {displayedHistoryEntries.map((entry) => {
                   const supportingNote = entry.scan.result.noteInterpretation?.primaryNote ?? entry.scan.result.dominantBandLabel ?? "-";
                   return (
                     <article key={entry.scan.id ?? entry.scan.created_at} className={styles.historyCard}>
                       <div className={styles.historyMain}>
                         <h3 className={styles.historyBand}>{entry.report.primaryPattern.name}</h3>
                         <p className={styles.historyTheme}>{entry.report.primaryPattern.theme}</p>
-                        <p className={styles.historySummary}>{entry.selectedSummary}</p>
-                        <div className={styles.historyPills}>
-                          {entry.preferredStyle ? <span className={styles.historyPill}>Summary: {entry.preferredStyle}</span> : null}
-                          <span className={styles.historyPill} style={{ borderColor: `${getSoulScopeNoteColor(supportingNote)}44`, color: getSoulScopeNoteColor(supportingNote), background: `${getSoulScopeNoteColor(supportingNote)}12` }}>Signal detail: {supportingNote}</span>
-                        </div>
+                        {isArchive ? <p className={styles.historySummary}>{entry.selectedSummary}</p> : null}
+                        {isArchive ? (
+                          <div className={styles.historyPills}>
+                            {entry.preferredStyle ? <span className={styles.historyPill}>Summary: {entry.preferredStyle}</span> : null}
+                            <span className={styles.historyPill} style={{ borderColor: `${getSoulScopeNoteColor(supportingNote)}44`, color: getSoulScopeNoteColor(supportingNote), background: `${getSoulScopeNoteColor(supportingNote)}12` }}>Signal detail: {supportingNote}</span>
+                          </div>
+                        ) : null}
                         <div className={styles.historyDate}>{formatScanTime(entry.scan.created_at)}</div>
                       </div>
                       <Link href={entry.scan.id ? `/results/${entry.scan.id}` : "/dashboard"} className={styles.secondaryButton}>Open Insight</Link>
