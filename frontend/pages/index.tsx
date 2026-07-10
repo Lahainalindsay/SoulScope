@@ -17,8 +17,6 @@ export default function HomePage() {
         <section className={styles.heroWrap}>
           <div className={styles.heroPanel}>
             <div className={styles.heroCopy}>
-              <p className={styles.eyebrow}>Private Self-Observation</p>
-
               <h1 className={styles.heroTitle}>
                 SoulScope
               </h1>

@@ -52,7 +52,6 @@ export default function Navbar() {
           <div className={styles.mark}>S</div>
           <div>
             <p className={styles.brandTitle}>SoulScope™</p>
-            <p className={styles.brandSub}>Private Pattern Observation</p>
           </div>
         </Link>
 
