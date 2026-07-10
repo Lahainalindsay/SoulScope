@@ -46,20 +46,34 @@
 
 .heroTitle {
   margin: 0;
-  max-width: 10ch;
+  max-width: none;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(3.4rem, 7vw, 6.2rem);
-  line-height: 0.93;
-  letter-spacing: -0.045em;
-  text-wrap: balance;
+  font-size: clamp(4.9rem, 9vw, 8.8rem);
+  font-weight: 500;
+  line-height: 0.86;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
   color: #f4f5fb;
+  text-shadow: 0 24px 72px rgba(0, 0, 0, 0.34);
+  overflow-wrap: anywhere;
+}
+
+.heroSubtitle {
+  margin: 18px 0 0;
+  max-width: 34rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.9rem, 3.2vw, 3.05rem);
+  font-weight: 400;
+  line-height: 1.04;
+  color: rgba(238, 243, 250, 0.92);
+  text-wrap: balance;
 }
 
 .heroLead {
-  margin: 28px 0 0;
+  margin: 26px 0 0;
   max-width: 32rem;
-  font-size: 1.18rem;
-  line-height: 1.65;
+  font-size: 1.12rem;
+  line-height: 1.7;
   color: rgba(235, 241, 249, 0.9);
 }
 
@@ -281,6 +295,7 @@
   }
 
   .heroTitle,
+  .heroSubtitle,
   .sectionTitle,
   .finalTitle {
     max-width: none;
@@ -310,8 +325,14 @@
   }
 
   .heroTitle {
-    font-size: clamp(2.7rem, 16vw, 4rem);
-    line-height: 0.94;
+    font-size: clamp(3rem, 16vw, 4.4rem);
+    line-height: 0.9;
+    letter-spacing: 0.045em;
+  }
+
+  .heroSubtitle {
+    font-size: clamp(1.55rem, 8vw, 2.25rem);
+    line-height: 1.08;
   }
 
   .heroLead,

@@ -17,11 +17,13 @@ export default function HomePage() {
         <section className={styles.heroWrap}>
           <div className={styles.heroPanel}>
             <div className={styles.heroCopy}>
-              <p className={styles.eyebrow}>SoulScope</p>
+              <p className={styles.eyebrow}>Private Self-Observation</p>
 
               <h1 className={styles.heroTitle}>
-                Observe your inner world
+                SoulScope
               </h1>
+
+              <p className={styles.heroSubtitle}>Observe your inner world</p>
 
               <p className={styles.heroLead}>
                 Your inner world is always expressing itself.
