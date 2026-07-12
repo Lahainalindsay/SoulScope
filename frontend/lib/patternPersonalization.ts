@@ -45,16 +45,83 @@ type ExpressionDefinition = {
   score: (scan: VoiceAnalysisResult, domains: UserResultDomain[]) => { score: number; evidence: string[] };
 };
 
-const domain = (domains: UserResultDomain[], title: UserResultDomain["title"]) => domains.find((item) => item.title === title);
+type BaselineSemantic = {
+  higher: string;
+  lower: string;
+  stable: string;
+};
+
+const REQUIRED_DOMAIN_TITLES: UserResultDomain["title"][] = [
+  "Energy & Vitality",
+  "Recovery & Restoration",
+  "Communication & Clarity",
+  "Emotional Expression",
+  "Connection & Support",
+  "Focus & Mental Load",
+  "Direction & Adaptability",
+  "Regulation",
+];
+
+const BASELINE_SEMANTICS: Record<UserResultDomain["title"], BaselineSemantic> = {
+  "Energy & Vitality": {
+    higher: "Energy appears more available than in your recent scans.",
+    lower: "Energy appears less available than in your recent scans.",
+    stable: "Energy remains within your usual recent range.",
+  },
+  "Recovery & Restoration": {
+    higher: "Recovery appears more available than in your recent scans.",
+    lower: "Recovery appears less available than in your recent scans.",
+    stable: "Recovery remains within your usual recent range.",
+  },
+  "Communication & Clarity": {
+    higher: "Communication clarity appears more available than in your recent scans.",
+    lower: "Communication clarity appears less available than in your recent scans.",
+    stable: "Communication clarity remains within your usual recent range.",
+  },
+  "Emotional Expression": {
+    higher: "Expression appears more available than in your recent scans.",
+    lower: "Expression appears less available than in your recent scans.",
+    stable: "Expression remains within your usual recent range.",
+  },
+  "Connection & Support": {
+    higher: "Connection and support appear more available than in your recent scans.",
+    lower: "Connection and support appear less available than in your recent scans.",
+    stable: "Connection and support remain within your usual recent range.",
+  },
+  "Focus & Mental Load": {
+    higher: "Mental demand appears elevated compared with your recent baseline.",
+    lower: "Mental demand appears lighter than in your recent scans.",
+    stable: "Mental demand remains within your usual recent range.",
+  },
+  "Direction & Adaptability": {
+    higher: "Adaptability appears more available than in your recent scans.",
+    lower: "Adaptability appears less available than in your recent scans.",
+    stable: "Adaptability remains within your usual recent range.",
+  },
+  Regulation: {
+    higher: "Regulation appears steadier than in your recent scans.",
+    lower: "Regulation appears less steady than in your recent scans.",
+    stable: "Regulation remains within your usual recent range.",
+  },
+};
+
+const domain = (domains: UserResultDomain[], title: UserResultDomain["title"]) =>
+  domains.find((item) => item.title === title);
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
-const overactiveCount = (scan: VoiceAnalysisResult) => (scan.noteEnergies ?? []).filter((note) => note.status === "overactive").length;
-const underactiveCount = (scan: VoiceAnalysisResult) => (scan.noteEnergies ?? []).filter((note) => note.status === "underactive").length;
-const balancedCount = (scan: VoiceAnalysisResult) => (scan.noteEnergies ?? []).filter((note) => note.status === "balanced").length;
+const overactiveCount = (scan: VoiceAnalysisResult) =>
+  (scan.noteEnergies ?? []).filter((note) => note.status === "overactive").length;
+const balancedCount = (scan: VoiceAnalysisResult) =>
+  (scan.noteEnergies ?? []).filter((note) => note.status === "balanced").length;
 const noteSpread = (scan: VoiceAnalysisResult) => {
   const values = (scan.noteEnergies ?? []).map((note) => note.relativeEnergy);
   return values.length ? Math.max(...values) - Math.min(...values) : 0;
 };
-const strongestTwoShare = (scan: VoiceAnalysisResult) => (scan.noteEnergies ?? []).slice().sort((a, b) => b.relativeEnergy - a.relativeEnergy).slice(0, 2).reduce((sum, note) => sum + note.relativeEnergy, 0);
+const strongestTwoShare = (scan: VoiceAnalysisResult) =>
+  (scan.noteEnergies ?? [])
+    .slice()
+    .sort((a, b) => b.relativeEnergy - a.relativeEnergy)
+    .slice(0, 2)
+    .reduce((sum, note) => sum + note.relativeEnergy, 0);
 
 const expressionLibrary: Record<PatternId, ExpressionDefinition[]> = {
   "overextended-achiever": [
@@ -248,15 +315,40 @@ const expressionLibrary: Record<PatternId, ExpressionDefinition[]> = {
   ],
 };
 
+export function hasValidDomainData(domains: UserResultDomain[]): boolean {
+  if (domains.length < REQUIRED_DOMAIN_TITLES.length) return false;
+  return REQUIRED_DOMAIN_TITLES.every((title) => {
+    const item = domains.find((candidate) => candidate.title === title);
+    return Boolean(item && Number.isFinite(item.score) && item.score >= 0 && item.score <= 100);
+  });
+}
+
+export function isValidBaselineScan(scan: VoiceAnalysisResult, domains: UserResultDomain[]): boolean {
+  const rejectionReason = (scan.analysisDebug as { rejectionReason?: string } | undefined)?.rejectionReason;
+  const analyzedDuration = scan.voiceDynamics?.analyzedDurationMs ?? scan.captureDurationMs ?? 0;
+  const notes = scan.noteEnergies ?? [];
+
+  if (scan.voiceDynamics?.captureQuality === "poor") return false;
+  if (rejectionReason) return false;
+  if (!Number.isFinite(scan.coreFrequencyHz) || scan.coreFrequencyHz <= 0) return false;
+  if (!Number.isFinite(scan.spectralCentroidHz) || scan.spectralCentroidHz <= 0) return false;
+  if (!Number.isFinite(scan.resonanceScore)) return false;
+  if (analyzedDuration <= 0) return false;
+  if (notes.length < 3 || notes.some((note) => !Number.isFinite(note.score) || !Number.isFinite(note.relativeEnergy))) return false;
+  if (!hasValidDomainData(domains)) return false;
+  return true;
+}
+
 export function buildPatternExpression(patternId: PatternId, scan: VoiceAnalysisResult, domains: UserResultDomain[]): PatternExpression {
-  if (scan.voiceDynamics?.captureQuality === "poor" || !(scan.noteEnergies ?? []).length) {
+  if (!isValidBaselineScan(scan, domains)) {
     return {
       id: "signals-still-resolving",
       title: "Signals Are Still Resolving",
       summary: "This scan did not provide enough reliable evidence for a more precise pattern expression.",
-      matchedSignals: [scan.voiceDynamics?.captureQuality === "poor" ? "Poor capture quality" : "Limited signal evidence"],
+      matchedSignals: [scan.voiceDynamics?.captureQuality === "poor" ? "Poor capture quality" : "Incomplete or limited scan evidence"],
     };
   }
+
   const ranked = expressionLibrary[patternId]
     .map((item) => ({ item, result: item.score(scan, domains) }))
     .sort((a, b) => b.result.score - a.result.score || a.item.id.localeCompare(b.item.id));
@@ -265,25 +357,37 @@ export function buildPatternExpression(patternId: PatternId, scan: VoiceAnalysis
 }
 
 export function buildPatternModifiers(scan: VoiceAnalysisResult, domains: UserResultDomain[]): PatternModifier[] {
+  if (!isValidBaselineScan(scan, domains)) return [];
+
   const modifiers: PatternModifier[] = [];
   const strongest = domains.slice().sort((a, b) => b.score - a.score)[0];
   const hardest = domains.filter((item) => ["Working Hard", "Under Pressure"].includes(item.functionalState)).sort((a, b) => b.score - a.score)[0];
   const support = domains.filter((item) => ["Asking for Support", "Recovering", "Less Accessible"].includes(item.functionalState)).sort((a, b) => a.score - b.score)[0];
+
   if (strongest) modifiers.push({ id: `resource-${strongest.title}`, label: `${strongest.title.toLowerCase()} remains available`, category: "resource", evidence: [`Score ${strongest.score}`, strongest.functionalState] });
   if (hardest) modifiers.push({ id: `load-${hardest.title}`, label: `${hardest.title.toLowerCase()} is working hardest`, category: "load", evidence: [`Score ${hardest.score}`, hardest.functionalState] });
   if (support) modifiers.push({ id: `support-${support.title}`, label: `${support.title.toLowerCase()} is asking for support`, category: "recovery", evidence: [`Score ${support.score}`, support.functionalState] });
+
   const pauses = scan.voiceDynamics?.pauseCount ?? 0;
   if (pauses >= 3) modifiers.push({ id: "reflection-pauses", label: "increased reflection pauses", category: "expression", evidence: [`${pauses} pauses`, `Density ${scan.voiceDynamics?.pauseDensityPerMin ?? 0}`] });
+
   const stability = scan.voiceDynamics?.pitchStability;
   if (typeof stability === "number" && stability >= 0.8) modifiers.push({ id: "stable-expression", label: "stable outward expression", category: "regulation", evidence: [`Pitch stability ${stability.toFixed(2)}`] });
+
   if (strongestTwoShare(scan) >= 0.5) modifiers.push({ id: "concentrated-strain", label: "strain is concentrated rather than distributed", category: "load", evidence: [`Top-two signal share ${strongestTwoShare(scan).toFixed(2)}`] });
   else if (noteSpread(scan) < 0.18) modifiers.push({ id: "distributed-signal", label: "activation is distributed across the signal", category: "regulation", evidence: [`Signal spread ${noteSpread(scan).toFixed(2)}`] });
+
   return modifiers.slice(0, 6);
 }
 
-export function computeNarrativePreference(counts: { Direct: number; Supportive: number; Insight: number }, lastSelectedStyle: NarrativePreference["lastSelectedStyle"]): NarrativePreference {
+export function computeNarrativePreference(
+  counts: { Direct: number; Supportive: number; Insight: number },
+  lastSelectedStyle: NarrativePreference["lastSelectedStyle"],
+): NarrativePreference {
   const totalSelections = counts.Direct + counts.Supportive + counts.Insight;
-  const ordered = (["Direct", "Supportive", "Insight"] as const).slice().sort((a, b) => counts[b] - counts[a] || (a === lastSelectedStyle ? -1 : b === lastSelectedStyle ? 1 : a.localeCompare(b)));
+  const ordered = (["Direct", "Supportive", "Insight"] as const)
+    .slice()
+    .sort((a, b) => counts[b] - counts[a] || (a === lastSelectedStyle ? -1 : b === lastSelectedStyle ? 1 : a.localeCompare(b)));
   const top = ordered[0];
   const second = ordered[1];
   const established = totalSelections >= 3 && counts[top] > counts[second];
@@ -300,28 +404,47 @@ export function computeNarrativePreference(counts: { Direct: number; Supportive:
 
 export function orderStoryCandidates(candidates: UserResultStoryCandidate[], preference?: NarrativePreference | null) {
   if (!preference?.established || !preference.preferredStyle) return candidates;
-  return candidates.slice().sort((a, b) => a.style === preference.preferredStyle ? -1 : b.style === preference.preferredStyle ? 1 : 0);
+  return candidates.slice().sort((a, b) =>
+    a.style === preference.preferredStyle ? -1 : b.style === preference.preferredStyle ? 1 : 0,
+  );
 }
 
 export function buildBaselineComparison(current: UserResultDomain[], historical: UserResultDomain[][]): BaselineComparison {
-  const valid = historical.filter((domains) => domains.length >= 4).slice(0, 5);
-  if (valid.length < 2) return { available: false, scansUsed: valid.length, changes: [], overallSummary: "Complete a few more scans to begin seeing changes from your personal baseline." };
-  const changes = current.map((item) => {
-    const previous = valid.map((scan) => scan.find((candidate) => candidate.title === item.title)?.score).filter((value): value is number => typeof value === "number");
-    const baseline = previous.reduce((sum, value) => sum + value, 0) / Math.max(previous.length, 1);
-    const delta = Number((item.score - baseline).toFixed(1));
-    const direction = Math.abs(delta) < 4 ? "stable" as const : delta > 0 ? "higher" as const : "lower" as const;
-    const label = item.title === "Focus & Mental Load" ? "Mental demand" : item.title.replace(" & ", " and ");
-    const userFacingSummary = direction === "stable"
-      ? `${label} remains within your usual recent range.`
-      : `${label} appears ${direction === "higher" ? "more available or active" : "quieter"} than in your recent scans.`;
-    return { dimension: item.title, direction, delta, userFacingSummary };
-  }).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  const valid = historical.filter(hasValidDomainData).slice(0, 5);
+  if (!hasValidDomainData(current) || valid.length < 2) {
+    return {
+      available: false,
+      scansUsed: valid.length,
+      changes: [],
+      overallSummary: "Complete a few more scans to begin seeing changes from your personal baseline.",
+    };
+  }
+
+  const changes = current
+    .map((item) => {
+      const previous = valid
+        .map((scan) => scan.find((candidate) => candidate.title === item.title)?.score)
+        .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+      const baseline = previous.reduce((sum, value) => sum + value, 0) / previous.length;
+      const delta = Number((item.score - baseline).toFixed(1));
+      const direction = Math.abs(delta) < 4 ? "stable" as const : delta > 0 ? "higher" as const : "lower" as const;
+      const semantics = BASELINE_SEMANTICS[item.title];
+      return {
+        dimension: item.title,
+        direction,
+        delta,
+        userFacingSummary: semantics[direction],
+      };
+    })
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+
   const meaningful = changes.filter((change) => change.direction !== "stable").slice(0, 3);
   return {
     available: true,
     scansUsed: valid.length,
     changes,
-    overallSummary: meaningful.length ? meaningful.map((change) => change.userFacingSummary).join(" ") : "Your current dimensions remain close to your recent personal baseline.",
+    overallSummary: meaningful.length
+      ? meaningful.map((change) => change.userFacingSummary).join(" ")
+      : "Your current dimensions remain close to your recent personal baseline.",
   };
 }
