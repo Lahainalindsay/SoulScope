@@ -49,6 +49,8 @@ security definer
 set search_path = public
 as $$
 declare
+  authenticated_user uuid;
+  scan_owner uuid;
   previous_style text;
   direct_value integer;
   supportive_value integer;
@@ -57,7 +59,17 @@ declare
   preferred_value text;
   result_row public.user_narrative_preferences;
 begin
-  if auth.uid() is distinct from p_user_id then
+  authenticated_user := auth.uid();
+
+  if authenticated_user is null or p_user_id is distinct from authenticated_user then
+    raise exception 'Not authorized';
+  end if;
+
+  select user_id into scan_owner
+  from public.scans
+  where id = p_scan_id;
+
+  if scan_owner is null or scan_owner is distinct from authenticated_user then
     raise exception 'Not authorized';
   end if;
 
@@ -67,23 +79,23 @@ begin
 
   select selected_style into previous_style
   from public.scan_story_preferences
-  where scan_id = p_scan_id and user_id = p_user_id
+  where scan_id = p_scan_id and user_id = authenticated_user
   for update;
 
   insert into public.scan_story_preferences (
     scan_id, user_id, selected_style, selected_title, selected_summary, updated_at
   ) values (
-    p_scan_id, p_user_id, p_selected_style, p_selected_title, p_selected_summary, now()
+    p_scan_id, authenticated_user, p_selected_style, p_selected_title, p_selected_summary, now()
   )
   on conflict (scan_id) do update set
     selected_style = excluded.selected_style,
     selected_title = excluded.selected_title,
     selected_summary = excluded.selected_summary,
     updated_at = now()
-  where public.scan_story_preferences.user_id = p_user_id;
+  where public.scan_story_preferences.user_id = authenticated_user;
 
   insert into public.user_narrative_preferences (user_id)
-  values (p_user_id)
+  values (authenticated_user)
   on conflict (user_id) do nothing;
 
   if previous_style is null then
@@ -94,7 +106,7 @@ begin
       total_selections = total_selections + 1,
       last_selected_style = p_selected_style,
       updated_at = now()
-    where user_id = p_user_id;
+    where user_id = authenticated_user;
   elsif previous_style <> p_selected_style then
     update public.user_narrative_preferences set
       direct_count = greatest(0, direct_count - case when previous_style = 'Direct' then 1 else 0 end) + case when p_selected_style = 'Direct' then 1 else 0 end,
@@ -102,18 +114,18 @@ begin
       insight_count = greatest(0, insight_count - case when previous_style = 'Insight' then 1 else 0 end) + case when p_selected_style = 'Insight' then 1 else 0 end,
       last_selected_style = p_selected_style,
       updated_at = now()
-    where user_id = p_user_id;
+    where user_id = authenticated_user;
   else
     update public.user_narrative_preferences set
       last_selected_style = p_selected_style,
       updated_at = now()
-    where user_id = p_user_id;
+    where user_id = authenticated_user;
   end if;
 
   select direct_count, supportive_count, insight_count, total_selections
   into direct_value, supportive_value, insight_value, total_value
   from public.user_narrative_preferences
-  where user_id = p_user_id
+  where user_id = authenticated_user
   for update;
 
   preferred_value := null;
@@ -127,7 +139,7 @@ begin
   update public.user_narrative_preferences set
     preferred_style = preferred_value,
     updated_at = now()
-  where user_id = p_user_id
+  where user_id = authenticated_user
   returning * into result_row;
 
   return result_row;
