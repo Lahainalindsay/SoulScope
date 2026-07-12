@@ -1,7 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SoulScopeReport } from "./buildSoulScopeReport";
 
-type StoryStyle = SoulScopeReport["storyCandidates"][number]["style"];
+export type StoryStyle = SoulScopeReport["storyCandidates"][number]["style"];
+
+export type UserNarrativePreferenceRow = {
+  user_id: string;
+  direct_count: number;
+  supportive_count: number;
+  insight_count: number;
+  preferred_style: StoryStyle | null;
+  total_selections: number;
+  last_selected_style: StoryStyle | null;
+  created_at: string;
+  updated_at: string;
+};
 
 type PersistReportArgs = {
   scanId: string;
@@ -33,24 +45,24 @@ function patternPayload(pattern: SoulScopeReport["primaryPattern"]) {
 
 export async function persistCanonicalReport(
   client: SupabaseClient,
-  { scanId, userId, report }: PersistReportArgs
+  { scanId, userId, report }: PersistReportArgs,
 ) {
   const patterns = [
     {
       role: "primary",
       ...patternPayload(report.primaryPattern),
+      pattern_expression_id: report.patternExpression.id,
+      pattern_expression_title: report.patternExpression.title,
+      pattern_expression_summary: report.patternExpression.summary,
+      modifiers: report.modifiers,
+      expression_evidence: report.patternExpression.matchedSignals,
+      baseline_comparison: report.baselineComparison,
     },
     report.supportingPattern
-      ? {
-          role: "supporting",
-          ...patternPayload(report.supportingPattern),
-        }
+      ? { role: "supporting", ...patternPayload(report.supportingPattern) }
       : null,
     report.emergingPattern
-      ? {
-          role: "emerging",
-          ...patternPayload(report.emergingPattern),
-        }
+      ? { role: "emerging", ...patternPayload(report.emergingPattern) }
       : null,
   ].filter(Boolean) as Array<Record<string, unknown>>;
 
@@ -67,40 +79,39 @@ export async function persistCanonicalReport(
 
   const [patternResponse, variantResponse] = await Promise.all([
     client.from("scan_pattern_matches").upsert(
-      patterns.map((pattern) => ({
-        scan_id: scanId,
-        user_id: userId,
-        ...pattern,
-      })),
-      { onConflict: "scan_id,role" }
+      patterns.map((pattern) => ({ scan_id: scanId, user_id: userId, ...pattern })),
+      { onConflict: "scan_id,role" },
     ),
     client.from("scan_story_variants").upsert(variants, { onConflict: "scan_id,style" }),
   ]);
 
-  if (patternResponse.error) {
-    throw patternResponse.error;
-  }
-  if (variantResponse.error) {
-    throw variantResponse.error;
-  }
+  if (patternResponse.error) throw patternResponse.error;
+  if (variantResponse.error) throw variantResponse.error;
 }
 
 export async function saveFavoriteStory(
   client: SupabaseClient,
-  { scanId, userId, style, title, summary }: SaveSelectionArgs
+  { scanId, userId, style, title, summary }: SaveSelectionArgs,
 ) {
-  const response = await client.from("scan_story_preferences").upsert(
-    {
-      scan_id: scanId,
-      user_id: userId,
-      selected_style: style,
-      selected_title: title,
-      selected_summary: summary,
-    },
-    { onConflict: "scan_id" }
-  );
+  const response = await client.rpc("set_scan_story_preference", {
+    p_scan_id: scanId,
+    p_user_id: userId,
+    p_selected_style: style,
+    p_selected_title: title,
+    p_selected_summary: summary,
+  });
+  if (response.error) throw response.error;
+}
 
-  if (response.error) {
-    throw response.error;
-  }
+export async function getUserNarrativePreference(
+  client: SupabaseClient,
+  userId: string,
+): Promise<UserNarrativePreferenceRow | null> {
+  const response = await client
+    .from("user_narrative_preferences")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle<UserNarrativePreferenceRow>();
+  if (response.error) throw response.error;
+  return response.data ?? null;
 }
