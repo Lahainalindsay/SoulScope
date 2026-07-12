@@ -6,10 +6,10 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>SoulScope - Observe Your Inner World</title>
+        <title>SoulScope - See What Your Voice Is Expressing</title>
         <meta
           name="description"
-          content="SoulScope is an instrument designed to detect subtle patterns in your voice and organize them into meaningful reflections."
+          content="SoulScope helps make patterns in your voice visible, giving you a clearer view of how you may be responding, adapting, and feeling today."
         />
       </Head>
 
@@ -17,37 +17,23 @@ export default function HomePage() {
         <section className={styles.heroWrap}>
           <div className={styles.heroPanel}>
             <div className={styles.heroCopy}>
-              <h1 className={styles.heroTitle}>
-                SoulScope
-              </h1>
-
-              <p className={styles.heroSubtitle}>Observe your inner world</p>
+              <h1 className={styles.heroHeadline}>Every conversation reveals more than the words you choose.</h1>
 
               <p className={styles.heroLead}>
-                Your inner world is always expressing itself.
+                Your voice naturally changes with stress, recovery, confidence, emotion, focus, and adaptation.
               </p>
 
               <p className={styles.heroBody}>
-                Your voice naturally changes as your mind and body adapt to life.
-              </p>
-
-              <p className={styles.heroBody}>
-                SoulScope is an instrument designed to detect those subtle patterns and organize them into meaningful
-                reflections&mdash;helping you better understand what your body is already expressing.
+                SoulScope helps make those patterns visible, giving you a clearer view of how you may be responding,
+                adapting, and feeling today.
               </p>
 
               <div className={styles.heroActions}>
-                <Link href="/auth/login" className={styles.primaryCta}>
-                  Begin Your Resonance Scan
-                </Link>
-                <Link href="/how-it-works" className={styles.secondaryCta}>
-                  How It Works
-                </Link>
+                <Link href="/auth/login" className={styles.primaryCta}>Start Your Scan</Link>
+                <Link href="/how-it-works" className={styles.secondaryCta}>See How It Works</Link>
               </div>
 
-              <p className={styles.heroMeta}>
-                One guided conversation. A new perspective on yourself.
-              </p>
+              <p className={styles.heroMeta}>About 60 seconds • Private by design • Observation, not diagnosis</p>
             </div>
 
             <div className={styles.heroVisual}>
@@ -66,9 +52,7 @@ export default function HomePage() {
           <div className={styles.sectionInner}>
             <p className={styles.sectionEyebrow}>Introduction</p>
             <h2 className={styles.sectionTitle}>A new instrument for self-understanding</h2>
-            <p className={styles.sectionIntro}>
-              The patterns are already there. SoulScope helps you see them.
-            </p>
+            <p className={styles.sectionIntro}>The patterns are already there. SoulScope helps you see them.</p>
 
             <div className={styles.editorialBlock}>
               <p>Every experience leaves subtle traces in the way you speak.</p>
@@ -102,9 +86,7 @@ export default function HomePage() {
                 felt&mdash;but have not yet been able to see clearly.
               </p>
               <p>The goal is not to tell you who you are.</p>
-              <p>
-                It is to help you better understand what your body is already expressing.
-              </p>
+              <p>It is to help you better understand what your body is already expressing.</p>
             </div>
           </div>
         </section>
@@ -114,11 +96,8 @@ export default function HomePage() {
             <h2 className={styles.finalTitle}>Begin your Resonance Scan.</h2>
             <p className={styles.finalLine}>One guided conversation.</p>
             <p className={styles.finalLine}>A new perspective on yourself.</p>
-
             <div className={styles.finalActions}>
-              <Link href="/auth/login" className={styles.primaryCta}>
-                Begin Your Resonance Scan
-              </Link>
+              <Link href="/auth/login" className={styles.primaryCta}>Start Your Scan</Link>
             </div>
           </div>
         </section>
