@@ -1,10 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { buildSoulScopeReport } from "../lib/buildSoulScopeReport";
 import {
   buildBaselineComparison,
   buildPatternExpression,
   buildPatternModifiers,
   computeNarrativePreference,
+  isValidBaselineScan,
   orderStoryCandidates,
 } from "../lib/patternPersonalization";
 import type { UserResultDomain, UserResultStoryCandidate } from "../lib/systemDimensions";
@@ -153,18 +155,66 @@ test("baseline is unavailable without two prior valid scans", () => {
   assert.equal(result.available, false);
 });
 
-test("baseline returns higher lower and stable directions", () => {
+test("baseline uses orientation-aware language", () => {
   const history = [domains(), domains()];
   const current = domains({
     "Recovery & Restoration": 70,
+    "Focus & Mental Load": 70,
+    Regulation: 70,
+    "Emotional Expression": 35,
+  });
+  const result = buildBaselineComparison(current, history);
+
+  assert.equal(
+    result.changes.find((item) => item.dimension === "Recovery & Restoration")?.userFacingSummary,
+    "Recovery appears more available than in your recent scans.",
+  );
+  assert.equal(
+    result.changes.find((item) => item.dimension === "Focus & Mental Load")?.userFacingSummary,
+    "Mental demand appears elevated compared with your recent baseline.",
+  );
+  assert.equal(
+    result.changes.find((item) => item.dimension === "Regulation")?.userFacingSummary,
+    "Regulation appears steadier than in your recent scans.",
+  );
+  assert.equal(
+    result.changes.find((item) => item.dimension === "Emotional Expression")?.userFacingSummary,
+    "Expression appears less available than in your recent scans.",
+  );
+});
+
+test("baseline returns lower mental demand and stable directions correctly", () => {
+  const history = [domains(), domains()];
+  const current = domains({
     "Focus & Mental Load": 35,
     Regulation: 56,
   });
   const result = buildBaselineComparison(current, history);
   assert.equal(result.available, true);
-  assert.equal(result.changes.find((item) => item.dimension === "Recovery & Restoration")?.direction, "higher");
   assert.equal(result.changes.find((item) => item.dimension === "Focus & Mental Load")?.direction, "lower");
+  assert.equal(
+    result.changes.find((item) => item.dimension === "Focus & Mental Load")?.userFacingSummary,
+    "Mental demand appears lighter than in your recent scans.",
+  );
   assert.equal(result.changes.find((item) => item.dimension === "Regulation")?.direction, "stable");
+});
+
+test("failed incomplete poor and invalid-domain scans are excluded from baseline eligibility", () => {
+  assert.equal(isValidBaselineScan(scan(), domains()), true);
+  assert.equal(isValidBaselineScan(scan({ voiceDynamics: { ...scan().voiceDynamics!, captureQuality: "poor" } }), domains()), false);
+  assert.equal(isValidBaselineScan(scan({ voiceDynamics: { ...scan().voiceDynamics!, analyzedDurationMs: 0 }, captureDurationMs: 0 }), domains()), false);
+  assert.equal(isValidBaselineScan(scan({ analysisDebug: { rejectionReason: "decode failed" } as VoiceAnalysisResult["analysisDebug"] }), domains()), false);
+  assert.equal(isValidBaselineScan(scan(), domains().slice(0, 3)), false);
+});
+
+test("story variants remain distinct while describing one canonical report", () => {
+  const report = buildSoulScopeReport(scan());
+  assert.equal(report.storyCandidates.length, 3);
+  const summaries = report.storyCandidates.map((candidate) => candidate.summary);
+  assert.equal(new Set(summaries).size, 3);
+  assert.match(report.storyCandidates.find((candidate) => candidate.style === "Direct")?.summary ?? "", /Current expression:/);
+  assert.match(report.storyCandidates.find((candidate) => candidate.style === "Supportive")?.summary ?? "", /current-state information/);
+  assert.match(report.storyCandidates.find((candidate) => candidate.style === "Insight")?.summary ?? "", /differentiating evidence/);
 });
 
 test("poor capture quality uses neutral resolving expression", () => {
