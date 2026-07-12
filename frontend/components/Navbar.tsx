@@ -8,15 +8,25 @@ import { supabase } from "../lib/supabaseClient";
 import { clearLocalDevSession, getLocalDevSession } from "../lib/localSession";
 import styles from "./Navbar.module.css";
 
-const NAV_ITEMS = [
+const DESKTOP_NAV_ITEMS = [
   { href: "/dashboard", label: "Today" },
-  { href: "/scan", label: "Observe" },
+  { href: "/scan", label: "Start Scan" },
+  { href: "/history", label: "Pattern History" },
   { href: "/how-it-works", label: "How It Works" },
+];
+
+const MOBILE_NAV_ITEMS = [
+  { href: "/dashboard", label: "Today" },
+  { href: "/scan", label: "Start Scan" },
+  { href: "/history", label: "Pattern History" },
+  { href: "/how-it-works", label: "How It Works" },
+  { href: "/profile", label: "Profile" },
 ];
 
 export default function Navbar() {
   const user = useUser();
   const [email, setEmail] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -38,53 +48,100 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, [user?.email]);
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [router.asPath]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [menuOpen]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     clearLocalDevSession();
     setEmail(null);
+    setMenuOpen(false);
     void router.push("/auth/login");
   };
 
+  const isActive = (href: string) => {
+    if (href === "/dashboard") return router.pathname === "/dashboard";
+    if (href === "/history") return router.pathname === "/history";
+    return router.pathname === href || router.pathname.startsWith(`${href}/`);
+  };
+
   return (
-    <nav className={styles.nav}>
+    <nav className={styles.nav} aria-label="Main navigation">
       <div className={styles.inner}>
-        <Link href="/" className={styles.brand}>
-          <div className={styles.mark}>S</div>
-          <div>
-            <p className={styles.brandTitle}>SoulScope™</p>
-          </div>
+        <Link href="/" className={styles.brand} aria-label="SoulScope home">
+          <div className={styles.mark} aria-hidden="true">S</div>
+          <p className={styles.brandTitle}>SoulScope™</p>
         </Link>
 
         <div className={styles.links}>
-          {NAV_ITEMS.map((item) => {
-            const isDashboardHistory =
-              item.href === "/dashboard" && (router.pathname === "/dashboard" || router.pathname === "/history");
-            const isActive = isDashboardHistory || router.pathname === item.href || router.pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`${styles.link} ${isActive ? styles.linkActive : ""}`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+          {DESKTOP_NAV_ITEMS.map((item) => (
+            <Link key={item.href} href={item.href} className={`${styles.link} ${isActive(item.href) ? styles.linkActive : ""}`}>
+              {item.label}
+            </Link>
+          ))}
         </div>
 
         <div className={styles.actions}>
           {email ? <div className={styles.email}>{email}</div> : null}
           {email ? (
-            <button onClick={handleSignOut} className={styles.button}>
-              Sign out
-            </button>
+            <button onClick={handleSignOut} className={styles.button}>Sign out</button>
           ) : (
-            <Link href="/auth/login" className={styles.button}>
-              Sign in
-            </Link>
+            <Link href="/auth/login" className={styles.button}>Sign in</Link>
           )}
         </div>
+
+        <button
+          type="button"
+          className={`${styles.menuButton} ${menuOpen ? styles.menuButtonOpen : ""}`}
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-navigation"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
       </div>
+
+      {menuOpen ? (
+        <div className={styles.mobileLayer}>
+          <button type="button" className={styles.backdrop} aria-label="Close menu" onClick={() => setMenuOpen(false)} />
+          <div id="mobile-navigation" className={styles.drawer} role="dialog" aria-modal="true" aria-label="Navigation menu">
+            <div className={styles.drawerHeader}>
+              <span>Menu</span>
+              <button type="button" className={styles.closeButton} onClick={() => setMenuOpen(false)} aria-label="Close menu">×</button>
+            </div>
+            <div className={styles.mobileLinks}>
+              {MOBILE_NAV_ITEMS.map((item) => (
+                <Link key={item.href} href={item.href} className={`${styles.mobileLink} ${isActive(item.href) ? styles.mobileLinkActive : ""}`}>
+                  {item.label}
+                </Link>
+              ))}
+              {email ? (
+                <button type="button" onClick={handleSignOut} className={styles.mobileSignOut}>Sign Out</button>
+              ) : (
+                <Link href="/auth/login" className={styles.mobileLink}>Sign In</Link>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </nav>
   );
 }
