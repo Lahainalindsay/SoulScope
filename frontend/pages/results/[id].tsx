@@ -8,7 +8,11 @@ import DeveloperAnalysisDebug from "../../components/DeveloperAnalysisDebug";
 import ResonanceResultsDashboard from "../../components/ResonanceResultsDashboard";
 import { supabase } from "../../lib/supabaseClient";
 import { buildSoulScopeReport, type SoulScopeReport } from "../../lib/buildSoulScopeReport";
-import { computeNarrativePreference, type NarrativePreference } from "../../lib/patternPersonalization";
+import {
+  computeNarrativePreference,
+  isValidBaselineScan,
+  type NarrativePreference,
+} from "../../lib/patternPersonalization";
 import { getUserNarrativePreference, persistCanonicalReport, saveFavoriteStory } from "../../lib/reportPersistence";
 import { type UserResultDomain } from "../../lib/systemDimensions";
 import { type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
@@ -67,14 +71,21 @@ export default function ResultDetailPage() {
             .eq("user_id", userId)
             .neq("id", id)
             .order("created_at", { ascending: false })
-            .limit(5),
+            .limit(10),
           getUserNarrativePreference(supabase, userId).catch(() => null),
         ]);
 
         if (!historyResponse.error) {
           const domains = ((historyResponse.data ?? []) as ScanRow[])
-            .filter((row) => row.result?.voiceDynamics?.captureQuality !== "poor")
-            .map((row) => buildSoulScopeReport(row.result).domainResults);
+            .map((row) => {
+              if (!row.result) return null;
+              const historicalReport = buildSoulScopeReport(row.result);
+              return isValidBaselineScan(row.result, historicalReport.domainResults)
+                ? historicalReport.domainResults
+                : null;
+            })
+            .filter((item): item is UserResultDomain[] => Boolean(item))
+            .slice(0, 5);
           setHistoricalDomains(domains);
         }
 
