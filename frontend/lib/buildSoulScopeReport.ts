@@ -13,6 +13,7 @@ import {
   type PatternExpression,
   type PatternModifier,
 } from "./patternPersonalization";
+import type { ScanCompleteness, ScanWithCompleteness } from "./partialScan";
 import type { UserResultDomain, UserResultStoryCandidate } from "./systemDimensions";
 import type { VoiceAnalysisResult } from "./voiceSpectrum";
 
@@ -20,6 +21,7 @@ export type SoulScopeReport = BaseSoulScopeReport & {
   patternExpression: PatternExpression;
   modifiers: PatternModifier[];
   baselineComparison: BaselineComparison;
+  scanCompleteness?: ScanCompleteness;
 };
 
 export type BuildSoulScopeReportOptions = {
@@ -70,9 +72,18 @@ export function buildSoulScopeReport(
   scan: VoiceAnalysisResult,
   options: BuildSoulScopeReportOptions = {},
 ): SoulScopeReport {
+  const scanWithCompleteness = scan as ScanWithCompleteness;
   const base = buildBaseSoulScopeReport(scan);
-  const patternExpression = buildPatternExpression(base.primaryPattern.id, scan, base.domainResults);
-  const modifiers = buildPatternModifiers(scan, base.domainResults);
+  const limited = scanWithCompleteness.scanCompleteness?.qualityLevel === "limited";
+  const patternExpression: PatternExpression = limited
+    ? {
+        id: "signals-still-resolving",
+        title: "The Available Signals Are Still Resolving",
+        summary: "This limited reflection is based only on the clearest captured signals, so the interpretation remains intentionally broad.",
+        matchedSignals: [`${scanWithCompleteness.scanCompleteness?.validRecordings ?? 0} usable recordings`],
+      }
+    : buildPatternExpression(base.primaryPattern.id, scan, base.domainResults);
+  const modifiers = buildPatternModifiers(scan, base.domainResults).slice(0, limited ? 2 : 6);
   const baselineComparison = buildBaselineComparison(
     base.domainResults,
     options.historicalDomainResults ?? [],
@@ -87,6 +98,7 @@ export function buildSoulScopeReport(
     patternExpression,
     modifiers,
     baselineComparison,
+    scanCompleteness: scanWithCompleteness.scanCompleteness,
     storyCandidates,
   };
 }
