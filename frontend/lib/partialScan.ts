@@ -22,6 +22,10 @@ export type ScanCompleteness = {
   invalidRecordingReasons: InvalidRecordingReason[];
 };
 
+export type ScanWithCompleteness = VoiceAnalysisResult & {
+  scanCompleteness?: ScanCompleteness;
+};
+
 export function isUsableAnalysis(result: VoiceAnalysisResult | null | undefined) {
   if (!result) return false;
   const dynamics = result.voiceDynamics;
@@ -86,7 +90,7 @@ export function buildScanCompleteness(args: {
   };
 }
 
-export function shouldIncludeInBaseline(scan: VoiceAnalysisResult) {
+export function shouldIncludeInBaseline(scan: ScanWithCompleteness) {
   const completeness = scan.scanCompleteness;
   if (!completeness) return scan.voiceDynamics?.captureQuality === "good";
   if (completeness.status === "failed") return false;
