@@ -20,7 +20,7 @@ export function buildEvidenceSignals(rawFeatures: RawFeatureMeasurement[]): Evid
     const result = definition.calculate(byId);
     if (!result) return [];
     const contributing = result.contributingFeatureIds.filter((id) => byId.has(id));
-    const sourceCaptureIds = [...new Set(contributing.flatMap((id) => byId.get(id)?.captureIds ?? []))];
+    const sourceCaptureIds = Array.from(new Set(contributing.flatMap((id) => byId.get(id)?.captureIds ?? [])));
     const captureConfidence = confidence(contributing.length, quality);
     const evidenceConfidence = confidence(contributing.length, quality);
     return [{
