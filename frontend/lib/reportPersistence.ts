@@ -15,19 +15,8 @@ export type UserNarrativePreferenceRow = {
   updated_at: string;
 };
 
-type PersistReportArgs = {
-  scanId: string;
-  userId: string;
-  report: SoulScopeReport;
-};
-
-type SaveSelectionArgs = {
-  scanId: string;
-  userId: string;
-  style: StoryStyle;
-  title: string;
-  summary: string;
-};
+type PersistReportArgs = { scanId: string; userId: string; report: SoulScopeReport };
+type SaveSelectionArgs = { scanId: string; userId: string; style: StoryStyle; title: string; summary: string };
 
 function patternPayload(pattern: SoulScopeReport["primaryPattern"]) {
   return {
@@ -58,12 +47,8 @@ export async function persistCanonicalReport(
       expression_evidence: report.patternExpression.matchedSignals,
       baseline_comparison: report.baselineComparison,
     },
-    report.supportingPattern
-      ? { role: "supporting", ...patternPayload(report.supportingPattern) }
-      : null,
-    report.emergingPattern
-      ? { role: "emerging", ...patternPayload(report.emergingPattern) }
-      : null,
+    report.supportingPattern ? { role: "supporting", ...patternPayload(report.supportingPattern) } : null,
+    report.emergingPattern ? { role: "emerging", ...patternPayload(report.emergingPattern) } : null,
   ].filter(Boolean) as Array<Record<string, unknown>>;
 
   const variants = report.storyCandidates.map((variant) => ({
@@ -77,16 +62,24 @@ export async function persistCanonicalReport(
     areas_asking_for_support: variant.areasAskingForSupport,
   }));
 
-  const [patternResponse, variantResponse] = await Promise.all([
+  const [patternResponse, variantResponse, pipelineResponse] = await Promise.all([
     client.from("scan_pattern_matches").upsert(
       patterns.map((pattern) => ({ scan_id: scanId, user_id: userId, ...pattern })),
       { onConflict: "scan_id,role" },
     ),
     client.from("scan_story_variants").upsert(variants, { onConflict: "scan_id,style" }),
+    report.observationPipeline
+      ? client.from("scans").update({
+          observation_engine_version: report.observationPipeline.engineVersion,
+          observation_pipeline: report.observationPipeline,
+          observation_pipeline_created_at: report.observationPipeline.generatedAt,
+        }).eq("id", scanId).eq("user_id", userId)
+      : Promise.resolve({ error: null }),
   ]);
 
   if (patternResponse.error) throw patternResponse.error;
   if (variantResponse.error) throw variantResponse.error;
+  if (pipelineResponse.error) throw pipelineResponse.error;
 }
 
 export async function saveFavoriteStory(
