@@ -49,7 +49,6 @@ export default function ResonanceResultsDashboard({
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>Today&apos;s Reflection</p>
           <h1 className={styles.title}>{report.primaryPattern.name}</h1>
-          <p className={styles.noteStatus}>Current Pattern</p>
           <p className={styles.noteText}>{report.primaryPattern.theme}</p>
         </div>
       </section>
@@ -65,39 +64,21 @@ export default function ResonanceResultsDashboard({
           <p className={styles.eyebrow}>Pattern Expression</p>
           <h2 className={styles.mapTitle}>{report.patternExpression.title}</h2>
           <p className={styles.noteText}>{report.patternExpression.summary}</p>
-          {report.supportingPattern ? (
-            <p className={styles.noteText}>
-              <strong>Supporting Pattern:</strong> {report.supportingPattern.name}
-            </p>
-          ) : null}
-          {report.emergingPattern ? (
-            <p className={styles.noteText}>
-              <strong>Emerging Pattern:</strong> {report.emergingPattern.name}
-            </p>
-          ) : null}
+          {report.supportingPattern ? <p className={styles.noteText}><strong>Supporting:</strong> {report.supportingPattern.name}</p> : null}
+          {report.emergingPattern ? <p className={styles.noteText}><strong>Emerging:</strong> {report.emergingPattern.name}</p> : null}
         </div>
       </section>
 
       <section className={styles.patternStrip}>
         <article className={styles.patternCard}>
-          <p className={styles.noteStatus}>What may be supporting the system</p>
+          <p className={styles.noteStatus}>Most Available</p>
           <h3 className={styles.patternTitle}>{strongestDomain?.title ?? "Available capacity"}</h3>
-          <p className={styles.patternTheme}>
-            {strongestDomain
-              ? `${strongestDomain.title} is the most available domain in this scan.`
-              : "A clear supporting domain was not available in this scan."}
-          </p>
+          <p className={styles.patternTheme}>{strongestDomain ? `${strongestDomain.title} is most available in this scan.` : "No clear supporting area was available."}</p>
         </article>
         <article className={styles.patternCard}>
-          <p className={styles.noteStatus}>What is working hardest</p>
-          <h3 className={styles.patternTitle}>{hardestDomain?.title ?? needsSupport?.title ?? "No single dominant load"}</h3>
-          <p className={styles.patternTheme}>
-            {hardestDomain
-              ? `${hardestDomain.title} appears to be using more effort than usual.`
-              : needsSupport
-                ? `${needsSupport.title} appears quieter and is asking for more support.`
-                : "The load appears more distributed than concentrated."}
-          </p>
+          <p className={styles.noteStatus}>Needs Support</p>
+          <h3 className={styles.patternTitle}>{hardestDomain?.title ?? needsSupport?.title ?? "Distributed load"}</h3>
+          <p className={styles.patternTheme}>{hardestDomain ? `${hardestDomain.title} is working hardest.` : needsSupport ? `${needsSupport.title} needs more support.` : "Effort appears spread across several areas."}</p>
         </article>
       </section>
 
@@ -105,11 +86,7 @@ export default function ResonanceResultsDashboard({
         <section className={styles.heroCard}>
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>Current Modifiers</p>
-            <ul className={styles.technicalList}>
-              {report.modifiers.map((modifier) => (
-                <li key={modifier.id}>{modifier.label}</li>
-              ))}
-            </ul>
+            <ul className={styles.technicalList}>{report.modifiers.map((modifier) => <li key={modifier.id}>{modifier.label}</li>)}</ul>
           </div>
         </section>
       ) : null}
@@ -117,18 +94,8 @@ export default function ResonanceResultsDashboard({
       <section className={styles.heroCard}>
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>Change From Your Baseline</p>
-          <p className={styles.noteText}>
-            {report.baselineComparison.available
-              ? report.baselineComparison.overallSummary
-              : "Complete a few more scans to begin seeing changes from your personal baseline."}
-          </p>
-          {report.baselineComparison.available ? (
-            <ul className={styles.technicalList}>
-              {report.baselineComparison.changes.slice(0, 3).map((change) => (
-                <li key={change.dimension}>{change.userFacingSummary}</li>
-              ))}
-            </ul>
-          ) : null}
+          <p className={styles.noteText}>{report.baselineComparison.available ? report.baselineComparison.overallSummary : "Complete a few more scans to see changes from your baseline."}</p>
+          {report.baselineComparison.available ? <ul className={styles.technicalList}>{report.baselineComparison.changes.slice(0, 3).map((change) => <li key={change.dimension}>{change.userFacingSummary}</li>)}</ul> : null}
         </div>
       </section>
 
@@ -136,8 +103,8 @@ export default function ResonanceResultsDashboard({
         <div className={styles.notesHeader}>
           <div>
             <p className={styles.eyebrow}>Summary Style</p>
-            <h2 className={styles.mapTitle}>Choose the version that reads clearest</h2>
-            <p className={styles.lead}>All three versions use the same canonical scan result. Your preference changes presentation order, not the scan evidence.</p>
+            <h2 className={styles.mapTitle}>Choose what reads clearest</h2>
+            <p className={styles.lead}>Each version reflects the same scan.</p>
           </div>
         </div>
         <div className={styles.topNotesGrid}>
@@ -148,9 +115,7 @@ export default function ResonanceResultsDashboard({
               <article key={candidate.style} className={styles.noteCard}>
                 <div className={styles.noteTop}>
                   <p className={styles.noteStatus}>{candidate.style}{usuallyPreferred ? " · Usually preferred" : ""}</p>
-                  <button type="button" className={styles.breakdownButton} onClick={() => onSelectStory?.(candidate.style)} aria-pressed={isSelected}>
-                    {isSelected ? "Selected" : "Select Version"}
-                  </button>
+                  <button type="button" className={styles.breakdownButton} onClick={() => onSelectStory?.(candidate.style)} aria-pressed={isSelected}>{isSelected ? "Selected" : "Select"}</button>
                 </div>
                 <h3 className={styles.noteName}>{candidate.title}</h3>
                 <p className={styles.noteTheme}>{candidate.summary}</p>
@@ -161,23 +126,16 @@ export default function ResonanceResultsDashboard({
       </section>
 
       <details className={styles.technicalDetails}>
-        <summary className={styles.technicalSummary}>View Technical Evidence</summary>
+        <summary className={styles.technicalSummary}>Technical Evidence</summary>
         <div className={styles.technicalBody}>
-          <p className={styles.technicalIntro}>The technical layer stays collapsed so the result remains centered on the current-state pattern.</p>
           <div className={styles.technicalGrid}>
             <article className={styles.technicalCard}>
               <p className={styles.sectionLabel}>Pattern Evidence</p>
-              <ul className={styles.technicalList}>
-                {report.patternExpression.matchedSignals.map((signal) => <li key={signal}>{signal}</li>)}
-              </ul>
+              <ul className={styles.technicalList}>{report.patternExpression.matchedSignals.map((signal) => <li key={signal}>{signal}</li>)}</ul>
             </article>
             <article className={styles.technicalCard}>
               <p className={styles.sectionLabel}>Domain Signals</p>
-              <ul className={styles.technicalList}>
-                {report.domainResults.map((domain) => (
-                  <li key={domain.title}>{domain.title}: {Math.round(domain.score)} ({domain.functionalState})</li>
-                ))}
-              </ul>
+              <ul className={styles.technicalList}>{report.domainResults.map((domain) => <li key={domain.title}>{domain.title}: {Math.round(domain.score)} ({domain.functionalState})</li>)}</ul>
             </article>
           </div>
         </div>
