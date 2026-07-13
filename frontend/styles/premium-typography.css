@@ -1,3 +1,4 @@
+/* Shared typography hierarchy: display, H1, H2, body large, body, caption. */
 :root {
   --type-display: clamp(2.85rem, 7vw, 6.25rem);
   --type-h1: clamp(2.25rem, 5vw, 4.5rem);
