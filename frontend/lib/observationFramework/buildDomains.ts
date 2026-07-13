@@ -43,7 +43,7 @@ export function buildDomains(observations: ObservationResult[]): DomainResultV2[
       state,
       orientation: definition.orientation,
       contributingObservationIds: matches.map((item) => item.observation.observationId),
-      sourceCaptureIds: [...new Set(matches.flatMap((item) => item.observation.sourceCaptureIds))],
+      sourceCaptureIds: Array.from(new Set(matches.flatMap((item) => item.observation.sourceCaptureIds))),
       interpretationConfidence: confidence(matches.map((item) => item.observation)),
       ruleVersion: definition.version,
       userFacingSummary: definition.summary(score, state),
