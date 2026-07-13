@@ -147,7 +147,7 @@ export const EVIDENCE_DEFINITIONS: EvidenceDefinition[] = [
     validityLevel: "exploratory",
     developerDescription: "Describes concentration versus distribution across the existing note-energy representation.",
     calculate(features) {
-      const notes = [...features.values()].filter((feature) => feature.featureId.startsWith("voice.note_energy."));
+      const notes = Array.from(features.values()).filter((feature) => feature.featureId.startsWith("voice.note_energy."));
       if (notes.length < 4) return null;
       const sorted = notes.map((item) => item.value).sort((a, b) => b - a);
       const concentration = (sorted[0] ?? 0) + (sorted[1] ?? 0);
