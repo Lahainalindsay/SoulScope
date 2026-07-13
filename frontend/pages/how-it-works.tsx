@@ -7,16 +7,16 @@ import styles from "./HowItWorks.module.css";
 
 const steps = [
   {
-    title: "What SoulScope observes",
-    description: "Voice, timing, steadiness, expression, and response patterns from a short guided scan.",
+    title: "Speak",
+    description: "Answer a few prompts out loud.",
   },
   {
-    title: "How a scan works",
-    description: "You answer a few prompts out loud. SoulScope combines those signals into one current-state reading.",
+    title: "Observe",
+    description: "SoulScope reads timing, steadiness, expression, and response patterns.",
   },
   {
-    title: "What you receive",
-    description: "A primary pattern, a resonance map, three summary styles, and a clear next step to consider.",
+    title: "Reflect",
+    description: "Receive a current pattern, resonance map, and clear next step.",
   },
 ];
 
@@ -33,15 +33,10 @@ export default function HowItWorks() {
         <main className={styles.shell}>
           <section className={styles.hero}>
             <p className={styles.eyebrow}>How It Works</p>
-            <h1 className={styles.title}>A new way to observe yourself.</h1>
-            <p className={styles.lead}>
-              SoulScope starts with the voice as a natural signal, then translates subtle patterns into
-              observations about clarity, expression, load, recovery, and direction.
-            </p>
+            <h1 className={styles.title}>A clearer way to notice change.</h1>
+            <p className={styles.lead}>Your voice carries subtle shifts in load, recovery, clarity, and expression. SoulScope turns them into a current-state reflection.</p>
             <div className={styles.actions}>
-              <Link href="/scan" className={styles.primaryButton}>
-                Start New Scan
-              </Link>
+              <Link href="/scan" className={styles.primaryButton}>Start Scan</Link>
             </div>
           </section>
 
@@ -57,20 +52,13 @@ export default function HowItWorks() {
           <section className={styles.frameCard}>
             <p className={styles.sectionEyebrow}>Framing</p>
             <h2 className={styles.sectionTitle}>Observation, not diagnosis.</h2>
-            <p className={styles.frameText}>
-              SoulScope describes patterns that may be present in a scan. It does not diagnose, predict,
-              or define who you are.
-            </p>
+            <p className={styles.frameText}>SoulScope reflects patterns in a scan. It doesn't diagnose or define you.</p>
           </section>
 
           <section className={styles.researchCard}>
-            <p className={styles.sectionEyebrow}>Evidence Context</p>
-            <h2 className={styles.sectionTitle}>Built to stay careful.</h2>
+            <p className={styles.sectionEyebrow}>Evidence</p>
+            <h2 className={styles.sectionTitle}>Careful by design.</h2>
             <p className={styles.validationNote}>{VALIDATION_NOTE}</p>
-            <p className={styles.disclaimer}>
-              Research references are used as context for cautious framing, not as a claim that SoulScope
-              can diagnose mental or physical conditions.
-            </p>
           </section>
         </main>
       </div>
