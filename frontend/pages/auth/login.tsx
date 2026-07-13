@@ -19,7 +19,7 @@ export default function LoginPage() {
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    setStatus("Opening your private space...");
+    setStatus("Signing in...");
     setIsSubmitting(true);
 
     try {
@@ -31,17 +31,17 @@ export default function LoginPage() {
       }
 
       if (!data.session) {
-        setError("We could not open a session yet. Confirm your email, then try again.");
+        setError("Confirm your email, then try again.");
         setStatus("");
         return;
       }
 
       clearLocalDevSession();
-      setStatus("Signed in. Opening today.");
+      setStatus("Opening SoulScope...");
       await router.push(DEFAULT_AUTH_HOME);
     } catch (error) {
       console.error("Login request failed", error);
-      setError(error instanceof Error ? error.message : "Sign in could not be completed.");
+      setError(error instanceof Error ? error.message : "We couldn't sign you in.");
       setStatus("");
     } finally {
       setIsSubmitting(false);
@@ -52,8 +52,8 @@ export default function LoginPage() {
     <main className={styles.page}>
       <section className={styles.card}>
         <p className={styles.brand}>SoulScope</p>
-        <h1 className={styles.title}>Sign in</h1>
-        <p className={styles.lead}>Return to your private pattern space.</p>
+        <h1 className={styles.title}>Welcome back.</h1>
+        <p className={styles.lead}>Return to your reflections.</p>
 
         <form className={styles.form} onSubmit={handleLogin}>
           <label className={styles.field}>
@@ -67,12 +67,12 @@ export default function LoginPage() {
           {status ? <p className={styles.message}>{status}</p> : null}
           {error ? <p className={styles.error}>{error}</p> : null}
           <button type="submit" disabled={isSubmitting} className={styles.button}>
-            {isSubmitting ? "Signing in..." : "Open Today"}
+            {isSubmitting ? "Signing In" : "Sign In"}
           </button>
         </form>
 
         <p className={styles.secondary}>
-          New to SoulScope? <Link href="/auth/signup" className={styles.link}>Create an account</Link>
+          New here? <Link href="/auth/signup" className={styles.link}>Create Account</Link>
         </p>
       </section>
     </main>
