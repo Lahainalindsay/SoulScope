@@ -24,7 +24,7 @@ export function buildObservations(evidenceSignals: EvidenceSignal[]): Observatio
       direction: result.direction,
       strength: Math.max(0, Math.min(1, result.strength)),
       contributingEvidenceIds: result.contributingEvidenceIds,
-      sourceCaptureIds: [...new Set(contributing.flatMap((signal) => signal.sourceCaptureIds))],
+      sourceCaptureIds: Array.from(new Set(contributing.flatMap((signal) => signal.sourceCaptureIds))),
       captureConfidence,
       interpretationConfidence,
       ruleVersion: definition.version,
