@@ -13,12 +13,12 @@ import {
   isValidBaselineScan,
   type NarrativePreference,
 } from "../../lib/patternPersonalization";
+import { shouldIncludeInBaseline, type ScanWithCompleteness } from "../../lib/partialScan";
 import { getUserNarrativePreference, persistCanonicalReport, saveFavoriteStory } from "../../lib/reportPersistence";
 import { type UserResultDomain } from "../../lib/systemDimensions";
-import { type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
 import styles from "./ResultDetail.module.css";
 
-type ScanResult = VoiceAnalysisResult;
+type ScanResult = ScanWithCompleteness;
 type ScanRow = { id?: string; user_id?: string; created_at?: string; result: ScanResult };
 
 const CLOUD_REQUEST_TIMEOUT_MS = 6000;
@@ -78,7 +78,7 @@ export default function ResultDetailPage() {
         if (!historyResponse.error) {
           const domains = ((historyResponse.data ?? []) as ScanRow[])
             .map((row) => {
-              if (!row.result) return null;
+              if (!row.result || !shouldIncludeInBaseline(row.result)) return null;
               const historicalReport = buildSoulScopeReport(row.result);
               return isValidBaselineScan(row.result, historicalReport.domainResults)
                 ? historicalReport.domainResults
@@ -181,6 +181,8 @@ export default function ResultDetailPage() {
     })();
   };
 
+  const completeness = report?.scanCompleteness;
+
   return (
     <div className={styles.page}>
       <div className={styles.gridOverlay} />
@@ -190,6 +192,17 @@ export default function ResultDetailPage() {
         {!loading && !error && !report ? <div className={styles.stateCard}>No reflection found for this scan.</div> : null}
         {!loading && !error && report && scan ? (
           <>
+            {completeness && completeness.invalidRecordings > 0 ? (
+              <section className={styles.footerNote}>
+                <h2>{completeness.validRecordings === 3 ? "A limited reflection is available" : "Your reflection is ready"}</h2>
+                <p>{completeness.userMessage}</p>
+                <p><strong>For a more complete reading</strong></p>
+                <p>One or more recordings did not contain enough clear voice data. You can keep this result or repeat the scan when you&apos;re ready.</p>
+                <div className={styles.footerAction}>
+                  <Link href="/scan" className={styles.secondaryButton}>{completeness.validRecordings === 3 ? "Repeat Scan" : "Try for a Clearer Scan"}</Link>
+                </div>
+              </section>
+            ) : null}
             <ResonanceResultsDashboard
               report={report}
               hiddenNotes={["G"]}

@@ -13,68 +13,16 @@ import {
 import { analyzeVoiceSpectrum, mergeVoiceAnalyses, type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
 import { buildSoulScopeReport } from "../../lib/buildSoulScopeReport";
 import { persistCanonicalReport } from "../../lib/reportPersistence";
+import { buildScanCompleteness, isUsableAnalysis, type ScanCompleteness, type ScanWithCompleteness } from "../../lib/partialScan";
 import { LOCAL_SCAN_KEY, LOCAL_SCAN_LIST_KEY } from "../../lib/localSession";
 import { GUIDED_SCAN_QUESTIONS, RESEARCH_REFERENCES, SCAN_OVERVIEW_LINES, VALIDATION_NOTE } from "../../lib/scanProtocol";
 import styles from "./Analyzing.module.css";
 
-type SavedScanResult = VoiceAnalysisResult & { id?: string; created_at?: string };
+type SavedScanResult = ScanWithCompleteness & { id?: string; created_at?: string };
 type InsertedScanRow = { id: string; created_at: string };
 
 const CLOUD_REQUEST_TIMEOUT_MS = 4500;
 const ANALYSIS_REQUEST_TIMEOUT_MS = 15000;
-
-function shouldDebugScan() {
-  return (
-    typeof window === "undefined" ||
-    window.localStorage.getItem("soulscope.debugScan") !== "0"
-  );
-}
-
-async function hashBlob(blob: Blob) {
-  if (!crypto?.subtle) return null;
-  const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("")
-    .slice(0, 16);
-}
-
-function topNotes(result: VoiceAnalysisResult) {
-  return (result.noteEnergies ?? [])
-    .slice()
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
-    .map((entry) => ({
-      note: entry.note,
-      score: entry.score,
-      relativeEnergy: Number(entry.relativeEnergy.toFixed(4)),
-      status: entry.status,
-    }));
-}
-
-function analysisSnapshot(result: VoiceAnalysisResult) {
-  return {
-    dominantBandLabel: result.dominantBandLabel,
-    coreFrequencyHz: result.coreFrequencyHz,
-    spectralCentroidHz: result.spectralCentroidHz,
-    resonanceScore: Number(result.resonanceScore.toFixed(3)),
-    topNoteEnergies: topNotes(result),
-    voiceDynamics: {
-      pauseCount: result.voiceDynamics?.pauseCount,
-      voicedFrameRatio: result.voiceDynamics?.voicedFrameRatio,
-      pitchRangeHz: result.voiceDynamics?.pitchRangeHz,
-      pitchRangeSemitones: result.voiceDynamics?.pitchRangeSemitones,
-      pitchStability: result.voiceDynamics?.pitchStability,
-      pitchClarity: result.voiceDynamics?.pitchClarity,
-      captureQuality: result.voiceDynamics?.captureQuality,
-      medianPitchHz: result.voiceDynamics?.medianPitchHz,
-      harmonicToNoiseRatioDb: result.voiceDynamics?.harmonicToNoiseRatioDb,
-      spectralFlatness: result.voiceDynamics?.spectralFlatness,
-      speechRateProxyPerMin: result.voiceDynamics?.speechRateProxyPerMin,
-    },
-    analysisDebug: result.analysisDebug,
-  };
-}
 
 async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string) {
   return await new Promise<T>((resolve, reject) => {
@@ -107,10 +55,19 @@ function averageCameraMetrics(captures: ReturnType<typeof getGuidedScanCameraCap
   };
 }
 
+function hardRetryMessage() {
+  return {
+    heading: "We need a clearer sample",
+    body: "Not enough voice data was captured to create a reliable reflection. Find a quiet space, speak naturally, and try again.",
+  };
+}
+
 export default function ScanAnalyzingPage() {
   const router = useRouter();
   const startedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [progressMessage, setProgressMessage] = useState("Listening for usable signal");
+  const [completeness, setCompleteness] = useState<ScanCompleteness | null>(null);
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -121,42 +78,20 @@ export default function ScanAnalyzingPage() {
       const cameraCaptures = getGuidedScanCameraCaptures();
       const cameraBaseline = getGuidedScanCameraBaseline();
       const scanStartedAt = getGuidedScanStartedAt();
+      const expectedRecordings = GUIDED_SCAN_QUESTIONS.length;
 
       if (!answers.length) {
-        void router.replace("/scan");
-        return;
-      }
-
-      if (answers.length !== GUIDED_SCAN_QUESTIONS.length) {
-        setError(`Scan is incomplete: ${answers.length} of ${GUIDED_SCAN_QUESTIONS.length} answers were available. Please restart the scan.`);
+        setError(hardRetryMessage().body);
         return;
       }
 
       try {
-        const debugScan = shouldDebugScan();
-        const blobDebug = await Promise.all(
-          answers.map(async (answer, index) => ({
-            index,
-            questionId: answer.questionId,
-            title: answer.title,
-            blobSize: answer.blob.size,
-            blobType: answer.blob.type,
-            durationMs: answer.durationMs,
-            hash: await hashBlob(answer.blob).catch(() => null),
-          }))
-        );
-
-        if (debugScan) {
-          console.groupCollapsed("[SoulScope scan] audio blobs");
-          console.table(blobDebug);
-          console.groupEnd();
-        }
-
+        setProgressMessage("Listening for usable signal");
         const settled = await Promise.allSettled(
-          answers.map((answer, index) =>
+          answers.map((answer) =>
             withTimeout(
               analyzeVoiceSpectrum(answer.blob, {
-                captureKind: GUIDED_SCAN_QUESTIONS[index]?.captureKind,
+                captureKind: GUIDED_SCAN_QUESTIONS.find((question) => question.id === answer.questionId)?.captureKind,
                 captureDurationMs: answer.durationMs,
               }),
               ANALYSIS_REQUEST_TIMEOUT_MS,
@@ -164,69 +99,84 @@ export default function ScanAnalyzingPage() {
             ),
           ),
         );
-        const analyses = settled
-          .filter((result): result is PromiseFulfilledResult<VoiceAnalysisResult> => result.status === "fulfilled")
-          .map((result) => result.value);
-        const promptAnalyses = settled.map((result) => (result.status === "fulfilled" ? result.value : null));
-        const analysisFailure = settled.find((result): result is PromiseRejectedResult => result.status === "rejected");
-        const merged = analyses.length === 1 ? analyses[0] : analyses.length > 1 ? mergeVoiceAnalyses(analyses) : null;
 
-        if (debugScan) {
-          console.groupCollapsed("[SoulScope scan] per-question analysis");
-          settled.forEach((result, index) => {
-            if (result.status === "fulfilled") {
-              console.info(`question ${index + 1} success`, analysisSnapshot(result.value));
-            } else {
-              console.warn(`question ${index + 1} failed`, result.reason);
-            }
-          });
-          console.groupEnd();
+        const promptAnalyses: Array<VoiceAnalysisResult | null> = settled.map((entry) => entry.status === "fulfilled" ? entry.value : null);
+        const invalidRecordingReasons = settled
+          .map((entry, index) => entry.status === "rejected"
+            ? {
+                index,
+                questionId: answers[index]?.questionId,
+                reason: entry.reason instanceof Error ? entry.reason.message : "Recording could not be analyzed.",
+              }
+            : !isUsableAnalysis(entry.value)
+              ? { index, questionId: answers[index]?.questionId, reason: "Recording did not meet the minimum usable voice-signal threshold." }
+              : null)
+          .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+
+        const validAnalyses = promptAnalyses.filter((entry): entry is VoiceAnalysisResult => isUsableAnalysis(entry));
+        const nextCompleteness = buildScanCompleteness({
+          expectedRecordings,
+          analyses: promptAnalyses,
+          invalidRecordingReasons,
+        });
+        setCompleteness(nextCompleteness);
+
+        if (nextCompleteness.status === "failed" || validAnalyses.length < 3) {
+          setError(hardRetryMessage().body);
+          return;
         }
 
+        setProgressMessage("Organizing the patterns");
+        const merged = validAnalyses.length === 1 ? validAnalyses[0] : mergeVoiceAnalyses(validAnalyses);
         if (!merged) {
-          const reason = analysisFailure?.reason instanceof Error ? analysisFailure.reason.message : "No usable scan data was produced.";
-          setError(reason);
+          setError(hardRetryMessage().body);
           return;
-        }
-
-        if (analyses.length !== answers.length) {
-          setError(`Only ${analyses.length} of ${answers.length} recordings could be analyzed. Please retry the scan with a clearer recording.`);
-          return;
-        }
-
-        if (debugScan) {
-          console.groupCollapsed("[SoulScope scan] merged analysis");
-          console.info(analysisSnapshot(merged));
-          console.groupEnd();
         }
 
         const result: SavedScanResult = {
           ...merged,
+          scanCompleteness: nextCompleteness,
           cymaticReference: buildCymaticReference(merged.noteInterpretation?.primaryNote),
           protocolNotes: {
             overview: SCAN_OVERVIEW_LINES,
             camera: averageCameraMetrics(cameraCaptures) ?? undefined,
             cameraBaseline: cameraBaseline ?? undefined,
-            prompts: GUIDED_SCAN_QUESTIONS.map((question, index) => ({
-              id: question.id,
-              title: question.title,
-              rangeLabel: question.rangeLabel,
-              prompt: question.prompt,
-              rationale: question.rationale,
-              durationMs: answers[index]?.durationMs,
-              captureKind: question.captureKind,
-              camera: cameraCaptures[index]
-                ? {
-                    blinkRatePerMin: cameraCaptures[index].blinkRatePerMin,
-                    facialTension: cameraCaptures[index].facialTension,
-                    eyeDilationProxy: cameraCaptures[index].eyeDilationProxy,
-                    eyeOpenness: cameraCaptures[index].eyeOpenness,
-                    trackingConfidence: cameraCaptures[index].trackingConfidence,
-                    framesAnalyzed: cameraCaptures[index].framesAnalyzed,
-                  }
-                : undefined,
-              primaryNote: promptAnalyses[index]?.noteInterpretation?.primaryNote,
-              noteScores: promptAnalyses[index]?.noteEnergies?.map((entry) => ({ note: entry.note, score: entry.score })) ?? [],
+            prompts: GUIDED_SCAN_QUESTIONS.map((question) => {
+              const answerIndex = answers.findIndex((answer) => answer.questionId === question.id);
+              const analysis = answerIndex >= 0 ? promptAnalyses[answerIndex] : null;
+              const capture = answerIndex >= 0 ? cameraCaptures[answerIndex] : undefined;
+              return {
+                id: question.id,
+                title: question.title,
+                rangeLabel: question.rangeLabel,
+                prompt: question.prompt,
+                rationale: question.rationale,
+                durationMs: answerIndex >= 0 ? answers[answerIndex]?.durationMs : undefined,
+                captureKind: question.captureKind,
+                camera: capture ? {
+                  blinkRatePerMin: capture.blinkRatePerMin,
+                  facialTension: capture.facialTension,
+                  eyeDilationProxy: capture.eyeDilationProxy,
+                  eyeOpenness: capture.eyeOpenness,
+                  trackingConfidence: capture.trackingConfidence,
+                  framesAnalyzed: capture.framesAnalyzed,
+                } : undefined,
+                primaryNote: analysis?.noteInterpretation?.primaryNote,
+                noteScores: analysis?.noteEnergies?.map((entry) => ({ note: entry.note, score: entry.score })) ?? [],
+              };
+            }),
+          },
+          analysisDebug: {
+            ...(merged.analysisDebug ?? {}),
+            promptAnalyses: validAnalyses.map((analysis, index) => ({
+              index,
+              captureKind: analysis.captureKind,
+              dominantBandLabel: analysis.dominantBandLabel,
+              coreFrequencyHz: analysis.coreFrequencyHz,
+              spectralCentroidHz: analysis.spectralCentroidHz,
+              resonanceScore: analysis.resonanceScore,
+              voiceDynamics: analysis.voiceDynamics,
+              topNotes: (analysis.noteEnergies ?? []).slice(0, 5).map((note) => ({ note: note.note, score: note.score, relativeEnergy: note.relativeEnergy })),
             })),
           },
           researchBasis: { validationNote: VALIDATION_NOTE, references: RESEARCH_REFERENCES },
@@ -238,10 +188,11 @@ export default function ScanAnalyzingPage() {
         const parsed = existing ? (JSON.parse(existing) as SavedScanResult[]) : [];
         window.localStorage.setItem(LOCAL_SCAN_LIST_KEY, JSON.stringify([result, ...parsed].slice(0, 10)));
 
+        setProgressMessage("Preparing your reflection");
         const authResponse = await withTimeout(supabase.auth.getUser(), CLOUD_REQUEST_TIMEOUT_MS, "Supabase auth");
         const userData = authResponse.data;
         if (authResponse.error || !userData?.user) {
-          setError("Scan completed, but it could not be saved because no signed-in user was found.");
+          setError("Your reflection was created, but it could not be saved because no signed-in user was found.");
           return;
         }
 
@@ -250,6 +201,12 @@ export default function ScanAnalyzingPage() {
             .from("scans")
             .insert({
               user_id: userData.user.id,
+              status: nextCompleteness.status,
+              expected_recording_count: nextCompleteness.expectedRecordings,
+              valid_recording_count: nextCompleteness.validRecordings,
+              invalid_recording_count: nextCompleteness.invalidRecordings,
+              quality_level: nextCompleteness.qualityLevel,
+              retry_recommended: nextCompleteness.retryRecommended,
               result: {
                 ...result,
                 scanMeta: { startedAt: scanStartedAt, completedAt: new Date().toISOString(), source: "authenticated" },
@@ -263,7 +220,7 @@ export default function ScanAnalyzingPage() {
 
         if (insertResponse.error || !insertResponse.data) {
           console.error("Failed to insert guided scan row", insertResponse.error);
-          setError("Scan completed, but it could not be saved to the results database.");
+          setError("Your reflection was created, but it could not be saved to the results database.");
           return;
         }
 
@@ -280,7 +237,7 @@ export default function ScanAnalyzingPage() {
           await persistCanonicalReport(supabase, {
             scanId: insertResponse.data.id,
             userId: userData.user.id,
-            report: buildSoulScopeReport(result as VoiceAnalysisResult),
+            report: buildSoulScopeReport(result),
           });
         } catch (persistError) {
           console.error("Failed to persist canonical resonance report", persistError);
@@ -290,12 +247,16 @@ export default function ScanAnalyzingPage() {
         void router.replace(`/results/${insertResponse.data.id}`);
       } catch (analysisError) {
         console.error("Guided scan analysis failed", analysisError);
-        setError(analysisError instanceof Error ? analysisError.message : "Analysis failed. Please retry.");
+        setError(hardRetryMessage().body);
       }
     };
 
     void run();
   }, [router]);
+
+  const failed = Boolean(error);
+  const heading = failed ? hardRetryMessage().heading : "Reading your current pattern...";
+  const lead = failed ? error : progressMessage;
 
   return (
     <>
@@ -308,22 +269,22 @@ export default function ScanAnalyzingPage() {
         <main className={styles.shell}>
           <section className={styles.panel}>
             <article className={styles.heroCard}>
-              <p className={styles.eyebrow}>Preparing Insight</p>
-              <h1 className={styles.title}>Reading your current pattern...</h1>
-              <p className={styles.lead}>Analyzing your signals, saving the scan, and opening your insight.</p>
-              <div className={styles.mapVisual}><span /><span /><span /></div>
-              {error ? (
+              <p className={styles.eyebrow}>{failed ? "Clearer Sample Needed" : "Preparing Insight"}</p>
+              <h1 className={styles.title}>{heading}</h1>
+              <p className={styles.lead}>{lead}</p>
+              {!failed ? <div className={styles.mapVisual}><span /><span /><span /></div> : null}
+              {failed ? (
                 <div className={styles.errorBox}>
-                  <p>{error}</p>
-                  <button type="button" className={styles.retryButton} onClick={() => router.replace("/scan")}>Begin Again</button>
+                  <button type="button" className={styles.retryButton} onClick={() => router.replace("/scan")}>Try Again</button>
                 </div>
               ) : (
                 <ul className={styles.statusList}>
-                  <li>Reading guided responses</li>
-                  <li>Saving scan result</li>
-                  <li>Opening your insight</li>
+                  <li>Listening for usable signal</li>
+                  <li>Organizing the patterns</li>
+                  <li>Preparing your reflection</li>
                 </ul>
               )}
+              {completeness?.status === "partial" ? <p className={styles.lead}>{completeness.userMessage}</p> : null}
             </article>
           </section>
         </main>
