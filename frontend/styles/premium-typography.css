@@ -1,0 +1,78 @@
+:root {
+  --type-display: clamp(2.85rem, 7vw, 6.25rem);
+  --type-h1: clamp(2.25rem, 5vw, 4.5rem);
+  --type-h2: clamp(1.65rem, 3vw, 2.75rem);
+  --type-body-large: clamp(1.05rem, 1.4vw, 1.2rem);
+  --type-body: 1rem;
+  --type-caption: 0.75rem;
+  --type-heading-line: 1.02;
+  --type-body-line: 1.65;
+}
+
+h1,
+h2,
+[class*="Headline"],
+[class*="headline"],
+[class*="Title"],
+[class*="title"] {
+  font-family: var(--font-serif) !important;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--type-h1);
+  line-height: var(--type-heading-line);
+  letter-spacing: -0.035em;
+}
+
+h2 {
+  font-size: var(--type-h2);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+
+[class*="heroHeadline"],
+[class*="heroTitle"],
+[class*="displayTitle"] {
+  font-size: var(--type-display) !important;
+  line-height: 0.98 !important;
+  letter-spacing: -0.045em !important;
+}
+
+[class*="Lead"],
+[class*="lead"],
+[class*="Intro"],
+[class*="intro"] {
+  font-size: var(--type-body-large);
+  line-height: var(--type-body-line);
+}
+
+p,
+li,
+input,
+textarea,
+button,
+a {
+  font-family: var(--font-sans);
+}
+
+[class*="Eyebrow"],
+[class*="eyebrow"],
+[class*="Caption"],
+[class*="caption"],
+[class*="Label"],
+[class*="label"] {
+  font-size: var(--type-caption);
+}
+
+p {
+  text-wrap: pretty;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --type-display: clamp(2.45rem, 13vw, 4.25rem);
+    --type-h1: clamp(2rem, 10vw, 3.25rem);
+    --type-h2: clamp(1.5rem, 7vw, 2.15rem);
+  }
+}
