@@ -52,7 +52,7 @@ export default function HowItWorks() {
           <section className={styles.frameCard}>
             <p className={styles.sectionEyebrow}>Framing</p>
             <h2 className={styles.sectionTitle}>Observation, not diagnosis.</h2>
-            <p className={styles.frameText}>SoulScope reflects patterns in a scan. It doesn't diagnose or define you.</p>
+            <p className={styles.frameText}>SoulScope reflects patterns in a scan. It doesn&apos;t diagnose or define you.</p>
           </section>
 
           <section className={styles.researchCard}>
