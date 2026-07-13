@@ -53,7 +53,7 @@ export default function HomePage() {
             <h2 className={styles.sectionTitle}>SoulScope begins by listening</h2>
             <div className={styles.editorialBlock}>
               <p>You answer a few prompts out loud. SoulScope listens for changes in timing, tone, steadiness, and expression.</p>
-              <p>It doesn't define you. It reflects what may be present today.</p>
+              <p>It doesn&apos;t define you. It reflects what may be present today.</p>
             </div>
           </div>
         </section>
