@@ -1,15 +1,9 @@
 -- SoulScope V2 hosted schema reset and rebuild
 -- Target project: jhamqpfxblybshjmgvsy
 --
--- DESTRUCTIVE SCOPE
---   Drops and recreates SoulScope-owned objects in the public schema.
---   Deletes all existing SoulScope application data stored in public tables.
---
--- PRESERVED
---   auth schema and all Auth users, identities, and sessions
---   storage schema, buckets, and objects
---   Supabase system schemas and installed extensions
---   project URL, API keys, secrets, Edge Functions, and Vercel configuration
+-- THIS SCRIPT IS DESTRUCTIVE TO SOULSCOPE APPLICATION DATA IN public.
+-- It preserves auth, storage, Supabase system schemas, extensions, project URL,
+-- API keys, secrets, Edge Functions, and Vercel environment configuration.
 --
 -- Execute this file once, in full, through the Supabase SQL Editor.
 -- Do not execute individual sections out of order.
@@ -19,22 +13,23 @@ begin;
 set local lock_timeout = '15s';
 set local statement_timeout = '0';
 
--- -----------------------------------------------------------------------------
+-- =============================================================================
 -- 1. Remove obsolete SoulScope-owned functions.
--- -----------------------------------------------------------------------------
+-- =============================================================================
 
 drop function if exists public.set_scan_story_preference(uuid, uuid, text, text, text);
 drop function if exists public.set_scan_reflection_preference(uuid, uuid, text, text, text);
 drop function if exists public.owns_scan(uuid);
 drop function if exists public.enforce_scan_child_owner();
+drop function if exists public.enforce_preference_variant_scan();
 drop function if exists public.set_updated_at();
 drop function if exists public.update_updated_at_column();
 
--- -----------------------------------------------------------------------------
+-- =============================================================================
 -- 2. Remove obsolete and prior V2 relations by explicit name.
---    The DO block safely handles a prior table, view, or materialized view named
---    public.scans without dropping the public schema itself.
--- -----------------------------------------------------------------------------
+--    This handles a prior table, view, materialized view, or foreign table without
+--    dropping the public schema itself.
+-- =============================================================================
 
 do $$
 declare
@@ -42,8 +37,43 @@ declare
   relation_kind "char";
 begin
   foreach relation_name in array array[
-    'scans'
+    -- V2 and compatibility objects, child first.
+    'scan_reflection_preferences',
+    'reflection_variants',
+    'pattern_matches',
+    'domain_results',
+    'observation_results',
+    'evidence_signal_results',
+    'raw_feature_measurements',
+    'sensor_captures',
+    'personal_baselines',
+    'user_narrative_preferences',
+    'scans',
+    'scan_sessions',
+    'profiles',
+
+    -- Previous canonical result objects.
+    'scan_story_preferences',
+    'scan_story_variants',
+    'scan_pattern_matches',
+
+    -- Legacy application objects found in the hosted public schema.
+    'session_chakra_results',
+    'session_tones_used',
+    'sessions',
+    'recommendations',
+    'user_feedback',
+    'user_tone_presets',
+    'chakra_tone_presets',
+    'chakras',
+
+    -- Known historical report views.
+    'scan_history',
+    'latest_scan_results',
+    'user_scan_history'
   ] loop
+    relation_kind := null;
+
     select c.relkind
       into relation_kind
       from pg_class c
@@ -62,43 +92,9 @@ begin
 end
 $$;
 
--- V2 tables, in child-first dependency order.
-drop table if exists public.scan_reflection_preferences cascade;
-drop table if exists public.reflection_variants cascade;
-drop table if exists public.pattern_matches cascade;
-drop table if exists public.domain_results cascade;
-drop table if exists public.observation_results cascade;
-drop table if exists public.evidence_signal_results cascade;
-drop table if exists public.raw_feature_measurements cascade;
-drop table if exists public.sensor_captures cascade;
-drop table if exists public.personal_baselines cascade;
-drop table if exists public.user_narrative_preferences cascade;
-drop table if exists public.scan_sessions cascade;
-drop table if exists public.profiles cascade;
-
--- Previous canonical-result tables.
-drop table if exists public.scan_story_preferences cascade;
-drop table if exists public.scan_story_variants cascade;
-drop table if exists public.scan_pattern_matches cascade;
-
--- Legacy application tables discovered in the hosted public schema.
-drop table if exists public.session_chakra_results cascade;
-drop table if exists public.session_tones_used cascade;
-drop table if exists public.sessions cascade;
-drop table if exists public.recommendations cascade;
-drop table if exists public.user_feedback cascade;
-drop table if exists public.user_tone_presets cascade;
-drop table if exists public.chakra_tone_presets cascade;
-drop table if exists public.chakras cascade;
-
--- Explicitly remove known legacy compatibility/report views if they exist.
-drop view if exists public.scan_history cascade;
-drop view if exists public.latest_scan_results cascade;
-drop view if exists public.user_scan_history cascade;
-
--- -----------------------------------------------------------------------------
--- 3. Shared trigger and ownership functions.
--- -----------------------------------------------------------------------------
+-- =============================================================================
+-- 3. Shared helpers and canonical root tables.
+-- =============================================================================
 
 create function public.set_updated_at()
 returns trigger
@@ -173,10 +169,6 @@ as $$
   );
 $$;
 
-revoke all on function public.owns_scan(uuid) from public;
-revoke all on function public.owns_scan(uuid) from anon;
-grant execute on function public.owns_scan(uuid) to authenticated;
-
 create function public.enforce_scan_child_owner()
 returns trigger
 language plpgsql
@@ -203,9 +195,9 @@ begin
 end;
 $$;
 
--- -----------------------------------------------------------------------------
--- 4. Normalized scan-owned records.
--- -----------------------------------------------------------------------------
+-- =============================================================================
+-- 4. Normalized scan-owned tables.
+-- =============================================================================
 
 create table public.sensor_captures (
   id uuid primary key default gen_random_uuid(),
@@ -232,7 +224,8 @@ create table public.raw_feature_measurements (
   capture_id uuid references public.sensor_captures(id) on delete cascade,
   feature_id text not null,
   sensor_type text not null,
-  value double precision not null check (isfinite(value)),
+  value double precision not null
+    check (value not in ('Infinity'::double precision, '-Infinity'::double precision, 'NaN'::double precision)),
   unit text,
   task_id text,
   extraction_version text not null,
@@ -319,7 +312,10 @@ create table public.pattern_matches (
   pattern_name text not null,
   pattern_theme text,
   explanation text not null,
-  confidence numeric(6,5) check (confidence is null or confidence between 0 and 1),
+  confidence text not null default 'exploratory'
+    check (confidence in ('high', 'moderate', 'exploratory')),
+  confidence_score numeric(6,5)
+    check (confidence_score is null or confidence_score between 0 and 1),
   pattern_expression_id text,
   pattern_expression_title text,
   pattern_expression_summary text,
@@ -341,25 +337,49 @@ create table public.reflection_variants (
   content jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (scan_id, style),
-  unique (id, scan_id)
+  unique (scan_id, style)
 );
 
 create table public.scan_reflection_preferences (
   id uuid primary key default gen_random_uuid(),
   scan_id uuid not null unique references public.scan_sessions(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
-  selected_variant_id uuid,
+  selected_variant_id uuid references public.reflection_variants(id) on delete set null,
   selected_style text not null check (selected_style in ('direct', 'supportive', 'insight')),
   selected_title text not null,
   selected_summary text not null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint scan_reflection_preferences_variant_fk
-    foreign key (selected_variant_id, scan_id)
-    references public.reflection_variants(id, scan_id)
-    on delete set null
+  updated_at timestamptz not null default now()
 );
+
+create function public.enforce_preference_variant_scan()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  variant_scan uuid;
+  variant_user uuid;
+begin
+  if new.selected_variant_id is null then
+    return new;
+  end if;
+
+  select rv.scan_id, rv.user_id
+    into variant_scan, variant_user
+    from public.reflection_variants rv
+   where rv.id = new.selected_variant_id;
+
+  if variant_scan is null
+     or variant_scan is distinct from new.scan_id
+     or variant_user is distinct from new.user_id then
+    raise exception 'Selected reflection variant must belong to the same scan and user';
+  end if;
+
+  return new;
+end;
+$$;
 
 create table public.user_narrative_preferences (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -394,9 +414,9 @@ create table public.personal_baselines (
   unique (user_id, domain_id, calculation_version)
 );
 
--- -----------------------------------------------------------------------------
--- 5. Indexes.
--- -----------------------------------------------------------------------------
+-- =============================================================================
+-- 5. Practical indexes and uniqueness.
+-- =============================================================================
 
 create index scan_sessions_user_created_at_idx
   on public.scan_sessions (user_id, created_at desc);
@@ -431,74 +451,69 @@ create index scan_reflection_preferences_user_idx
 create index personal_baselines_user_domain_idx
   on public.personal_baselines (user_id, domain_id);
 
--- -----------------------------------------------------------------------------
--- 6. Ownership and updated_at triggers.
--- -----------------------------------------------------------------------------
+-- =============================================================================
+-- 6. Ownership and timestamp triggers.
+-- =============================================================================
 
 create trigger profiles_set_updated_at
 before update on public.profiles
 for each row execute function public.set_updated_at();
-
 create trigger scan_sessions_set_updated_at
 before update on public.scan_sessions
 for each row execute function public.set_updated_at();
-
 create trigger sensor_captures_set_updated_at
 before update on public.sensor_captures
 for each row execute function public.set_updated_at();
-
 create trigger domain_results_set_updated_at
 before update on public.domain_results
 for each row execute function public.set_updated_at();
-
 create trigger pattern_matches_set_updated_at
 before update on public.pattern_matches
 for each row execute function public.set_updated_at();
-
 create trigger reflection_variants_set_updated_at
 before update on public.reflection_variants
 for each row execute function public.set_updated_at();
-
 create trigger scan_reflection_preferences_set_updated_at
 before update on public.scan_reflection_preferences
 for each row execute function public.set_updated_at();
-
 create trigger user_narrative_preferences_set_updated_at
 before update on public.user_narrative_preferences
 for each row execute function public.set_updated_at();
-
 create trigger personal_baselines_set_updated_at
 before update on public.personal_baselines
 for each row execute function public.set_updated_at();
 
-create trigger sensor_captures_enforce_owner
-before insert or update on public.sensor_captures
-for each row execute function public.enforce_scan_child_owner();
-create trigger raw_feature_measurements_enforce_owner
-before insert or update on public.raw_feature_measurements
-for each row execute function public.enforce_scan_child_owner();
-create trigger evidence_signal_results_enforce_owner
-before insert or update on public.evidence_signal_results
-for each row execute function public.enforce_scan_child_owner();
-create trigger observation_results_enforce_owner
-before insert or update on public.observation_results
-for each row execute function public.enforce_scan_child_owner();
-create trigger domain_results_enforce_owner
-before insert or update on public.domain_results
-for each row execute function public.enforce_scan_child_owner();
-create trigger pattern_matches_enforce_owner
-before insert or update on public.pattern_matches
-for each row execute function public.enforce_scan_child_owner();
-create trigger reflection_variants_enforce_owner
-before insert or update on public.reflection_variants
-for each row execute function public.enforce_scan_child_owner();
-create trigger scan_reflection_preferences_enforce_owner
-before insert or update on public.scan_reflection_preferences
-for each row execute function public.enforce_scan_child_owner();
+-- Every scan child is protected at the database layer, including service-role writes.
+do $$
+declare
+  child_table text;
+begin
+  foreach child_table in array array[
+    'sensor_captures',
+    'raw_feature_measurements',
+    'evidence_signal_results',
+    'observation_results',
+    'domain_results',
+    'pattern_matches',
+    'reflection_variants',
+    'scan_reflection_preferences'
+  ] loop
+    execute format(
+      'create trigger %I before insert or update on public.%I for each row execute function public.enforce_scan_child_owner()',
+      child_table || '_enforce_owner',
+      child_table
+    );
+  end loop;
+end
+$$;
 
--- -----------------------------------------------------------------------------
--- 7. Row-level security.
--- -----------------------------------------------------------------------------
+create trigger scan_reflection_preferences_enforce_variant
+before insert or update on public.scan_reflection_preferences
+for each row execute function public.enforce_preference_variant_scan();
+
+-- =============================================================================
+-- 7. Row-level security and privileges.
+-- =============================================================================
 
 alter table public.profiles enable row level security;
 alter table public.scan_sessions enable row level security;
@@ -531,86 +546,40 @@ for update to authenticated using (user_id = auth.uid()) with check (user_id = a
 create policy scan_sessions_delete_own on public.scan_sessions
 for delete to authenticated using (user_id = auth.uid());
 
--- Child-table policies validate both the row user_id and the parent scan owner.
-create policy sensor_captures_select_own on public.sensor_captures
-for select to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy sensor_captures_insert_own on public.sensor_captures
-for insert to authenticated with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy sensor_captures_update_own on public.sensor_captures
-for update to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id))
-with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy sensor_captures_delete_own on public.sensor_captures
-for delete to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-
-create policy raw_features_select_own on public.raw_feature_measurements
-for select to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy raw_features_insert_own on public.raw_feature_measurements
-for insert to authenticated with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy raw_features_update_own on public.raw_feature_measurements
-for update to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id))
-with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy raw_features_delete_own on public.raw_feature_measurements
-for delete to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-
-create policy evidence_signals_select_own on public.evidence_signal_results
-for select to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy evidence_signals_insert_own on public.evidence_signal_results
-for insert to authenticated with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy evidence_signals_update_own on public.evidence_signal_results
-for update to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id))
-with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy evidence_signals_delete_own on public.evidence_signal_results
-for delete to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-
-create policy observations_select_own on public.observation_results
-for select to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy observations_insert_own on public.observation_results
-for insert to authenticated with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy observations_update_own on public.observation_results
-for update to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id))
-with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy observations_delete_own on public.observation_results
-for delete to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-
-create policy domains_select_own on public.domain_results
-for select to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy domains_insert_own on public.domain_results
-for insert to authenticated with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy domains_update_own on public.domain_results
-for update to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id))
-with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy domains_delete_own on public.domain_results
-for delete to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-
-create policy patterns_select_own on public.pattern_matches
-for select to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy patterns_insert_own on public.pattern_matches
-for insert to authenticated with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy patterns_update_own on public.pattern_matches
-for update to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id))
-with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy patterns_delete_own on public.pattern_matches
-for delete to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-
-create policy reflections_select_own on public.reflection_variants
-for select to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy reflections_insert_own on public.reflection_variants
-for insert to authenticated with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy reflections_update_own on public.reflection_variants
-for update to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id))
-with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy reflections_delete_own on public.reflection_variants
-for delete to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-
-create policy scan_preferences_select_own on public.scan_reflection_preferences
-for select to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy scan_preferences_insert_own on public.scan_reflection_preferences
-for insert to authenticated with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy scan_preferences_update_own on public.scan_reflection_preferences
-for update to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id))
-with check (user_id = auth.uid() and public.owns_scan(scan_id));
-create policy scan_preferences_delete_own on public.scan_reflection_preferences
-for delete to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id));
+-- Child policies verify both the caller-supplied user_id and parent scan ownership.
+do $$
+declare
+  child_table text;
+begin
+  foreach child_table in array array[
+    'sensor_captures',
+    'raw_feature_measurements',
+    'evidence_signal_results',
+    'observation_results',
+    'domain_results',
+    'pattern_matches',
+    'reflection_variants',
+    'scan_reflection_preferences'
+  ] loop
+    execute format(
+      'create policy %I on public.%I for select to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id))',
+      child_table || '_select_own', child_table
+    );
+    execute format(
+      'create policy %I on public.%I for insert to authenticated with check (user_id = auth.uid() and public.owns_scan(scan_id))',
+      child_table || '_insert_own', child_table
+    );
+    execute format(
+      'create policy %I on public.%I for update to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id)) with check (user_id = auth.uid() and public.owns_scan(scan_id))',
+      child_table || '_update_own', child_table
+    );
+    execute format(
+      'create policy %I on public.%I for delete to authenticated using (user_id = auth.uid() and public.owns_scan(scan_id))',
+      child_table || '_delete_own', child_table
+    );
+  end loop;
+end
+$$;
 
 create policy narrative_preferences_select_own on public.user_narrative_preferences
 for select to authenticated using (user_id = auth.uid());
@@ -630,9 +599,31 @@ for update to authenticated using (user_id = auth.uid()) with check (user_id = a
 create policy personal_baselines_delete_own on public.personal_baselines
 for delete to authenticated using (user_id = auth.uid());
 
--- -----------------------------------------------------------------------------
+revoke all on function public.set_updated_at() from public, anon, authenticated;
+revoke all on function public.enforce_scan_child_owner() from public, anon, authenticated;
+revoke all on function public.enforce_preference_variant_scan() from public, anon, authenticated;
+revoke all on function public.owns_scan(uuid) from public, anon;
+grant execute on function public.owns_scan(uuid) to authenticated;
+
+grant usage on schema public to authenticated;
+revoke all on all tables in schema public from anon;
+
+grant select, insert, update, delete on table public.profiles to authenticated;
+grant select, insert, update, delete on table public.scan_sessions to authenticated;
+grant select, insert, update, delete on table public.sensor_captures to authenticated;
+grant select, insert, update, delete on table public.raw_feature_measurements to authenticated;
+grant select, insert, update, delete on table public.evidence_signal_results to authenticated;
+grant select, insert, update, delete on table public.observation_results to authenticated;
+grant select, insert, update, delete on table public.domain_results to authenticated;
+grant select, insert, update, delete on table public.pattern_matches to authenticated;
+grant select, insert, update, delete on table public.reflection_variants to authenticated;
+grant select, insert, update, delete on table public.scan_reflection_preferences to authenticated;
+grant select, insert, update, delete on table public.user_narrative_preferences to authenticated;
+grant select, insert, update, delete on table public.personal_baselines to authenticated;
+
+-- =============================================================================
 -- 8. Secured reflection-preference RPC.
--- -----------------------------------------------------------------------------
+-- =============================================================================
 
 create function public.set_scan_reflection_preference(
   p_scan_id uuid,
@@ -651,6 +642,8 @@ declare
   normalized_style text := lower(trim(p_selected_style));
   scan_owner uuid;
   variant_id uuid;
+  canonical_title text;
+  canonical_summary text;
   previous_style text;
   direct_value integer;
   supportive_value integer;
@@ -677,8 +670,11 @@ begin
     raise exception 'Invalid reflection style';
   end if;
 
-  select rv.id
-    into variant_id
+  -- Serialize changes for the same scan so aggregate counts cannot double-count.
+  perform pg_advisory_xact_lock(hashtextextended(p_scan_id::text, 0));
+
+  select rv.id, rv.title, rv.summary
+    into variant_id, canonical_title, canonical_summary
     from public.reflection_variants rv
    where rv.scan_id = p_scan_id
      and rv.user_id = authenticated_user
@@ -687,6 +683,11 @@ begin
   if variant_id is null then
     raise exception 'Selected reflection variant does not exist';
   end if;
+
+  -- Caller-provided text is accepted for API compatibility but canonical stored
+  -- content always comes from the owned reflection variant.
+  perform p_selected_title;
+  perform p_selected_summary;
 
   select srp.selected_style
     into previous_style
@@ -707,8 +708,8 @@ begin
     authenticated_user,
     variant_id,
     normalized_style,
-    p_selected_title,
-    p_selected_summary
+    canonical_title,
+    canonical_summary
   )
   on conflict (scan_id) do update set
     selected_variant_id = excluded.selected_variant_id,
@@ -778,29 +779,10 @@ revoke all on function public.set_scan_reflection_preference(uuid, uuid, text, t
 revoke all on function public.set_scan_reflection_preference(uuid, uuid, text, text, text) from anon;
 grant execute on function public.set_scan_reflection_preference(uuid, uuid, text, text, text) to authenticated;
 
--- -----------------------------------------------------------------------------
--- 9. Explicit grants. RLS remains the authorization boundary.
--- -----------------------------------------------------------------------------
-
-revoke all on all tables in schema public from anon;
-
-grant select, insert, update, delete on table public.profiles to authenticated;
-grant select, insert, update, delete on table public.scan_sessions to authenticated;
-grant select, insert, update, delete on table public.sensor_captures to authenticated;
-grant select, insert, update, delete on table public.raw_feature_measurements to authenticated;
-grant select, insert, update, delete on table public.evidence_signal_results to authenticated;
-grant select, insert, update, delete on table public.observation_results to authenticated;
-grant select, insert, update, delete on table public.domain_results to authenticated;
-grant select, insert, update, delete on table public.pattern_matches to authenticated;
-grant select, insert, update, delete on table public.reflection_variants to authenticated;
-grant select, insert, update, delete on table public.scan_reflection_preferences to authenticated;
-grant select, insert, update, delete on table public.user_narrative_preferences to authenticated;
-grant select, insert, update, delete on table public.personal_baselines to authenticated;
-
--- -----------------------------------------------------------------------------
--- 10. Read-only compatibility view for legacy scan reads.
---     This is not a second writable scan source.
--- -----------------------------------------------------------------------------
+-- =============================================================================
+-- 9. Read-only compatibility view for legacy scan reads.
+--    public.scan_sessions is the only canonical writable scan source.
+-- =============================================================================
 
 create view public.scans
 with (security_invoker = true)
@@ -825,14 +807,12 @@ from public.scan_sessions s;
 comment on view public.scans is
   'Read-only compatibility view. public.scan_sessions is the only canonical writable scan source.';
 
-revoke all on table public.scans from public;
-revoke all on table public.scans from anon;
-revoke insert, update, delete, truncate, references, trigger on table public.scans from authenticated;
+revoke all on table public.scans from public, anon, authenticated;
 grant select on table public.scans to authenticated;
 
--- -----------------------------------------------------------------------------
--- 11. Object documentation.
--- -----------------------------------------------------------------------------
+-- =============================================================================
+-- 10. Documentation.
+-- =============================================================================
 
 comment on table public.scan_sessions is
   'Canonical SoulScope scan record. All scan-owned V2 records cascade from this table.';
