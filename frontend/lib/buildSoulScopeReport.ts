@@ -20,6 +20,7 @@ import { adaptDomainsToLegacy } from "./observationFramework/adaptDomainsToLegac
 import { buildObservationPipeline } from "./observationFramework/buildObservationPipeline";
 import type { ObservationPipelineResult } from "./observationFramework/types";
 import { USE_OBSERVATION_PIPELINE_V2 } from "./observationFramework/versions";
+import { discriminatePatternMatches } from "./patternDiscrimination";
 
 export type SoulScopeReport = BaseSoulScopeReport & {
   patternExpression: PatternExpression;
@@ -38,25 +39,52 @@ function lowerFirst(value: string) {
   return value ? `${value.charAt(0).toLowerCase()}${value.slice(1)}` : value;
 }
 
+function strongestObservations(pipeline?: ObservationPipelineResult) {
+  return (pipeline?.observations ?? [])
+    .filter((observation) => observation.direction !== "stable")
+    .sort((a, b) => {
+      const confidence = { high: 2, moderate: 1, exploratory: 0 } as const;
+      const confidenceDelta = confidence[b.interpretationConfidence] - confidence[a.interpretationConfidence];
+      return confidenceDelta || b.strength - a.strength || a.observationId.localeCompare(b.observationId);
+    })
+    .slice(0, 2);
+}
+
 function personalizeStoryCandidate(
   candidate: UserResultStoryCandidate,
   expression: PatternExpression,
   modifiers: PatternModifier[],
+  primary: PatternMatch,
+  supporting: PatternMatch | undefined,
+  baseline: BaselineComparison,
+  pipeline?: ObservationPipelineResult,
+  completeness?: ScanCompleteness,
 ): UserResultStoryCandidate {
   const resource = modifiers.find((modifier) => modifier.category === "resource")?.label;
   const load = modifiers.find((modifier) => modifier.category === "load")?.label;
-  const evidence = expression.matchedSignals.slice(0, 2).join(" and ");
+  const observations = strongestObservations(pipeline);
+  const observationLine = observations.length
+    ? observations.map((observation) => observation.summary).join(" ")
+    : expression.summary;
+  const qualityLine = completeness?.qualityLevel === "limited"
+    ? "Because the captured signal was limited, this reflection stays intentionally broad."
+    : completeness?.status === "partial"
+    ? "This reflection uses only the recordings that contained clear usable signal."
+    : "";
 
   if (candidate.style === "Direct") {
-    return { ...candidate, summary: `${candidate.summary} Current expression: ${expression.title}. ${expression.summary}` };
+    const loadLine = load ? `The clearest current load is that ${lowerFirst(load)}.` : primary.theme;
+    return { ...candidate, summary: `Current observations suggest ${lowerFirst(expression.title)}. ${observationLine} ${loadLine} ${qualityLine}`.trim() };
   }
   if (candidate.style === "Supportive") {
-    const supportLine = resource ? `What remains available is that ${resource}.` : "The scan still shows usable capacity alongside the current strain.";
-    return { ...candidate, summary: `${candidate.summary} ${supportLine} This expression is current-state information, not a fixed identity.` };
+    const capacityLine = resource ? `At the same time, ${lowerFirst(resource)} remains available.` : "Usable capacity remains present alongside the current demand.";
+    const supportLine = supporting ? `A supporting pattern also points to ${lowerFirst(supporting.theme)}` : "The current picture is mixed rather than one-dimensional.";
+    return { ...candidate, summary: `${observationLine} ${capacityLine} ${supportLine} ${qualityLine}`.trim() };
   }
-  const evidenceLine = evidence ? `The differentiating evidence points to ${lowerFirst(expression.title)}, supported by ${evidence}.` : `The differentiating layer is ${lowerFirst(expression.title)}.`;
-  const loadLine = load ? `At the same time, ${load}.` : "The pattern is mixed rather than one-dimensional.";
-  return { ...candidate, summary: `${candidate.summary} ${evidenceLine} ${loadLine}` };
+  const baselineLine = baseline.available
+    ? baseline.overallSummary ?? "Your recent scans provide additional context for this shift."
+    : "There is not yet enough personal history to describe this as a change from your usual baseline.";
+  return { ...candidate, summary: `This pattern often appears when ${lowerFirst(primary.theme)} ${observationLine} ${baselineLine} ${qualityLine}`.trim() };
 }
 
 export function buildSoulScopeReport(
@@ -85,6 +113,13 @@ export function buildSoulScopeReport(
     observationPipeline.warnings.push("Legacy domain builder was retained because the V2 adapter did not produce enough domains.");
   }
 
+  const discriminated = discriminatePatternMatches(
+    [base.primaryPattern, base.supportingPattern, base.emergingPattern],
+    observationPipeline,
+  );
+  const primaryPattern = discriminated[0] ?? base.primaryPattern;
+  const supportingPattern = discriminated[1]?.confidence > 0.2 ? discriminated[1] : undefined;
+  const emergingPattern = discriminated[2]?.confidence > 0.15 ? discriminated[2] : undefined;
   const limited = scanWithCompleteness.scanCompleteness?.qualityLevel === "limited";
   const patternExpression: PatternExpression = limited
     ? {
@@ -93,13 +128,25 @@ export function buildSoulScopeReport(
         summary: "This limited reflection is based only on the clearest captured signals, so the interpretation remains intentionally broad.",
         matchedSignals: [`${scanWithCompleteness.scanCompleteness?.validRecordings ?? 0} usable recordings`],
       }
-    : buildPatternExpression(base.primaryPattern.id, scan, domainResults);
+    : buildPatternExpression(primaryPattern.id, scan, domainResults);
   const modifiers = buildPatternModifiers(scan, domainResults).slice(0, limited ? 2 : 6);
   const baselineComparison = buildBaselineComparison(domainResults, options.historicalDomainResults ?? []);
-  const storyCandidates = base.storyCandidates.map((candidate) => personalizeStoryCandidate(candidate, patternExpression, modifiers));
+  const storyCandidates = base.storyCandidates.map((candidate) => personalizeStoryCandidate(
+    candidate,
+    patternExpression,
+    modifiers,
+    primaryPattern,
+    supportingPattern,
+    baselineComparison,
+    observationPipeline,
+    scanWithCompleteness.scanCompleteness,
+  ));
 
   return {
     ...base,
+    primaryPattern,
+    supportingPattern,
+    emergingPattern,
     domainResults,
     patternExpression,
     modifiers,
