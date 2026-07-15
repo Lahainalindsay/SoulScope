@@ -57,20 +57,26 @@ function hydratePattern(
   };
 }
 
+function getStringArray(content: ReflectionVariantRow["content"], key: string): string[] {
+  const value = content[key];
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
 function hydrateStories(rows: ReflectionVariantRow[], report: SoulScopeReport): SoulScopeReport["storyCandidates"] {
   if (!rows.length) return report.storyCandidates;
   return rows.map((row) => {
     const style = row.style === "direct" ? "Direct" : row.style === "supportive" ? "Supportive" : "Insight";
     const fallback = report.storyCandidates.find((item) => item.style === style) ?? report.storyCandidates[0];
-    const content = row.content;
-    const stringArray = (key: string) => Array.isArray(content[key]) ? content[key].filter((value): value is string => typeof value === "string") : [];
+    const strongestResources = getStringArray(row.content, "strongestResources");
+    const areasWorkingHard = getStringArray(row.content, "areasWorkingHard");
+    const areasAskingForSupport = getStringArray(row.content, "areasAskingForSupport");
     return {
       style,
       title: row.title,
       summary: row.summary,
-      strongestResources: stringArray("strongestResources").length ? stringArray("strongestResources") : fallback.strongestResources,
-      areasWorkingHard: stringArray("areasWorkingHard").length ? stringArray("areasWorkingHard") : fallback.areasWorkingHard,
-      areasAskingForSupport: stringArray("areasAskingForSupport").length ? stringArray("areasAskingForSupport") : fallback.areasAskingForSupport,
+      strongestResources: strongestResources.length ? strongestResources : fallback.strongestResources,
+      areasWorkingHard: areasWorkingHard.length ? areasWorkingHard : fallback.areasWorkingHard,
+      areasAskingForSupport: areasAskingForSupport.length ? areasAskingForSupport : fallback.areasAskingForSupport,
     };
   });
 }
