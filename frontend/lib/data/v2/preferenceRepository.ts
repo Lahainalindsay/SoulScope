@@ -20,14 +20,22 @@ export async function setScanReflectionPreference(
   return data as UserNarrativePreferenceRow;
 }
 
+export async function listScanReflectionPreferences(
+  client: SupabaseClient,
+  scanIds: string[],
+): Promise<ScanReflectionPreferenceRow[]> {
+  if (!scanIds.length) return [];
+  const user = await requireAuthenticatedUser(client);
+  const { data, error } = await client.from("scan_reflection_preferences").select("*").eq("user_id", user.id).in("scan_id", scanIds);
+  throwIfError(error, "Could not load scan preferences");
+  return (data ?? []) as ScanReflectionPreferenceRow[];
+}
+
 export async function getScanReflectionPreference(
   client: SupabaseClient,
   scanId: string,
 ): Promise<ScanReflectionPreferenceRow | null> {
-  const user = await requireAuthenticatedUser(client);
-  const { data, error } = await client.from("scan_reflection_preferences").select("*").eq("scan_id", scanId).eq("user_id", user.id).maybeSingle<ScanReflectionPreferenceRow>();
-  throwIfError(error, "Could not load scan preference");
-  return data ?? null;
+  return (await listScanReflectionPreferences(client, [scanId]))[0] ?? null;
 }
 
 export async function getUserNarrativePreference(
