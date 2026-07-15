@@ -18,7 +18,7 @@ export async function listLongitudinalSnapshots(
   options: { before?: string; excludeScanId?: string; limit?: number } = {},
 ): Promise<LongitudinalScanSnapshot[]> {
   const user = await requireAuthenticatedUser(client);
-  let query = client.from("scan_sessions").select("*").eq("user_id", user.id).in("status", ["completed", "partial"]).order("created_at", { ascending: false }).limit(options.limit ?? 200);
+  let query = client.from("scan_sessions").select("*").eq("user_id", user.id).in("status", ["completed", "partial"]).in("capture_quality", ["high", "good"]).order("created_at", { ascending: false }).limit(options.limit ?? 200);
   if (options.before) query = query.lt("created_at", options.before);
   if (options.excludeScanId) query = query.neq("id", options.excludeScanId);
   const { data: sessionData, error: sessionError } = await query;
