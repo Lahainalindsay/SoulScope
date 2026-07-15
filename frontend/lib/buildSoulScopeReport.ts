@@ -79,12 +79,15 @@ function personalizeStoryCandidate(
   if (candidate.style === "Supportive") {
     const capacityLine = resource ? `At the same time, ${lowerFirst(resource)} remains available.` : "Usable capacity remains present alongside the current demand.";
     const supportLine = supporting ? `A supporting pattern also points to ${lowerFirst(supporting.theme)}` : "The current picture is mixed rather than one-dimensional.";
-    return { ...candidate, summary: `${observationLine} ${capacityLine} ${supportLine} ${qualityLine}`.trim() };
+    return { ...candidate, summary: `${observationLine} ${capacityLine} ${supportLine} This is current-state information, not a fixed identity. ${qualityLine}`.trim() };
   }
   const baselineLine = baseline.available
     ? baseline.overallSummary ?? "Your recent scans provide additional context for this shift."
     : "There is not yet enough personal history to describe this as a change from your usual baseline.";
-  return { ...candidate, summary: `This pattern often appears when ${lowerFirst(primary.theme)} ${observationLine} ${baselineLine} ${qualityLine}`.trim() };
+  const evidenceLine = expression.matchedSignals.length
+    ? `The differentiating evidence includes ${expression.matchedSignals.slice(0, 2).join(" and ")}.`
+    : "The differentiating evidence comes from the current combination of observations and domain balance.";
+  return { ...candidate, summary: `This pattern often appears when ${lowerFirst(primary.theme)} ${observationLine} ${evidenceLine} ${baselineLine} ${qualityLine}`.trim() };
 }
 
 export function buildSoulScopeReport(
