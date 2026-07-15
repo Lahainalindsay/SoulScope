@@ -11,9 +11,14 @@ export async function insertReflectionVariants(client: SupabaseClient, rows: Ref
   return (response.data ?? []) as ReflectionVariantRow[];
 }
 
-export async function listReflectionVariantsForScan(client: SupabaseClient, scanId: string): Promise<ReflectionVariantRow[]> {
+export async function listReflectionVariantsForScans(client: SupabaseClient, scanIds: string[]): Promise<ReflectionVariantRow[]> {
+  if (!scanIds.length) return [];
   const user = await requireAuthenticatedUser(client);
-  const response = await client.from("reflection_variants").select("*").eq("scan_id", scanId).eq("user_id", user.id).order("style");
+  const response = await client.from("reflection_variants").select("*").eq("user_id", user.id).in("scan_id", scanIds).order("style");
   throwIfError(response.error, "Could not load reflection variants");
   return (response.data ?? []) as ReflectionVariantRow[];
+}
+
+export async function listReflectionVariantsForScan(client: SupabaseClient, scanId: string): Promise<ReflectionVariantRow[]> {
+  return listReflectionVariantsForScans(client, [scanId]);
 }
