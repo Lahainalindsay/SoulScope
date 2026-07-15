@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - codex/evidence-observation-pipeline
   workflow_dispatch:
 
 jobs:
