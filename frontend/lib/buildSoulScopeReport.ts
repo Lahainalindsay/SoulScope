@@ -74,7 +74,7 @@ function personalizeStoryCandidate(
 
   if (candidate.style === "Direct") {
     const loadLine = load ? `The clearest current load is that ${lowerFirst(load)}.` : primary.theme;
-    return { ...candidate, summary: `Current observations suggest ${lowerFirst(expression.title)}. ${observationLine} ${loadLine} ${qualityLine}`.trim() };
+    return { ...candidate, summary: `Current expression: ${expression.title}. Current observations suggest ${lowerFirst(expression.title)}. ${observationLine} ${loadLine} ${qualityLine}`.trim() };
   }
   if (candidate.style === "Supportive") {
     const capacityLine = resource ? `At the same time, ${lowerFirst(resource)} remains available.` : "Usable capacity remains present alongside the current demand.";
