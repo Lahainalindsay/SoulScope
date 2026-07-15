@@ -42,11 +42,11 @@ function snapshot(index: number, overrides: Partial<LongitudinalScanSnapshot> = 
 
 const history = (count: number) => Array.from({ length: count }, (_, index) => snapshot(index));
 
-test("baseline eligibility excludes poor, limited, and failed scans", () => {
+test("baseline eligibility handles partial quality and failed scans", () => {
   assert.equal(isBaselineEligible(snapshot(1)), true);
   assert.equal(isBaselineEligible(snapshot(1, { status: "partial", quality: "good" })), true);
   assert.equal(isBaselineEligible(snapshot(1, { status: "partial", quality: "limited" })), false);
-  assert.equal(isBaselineEligible(snapshot(1, { status: "completed", quality: "poor" })), true);
+  assert.equal(isBaselineEligible(snapshot(1, { status: "partial", quality: "poor" })), false);
   assert.equal(isBaselineEligible(snapshot(1, { status: "failed" })), false);
 });
 
@@ -65,8 +65,8 @@ test("rolling baseline windows use deterministic scan limits", () => {
   assert.equal(baselines.recent.sourceScanIds[0], "scan-59");
 });
 
-test("poor captures never contribute to rolling baselines", () => {
-  const scans = [...history(3), snapshot(99, { quality: "poor" })];
+test("poor partial captures never contribute to rolling baselines", () => {
+  const scans = [...history(3), snapshot(99, { status: "partial", quality: "poor" })];
   const baselines = buildRollingBaselines(scans);
   assert.equal(baselines.recent.scansUsed, 3);
   assert.ok(!baselines.recent.sourceScanIds.includes("scan-99"));
@@ -98,7 +98,7 @@ test("trend semantics respect recovery and mental-demand orientation", () => {
   assert.match(trends.find((trend) => trend.domainId === "focus_mental_demand")?.summary ?? "", /Mental demand appears lower/);
 });
 
-test("observation stability distinguishes consistent recurring rare and emerging", () => {
+test("observation stability distinguishes consistent recurring and emerging", () => {
   const baseline = buildRollingBaselines(history(10)).recent;
   const current = snapshot(20, { observations: [
     { id: "vocal_stability_observation", direction: "elevated", strength: 0.5, confidence: "moderate" },
@@ -130,12 +130,7 @@ test("users with one or two scans receive no fabricated history", () => {
 });
 
 test("partial good scans contribute while limited scans do not", () => {
-  const scans = [
-    snapshot(1),
-    snapshot(2, { status: "partial", quality: "good" }),
-    snapshot(3, { status: "partial", quality: "limited" }),
-    snapshot(4),
-  ];
+  const scans = [snapshot(1), snapshot(2, { status: "partial", quality: "good" }), snapshot(3, { status: "partial", quality: "limited" }), snapshot(4)];
   const baseline = buildRollingBaselines(scans).recent;
   assert.equal(baseline.available, true);
   assert.equal(baseline.scansUsed, 3);
