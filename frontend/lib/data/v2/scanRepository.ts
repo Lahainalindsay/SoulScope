@@ -4,7 +4,11 @@ import type { ScanSessionInsert, ScanSessionRow, ScanSessionUpdate } from "./typ
 
 export async function createScanSession(client: SupabaseClient, row: ScanSessionInsert): Promise<ScanSessionRow> {
   const user = await requireAuthenticatedUser(client, row.user_id);
-  const { data, error } = await client.from("scan_sessions").insert({ ...row, user_id: user.id }).select("*").single<ScanSessionRow>();
+  const { data, error } = await client
+    .from("scan_sessions")
+    .upsert({ ...row, user_id: user.id }, { onConflict: "id" })
+    .select("*")
+    .single<ScanSessionRow>();
   throwIfError(error, "Could not create scan session");
   if (!data) throw new Error("Could not create scan session: no row returned.");
   return data;
