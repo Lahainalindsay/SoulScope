@@ -6,10 +6,10 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>SoulScope - See What Your Voice Is Expressing</title>
+        <title>SoulScope - Observe Your Inner World</title>
         <meta
           name="description"
-          content="SoulScope helps make patterns in your voice visible, giving you a clearer view of how you may be responding, adapting, and feeling today."
+          content="SoulScope transforms subtle patterns in your voice into meaningful reflections, helping you better understand what your body is already expressing."
         />
       </Head>
 
@@ -17,9 +17,8 @@ export default function HomePage() {
         <section className={styles.heroWrap}>
           <div className={styles.heroPanel}>
             <div className={styles.heroCopy}>
-              <h1 className={styles.heroHeadline}>Every conversation reveals more than the words you choose.</h1>
-              <p className={styles.heroLead}>Your voice changes with stress, recovery, confidence, emotion, focus, and adaptation.</p>
-              <p className={styles.heroBody}>SoulScope makes those patterns visible, offering a clearer view of how you may be feeling today.</p>
+              <h1 className={styles.heroHeadline}>Observe Your Inner World.</h1>
+              <p className={styles.heroLead}>Your voice naturally changes as your mind and body adapt to life. SoulScope transforms those subtle patterns into meaningful reflections, helping you better understand what your body is already expressing.</p>
               <div className={styles.heroActions}>
                 <Link href="/auth/login" className={styles.primaryCta}>Start Scan</Link>
                 <Link href="/how-it-works" className={styles.secondaryCta}>How It Works</Link>
