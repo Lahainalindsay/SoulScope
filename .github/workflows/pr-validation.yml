@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - codex/evidence-observation-pipeline
   workflow_dispatch:
 
 jobs:
@@ -47,3 +48,4 @@ jobs:
             frontend/lint-output.txt
             frontend/test-output.txt
             frontend/build-output.txt
+            supabase/manual/soulscope_v2_reset_and_rebuild.sql

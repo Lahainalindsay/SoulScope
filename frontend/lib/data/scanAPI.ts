@@ -1,34 +1,25 @@
 import { supabase } from "../supabaseClient";
+import { getLatestScanSession } from "./v2/scanRepository";
+import type { JsonObject } from "./v2/types";
 
 type ScanRecord = {
   id: string;
   user_id: string;
-  fftData: number[];
-  sampleRate: number | null;
+  result: JsonObject | null;
   created_at: string;
 };
 
 export async function getLatestScan(): Promise<ScanRecord | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.id) {
+  try {
+    const session = await getLatestScanSession(supabase);
+    return session ? {
+      id: session.id,
+      user_id: session.user_id,
+      result: session.raw_result,
+      created_at: session.created_at,
+    } : null;
+  } catch (error) {
+    console.error("Error fetching latest V2 scan:", error);
     return null;
   }
-
-  const { data, error } = await supabase
-    .from("scans")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single<ScanRecord>();
-
-  if (error) {
-    console.error("Error fetching scan:", error);
-    return null;
-  }
-
-  return data;
 }

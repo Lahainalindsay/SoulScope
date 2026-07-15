@@ -7,43 +7,42 @@ import BetaFeedbackForm from "../../components/BetaFeedbackForm";
 import DeveloperAnalysisDebug from "../../components/DeveloperAnalysisDebug";
 import ResonanceResultsDashboard from "../../components/ResonanceResultsDashboard";
 import { supabase } from "../../lib/supabaseClient";
-import { buildSoulScopeReport, type SoulScopeReport } from "../../lib/buildSoulScopeReport";
-import {
-  computeNarrativePreference,
-  isValidBaselineScan,
-  type NarrativePreference,
-} from "../../lib/patternPersonalization";
-import { shouldIncludeInBaseline, type ScanWithCompleteness } from "../../lib/partialScan";
-import { getUserNarrativePreference, persistCanonicalReport, saveFavoriteStory } from "../../lib/reportPersistence";
-import { type UserResultDomain } from "../../lib/systemDimensions";
+import { type SoulScopeReport } from "../../lib/buildSoulScopeReport";
+import { computeNarrativePreference, type NarrativePreference } from "../../lib/patternPersonalization";
+import { type ScanWithCompleteness } from "../../lib/partialScan";
+import { getScanResultViewModel, type ScanResultViewModel } from "../../lib/data/v2/getScanResultViewModel";
+import { setScanReflectionPreference } from "../../lib/data/v2/preferenceRepository";
+import { toReflectionStyle } from "../../lib/data/v2/mappers/mapReflectionVariants";
 import styles from "./ResultDetail.module.css";
 
-type ScanResult = ScanWithCompleteness;
-type ScanRow = { id?: string; user_id?: string; created_at?: string; result: ScanResult };
-
-const CLOUD_REQUEST_TIMEOUT_MS = 6000;
 const STORY_PREFERENCE_PREFIX = "soulscope.results.storyPreference:";
 
-async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string) {
-  return await new Promise<T>((resolve, reject) => {
-    const timer = window.setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
-    promise.then(
-      (value) => { window.clearTimeout(timer); resolve(value); },
-      (reason) => { window.clearTimeout(timer); reject(reason); },
-    );
-  });
+type DisplayStyle = SoulScopeReport["storyCandidates"][number]["style"];
+
+function displayStyle(style: string | null | undefined): DisplayStyle | null {
+  if (style === "direct") return "Direct";
+  if (style === "supportive") return "Supportive";
+  if (style === "insight") return "Insight";
+  return null;
+}
+
+function preferenceFromViewModel(viewModel: ScanResultViewModel): NarrativePreference | null {
+  const row = viewModel.narrativePreference;
+  if (!row) return null;
+  return computeNarrativePreference(
+    { Direct: row.direct_count, Supportive: row.supportive_count, Insight: row.insight_count },
+    displayStyle(row.last_selected_style),
+  );
 }
 
 export default function ResultDetailPage() {
   const router = useRouter();
   const { id } = router.query;
-  const [scanRow, setScanRow] = useState<ScanRow | null>(null);
-  const [scan, setScan] = useState<ScanResult | null>(null);
-  const [historicalDomains, setHistoricalDomains] = useState<UserResultDomain[][]>([]);
-  const [narrativePreference, setNarrativePreference] = useState<NarrativePreference | null>(null);
+  const [viewModel, setViewModel] = useState<ScanResultViewModel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedStoryStyle, setSelectedStoryStyle] = useState<SoulScopeReport["storyCandidates"][number]["style"] | null>(null);
+  const [selectedStoryStyle, setSelectedStoryStyle] = useState<DisplayStyle | null>(null);
+  const [narrativePreference, setNarrativePreference] = useState<NarrativePreference | null>(null);
 
   useEffect(() => {
     if (!id || typeof id !== "string") return;
@@ -51,59 +50,16 @@ export default function ResultDetailPage() {
       setLoading(true);
       setError(null);
       try {
-        const { data, error: fetchError } = await withTimeout(
-          supabase.from("scans").select("id, user_id, created_at, result").eq("id", id).single<ScanRow>(),
-          CLOUD_REQUEST_TIMEOUT_MS,
-          "Supabase scan",
-        );
-        if (fetchError) throw fetchError;
-        setScanRow(data ?? null);
-        setScan(data?.result ?? null);
-
-        const { data: userData } = await supabase.auth.getUser();
-        const userId = userData.user?.id;
-        if (!userId) return;
-
-        const [historyResponse, preferenceRow] = await Promise.all([
-          supabase
-            .from("scans")
-            .select("id, created_at, result")
-            .eq("user_id", userId)
-            .neq("id", id)
-            .order("created_at", { ascending: false })
-            .limit(10),
-          getUserNarrativePreference(supabase, userId).catch(() => null),
-        ]);
-
-        if (!historyResponse.error) {
-          const domains = ((historyResponse.data ?? []) as ScanRow[])
-            .map((row) => {
-              if (!row.result || !shouldIncludeInBaseline(row.result)) return null;
-              const historicalReport = buildSoulScopeReport(row.result);
-              return isValidBaselineScan(row.result, historicalReport.domainResults)
-                ? historicalReport.domainResults
-                : null;
-            })
-            .filter((item): item is UserResultDomain[] => Boolean(item))
-            .slice(0, 5);
-          setHistoricalDomains(domains);
-        }
-
-        if (preferenceRow) {
-          setNarrativePreference(computeNarrativePreference(
-            {
-              Direct: preferenceRow.direct_count,
-              Supportive: preferenceRow.supportive_count,
-              Insight: preferenceRow.insight_count,
-            },
-            preferenceRow.last_selected_style,
-          ));
+        const next = await getScanResultViewModel(supabase, id, false);
+        setViewModel(next);
+        if (next) {
+          setNarrativePreference(preferenceFromViewModel(next));
+          setSelectedStoryStyle(displayStyle(next.selectedPreference?.selected_style));
         }
       } catch (fetchError) {
-        console.error("Failed to load scan", fetchError);
+        console.error("Failed to load V2 scan result", fetchError);
         setError(fetchError instanceof Error ? fetchError.message : "Could not load this insight.");
-        setScanRow(null);
-        setScan(null);
+        setViewModel(null);
       } finally {
         setLoading(false);
       }
@@ -111,10 +67,8 @@ export default function ResultDetailPage() {
     void load();
   }, [id]);
 
-  const report = useMemo(
-    () => scan ? buildSoulScopeReport(scan, { historicalDomainResults: historicalDomains }) : null,
-    [scan, historicalDomains],
-  );
+  const report = viewModel?.report ?? null;
+  const scan = viewModel?.scan ?? null;
   const storyCandidates = useMemo(() => report?.storyCandidates ?? [], [report]);
   const selectedStory = useMemo(
     () => storyCandidates.find((candidate) => candidate.style === selectedStoryStyle) ?? storyCandidates[0] ?? null,
@@ -122,35 +76,23 @@ export default function ResultDetailPage() {
   );
 
   useEffect(() => {
-    if (!report || typeof id !== "string") return;
-    void (async () => {
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) return;
-        await persistCanonicalReport(supabase, { scanId: id, userId: userData.user.id, report });
-      } catch (persistError) {
-        console.error("Failed to persist canonical report", persistError);
-      }
-    })();
-  }, [id, report]);
-
-  useEffect(() => {
     if (!storyCandidates.length || typeof id !== "string") return;
+    if (selectedStoryStyle && storyCandidates.some((candidate) => candidate.style === selectedStoryStyle)) return;
     try {
       const stored = window.localStorage.getItem(`${STORY_PREFERENCE_PREFIX}${id}`);
       if (stored) {
         const parsed = JSON.parse(stored) as { style?: string };
-        const style = storyCandidates.some((candidate) => candidate.style === parsed.style)
-          ? parsed.style as SoulScopeReport["storyCandidates"][number]["style"]
-          : storyCandidates[0].style;
-        setSelectedStoryStyle(style);
+        const storedStyle = storyCandidates.some((candidate) => candidate.style === parsed.style)
+          ? parsed.style as DisplayStyle
+          : null;
+        setSelectedStoryStyle(storedStyle ?? storyCandidates[0].style);
       } else {
         setSelectedStoryStyle(storyCandidates[0].style);
       }
     } catch {
       setSelectedStoryStyle(storyCandidates[0].style);
     }
-  }, [id, storyCandidates]);
+  }, [id, selectedStoryStyle, storyCandidates]);
 
   const handleStorySelect = (style: string) => {
     const selected = storyCandidates.find((candidate) => candidate.style === style);
@@ -159,29 +101,19 @@ export default function ResultDetailPage() {
     try { window.localStorage.setItem(`${STORY_PREFERENCE_PREFIX}${id}`, JSON.stringify(selected)); } catch {}
     void (async () => {
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) return;
-        await saveFavoriteStory(supabase, {
-          scanId: id,
-          userId: userData.user.id,
-          style: selected.style,
-          title: selected.title,
-          summary: selected.summary,
-        });
-        const row = await getUserNarrativePreference(supabase, userData.user.id);
-        if (row) {
-          setNarrativePreference(computeNarrativePreference(
-            { Direct: row.direct_count, Supportive: row.supportive_count, Insight: row.insight_count },
-            row.last_selected_style,
-          ));
-        }
+        const aggregate = await setScanReflectionPreference(supabase, id, toReflectionStyle(selected.style));
+        setNarrativePreference(computeNarrativePreference(
+          { Direct: aggregate.direct_count, Supportive: aggregate.supportive_count, Insight: aggregate.insight_count },
+          displayStyle(aggregate.last_selected_style),
+        ));
       } catch (persistError) {
-        console.error("Failed to persist story preference", persistError);
+        console.error("Failed to persist V2 reflection preference", persistError);
       }
     })();
   };
 
   const completeness = report?.scanCompleteness;
+  const scanRow = viewModel?.session ?? null;
 
   return (
     <div className={styles.page}>
@@ -210,7 +142,7 @@ export default function ResultDetailPage() {
               narrativePreference={narrativePreference}
               onSelectStory={handleStorySelect}
             />
-            <DeveloperAnalysisDebug scanId={scanRow?.id ?? (typeof id === "string" ? id : null)} createdAt={scanRow?.created_at ?? null} scan={scan} report={report} />
+            <DeveloperAnalysisDebug scanId={scanRow?.id ?? (typeof id === "string" ? id : null)} createdAt={scanRow?.created_at ?? null} scan={scan as ScanWithCompleteness} report={report} />
             <BetaFeedbackForm page="results" scanId={typeof id === "string" ? id : null} selectedSummaryStyle={selectedStory?.style ?? null} />
             <section className={styles.footerNote}>
               <p>SoulScope uses voice as the first sensing lens and translates observed tendencies into a private current-state pattern insight.</p>

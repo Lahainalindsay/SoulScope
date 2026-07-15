@@ -8,6 +8,7 @@ import { getLocalDevSession, LOCAL_SCAN_LIST_KEY } from "../lib/localSession";
 import { getSoulScopeNoteColor } from "../lib/noteSystem";
 import { buildSoulScopeReport } from "../lib/buildSoulScopeReport";
 import { type NoteEnergyResult, type VoiceAnalysisResult } from "../lib/voiceSpectrum";
+import { getScanHistoryViewModel } from "../lib/data/v2/getScanHistoryViewModel";
 import NoteAuraMap from "./NoteAuraMap";
 import styles from "../pages/History.module.css";
 
@@ -21,48 +22,33 @@ type ScanRow = {
   };
 };
 
-type StoryPreferenceRow = {
-  scan_id: string;
-  selected_style: "Direct" | "Supportive" | "Insight";
-  selected_title: string;
-  selected_summary: string;
-};
+type DisplayStyle = "Direct" | "Supportive" | "Insight";
 
 type HistoryEntry = {
   scan: ScanRow;
   report: ReturnType<typeof buildSoulScopeReport>;
-  selectedStyle: StoryPreferenceRow["selected_style"] | null;
-  preferredStyle: StoryPreferenceRow["selected_style"] | null;
+  selectedStyle: DisplayStyle | null;
+  preferredStyle: DisplayStyle | null;
   selectedSummary: string;
 };
 
-function preferenceKey(scan: ScanRow) {
-  return scan.id ?? scan.created_at;
+function displayStyle(style: string | null): DisplayStyle | null {
+  if (style === "direct") return "Direct";
+  if (style === "supportive") return "Supportive";
+  if (style === "insight") return "Insight";
+  return null;
 }
 
 function formatScanDate(value?: string) {
   if (!value) return "No scan recorded yet";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
 function formatScanTime(value?: string) {
   if (!value) return "";
   return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
+    month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
   }).format(new Date(value));
-}
-
-function getSelectedVariant(report: ReturnType<typeof buildSoulScopeReport>, selectedStyle: HistoryEntry["selectedStyle"]) {
-  if (selectedStyle) return report.storyCandidates.find((candidate) => candidate.style === selectedStyle) ?? report.storyCandidates[0] ?? null;
-  return report.storyCandidates[0] ?? null;
 }
 
 function buildDashboardFocus(entry: HistoryEntry | null) {
@@ -135,9 +121,7 @@ function buildMovement(entries: HistoryEntry[]) {
     .slice(0, 3);
 }
 
-type PatternHistoryDashboardProps = {
-  mode?: "dashboard" | "history";
-};
+type PatternHistoryDashboardProps = { mode?: "dashboard" | "history" };
 
 export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternHistoryDashboardProps) {
   const isArchive = mode === "history";
@@ -145,8 +129,7 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
   const { isLoading: sessionLoading } = useSessionContext();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [scans, setScans] = useState<ScanRow[]>([]);
-  const [preferences, setPreferences] = useState<Record<string, StoryPreferenceRow>>({});
+  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
     const loadLocal = () => {
@@ -158,8 +141,18 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
       }
       try {
         const raw = window.localStorage.getItem(LOCAL_SCAN_LIST_KEY);
-        setScans(raw ? (JSON.parse(raw) as ScanRow[]) : []);
-        setPreferences({});
+        const scans = raw ? (JSON.parse(raw) as ScanRow[]) : [];
+        setHistoryEntries(scans.map((scan) => {
+          const report = buildSoulScopeReport(scan.result);
+          const selected = report.storyCandidates[0];
+          return {
+            scan,
+            report,
+            selectedStyle: selected?.style ?? null,
+            preferredStyle: null,
+            selectedSummary: selected?.summary ?? report.primaryPattern.explanation,
+          };
+        }));
         setError(null);
       } catch (localError) {
         console.error("Failed to load local scan history", localError);
@@ -174,40 +167,29 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
         loadLocal();
         return;
       }
-      const { data, error: fetchError } = await supabase.from("scans").select("id, created_at, result").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(isArchive ? 100 : 24);
-      if (fetchError) {
-        setError(fetchError.message);
+      try {
+        const viewModel = await getScanHistoryViewModel(supabase, isArchive ? 100 : 24);
+        setHistoryEntries(viewModel.items.flatMap((item) => {
+          if (!item.scan || !item.report) return [];
+          const style = displayStyle(item.selectedStyle);
+          return [{
+            scan: { id: item.scanId, created_at: item.createdAt, result: item.scan },
+            report: item.report,
+            selectedStyle: style,
+            preferredStyle: style,
+            selectedSummary: item.conciseSummary,
+          }];
+        }));
+        setError(null);
+      } catch (fetchError) {
+        console.error("Failed to load V2 history", fetchError);
+        setError(fetchError instanceof Error ? fetchError.message : "Could not load today's reflection.");
+      } finally {
         setLoading(false);
-        return;
       }
-      const nextScans = (data ?? []) as ScanRow[];
-      setScans(nextScans);
-      const scanIds = nextScans.map((scan) => scan.id).filter((id): id is string => typeof id === "string" && id.length > 0);
-      if (scanIds.length) {
-        const { data: preferenceData } = await supabase.from("scan_story_preferences").select("scan_id, selected_style, selected_title, selected_summary").eq("user_id", session.user.id).in("scan_id", scanIds);
-        setPreferences((preferenceData ?? []).reduce<Record<string, StoryPreferenceRow>>((acc, row) => {
-          acc[row.scan_id] = row as StoryPreferenceRow;
-          return acc;
-        }, {}));
-      }
-      setError(null);
-      setLoading(false);
     };
     if (!sessionLoading) void load();
   }, [isArchive, session, sessionLoading]);
-
-  const historyEntries = useMemo<HistoryEntry[]>(() => scans.map((scan) => {
-    const report = buildSoulScopeReport(scan.result);
-    const preference = preferences[preferenceKey(scan)] ?? null;
-    const selectedVariant = getSelectedVariant(report, preference?.selected_style ?? null);
-    return {
-      scan,
-      report,
-      selectedStyle: preference?.selected_style ?? selectedVariant?.style ?? null,
-      preferredStyle: preference?.selected_style ?? null,
-      selectedSummary: preference?.selected_summary ?? selectedVariant?.summary ?? report.primaryPattern.explanation,
-    };
-  }), [preferences, scans]);
 
   const latestEntry = historyEntries[0] ?? null;
   const visibleEnergies = (latestEntry?.scan.result.noteEnergies ?? []).filter((entry) => entry.note !== "G");
@@ -226,9 +208,7 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
           <div className={styles.instrumentCopy}>
             <p className={styles.eyebrow}>Today&rsquo;s Reflection</p>
             <h1 className={styles.instrumentTitle}>{latestEntry?.report.primaryPattern.name ?? "Start with a short scan."}</h1>
-            <p className={styles.instrumentLead}>
-              {latestEntry?.selectedSummary ?? "Use your voice as the first lens for a private check-in with your current state."}
-            </p>
+            <p className={styles.instrumentLead}>{latestEntry?.selectedSummary ?? "Use your voice as the first lens for a private check-in with your current state."}</p>
             <p className={styles.reflectionQuestion}>{reflectionPrompt}</p>
             <div className={styles.instrumentMeta}>
               <span>Last scan: {formatScanDate(latestEntry?.scan.created_at)}</span>
@@ -239,17 +219,11 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
               <Link href="/scan" className={latestEntry?.scan.id ? styles.secondaryButton : styles.primaryButton}>Start New Scan</Link>
             </div>
           </div>
-          <div className={styles.instrumentMap}>
-            <NoteAuraMap noteEnergies={visibleEnergies} title="Resonance Map" />
-          </div>
+          <div className={styles.instrumentMap}><NoteAuraMap noteEnergies={visibleEnergies} title="Resonance Map" /></div>
         </section>
 
         <div className={styles.instrumentFlow} aria-label="SoulScope pattern flow">
-          <span>Signals</span>
-          <span>Reflection</span>
-          <span>Patterns</span>
-          <span>Next Step</span>
-          <span>Growth</span>
+          <span>Signals</span><span>Reflection</span><span>Patterns</span><span>Next Step</span><span>Growth</span>
         </div>
 
         {loading ? <div className={styles.stateCard}>Opening today&rsquo;s reflection...</div> : null}
@@ -258,52 +232,22 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
         {!loading && !error && latestEntry ? (
           <>
             <section className={styles.trendInsightGrid}>
-              <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>Current Patterns</p>
-                <h3 className={styles.insightTitle}>What this may reflect</h3>
-                <p className={styles.insightText}>{latestPatternSignal}</p>
-              </article>
-              <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>What May Help</p>
-                <h3 className={styles.insightTitle}>Start here</h3>
-                <p className={styles.insightText}>{weeklyFocus}</p>
-              </article>
-              <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>Growth Over Time</p>
-                <h3 className={styles.insightTitle}>What is changing</h3>
-                <p className={styles.insightText}>{patternHistoryInsight}</p>
-              </article>
+              <article className={styles.trendInsightCard}><p className={styles.insightLabel}>Current Patterns</p><h3 className={styles.insightTitle}>What this may reflect</h3><p className={styles.insightText}>{latestPatternSignal}</p></article>
+              <article className={styles.trendInsightCard}><p className={styles.insightLabel}>What May Help</p><h3 className={styles.insightTitle}>Start here</h3><p className={styles.insightText}>{weeklyFocus}</p></article>
+              <article className={styles.trendInsightCard}><p className={styles.insightLabel}>Growth Over Time</p><h3 className={styles.insightTitle}>What is changing</h3><p className={styles.insightText}>{patternHistoryInsight}</p></article>
             </section>
 
             {movement.length ? (
               <article className={styles.chartCard}>
-                <div className={styles.chartHeader}>
-                  <div>
-                    <p className={styles.sectionEyebrow}>Growth Over Time</p>
-                    <h2 className={styles.chartTitle}>What changed most.</h2>
-                    <p className={styles.chartLead}>A simple comparison of what shifted since your previous scan.</p>
-                  </div>
-                </div>
+                <div className={styles.chartHeader}><div><p className={styles.sectionEyebrow}>Growth Over Time</p><h2 className={styles.chartTitle}>What changed most.</h2><p className={styles.chartLead}>A simple comparison of what shifted since your previous scan.</p></div></div>
                 <div className={styles.trendInsightGrid}>
-                  {movement.map((item) => (
-                    <article key={`${item.title}-${item.direction}`} className={styles.trendInsightCard}>
-                      <p className={styles.insightLabel}>{item.direction}</p>
-                      <h3 className={styles.insightTitle}>{item.title}</h3>
-                      <p className={styles.insightText}>{Math.round(item.amount)} point movement since the last scan.</p>
-                    </article>
-                  ))}
+                  {movement.map((item) => <article key={`${item.title}-${item.direction}`} className={styles.trendInsightCard}><p className={styles.insightLabel}>{item.direction}</p><h3 className={styles.insightTitle}>{item.title}</h3><p className={styles.insightText}>{Math.round(item.amount)} point movement since the last scan.</p></article>)}
                 </div>
               </article>
             ) : null}
 
             <section className={styles.historySection}>
-              <div className={styles.historyHeader}>
-                <div>
-                  <p className={styles.sectionEyebrow}>{isArchive ? "Pattern History" : "Recent Pattern History"}</p>
-                  <h2 className={styles.historyTitle}>{isArchive ? "Your complete record." : "Your latest scans."}</h2>
-                </div>
-                {!isArchive ? <Link href="/history" className={styles.secondaryButton}>View Full Pattern History</Link> : null}
-              </div>
+              <div className={styles.historyHeader}><div><p className={styles.sectionEyebrow}>{isArchive ? "Pattern History" : "Recent Pattern History"}</p><h2 className={styles.historyTitle}>{isArchive ? "Your complete record." : "Your latest scans."}</h2></div>{!isArchive ? <Link href="/history" className={styles.secondaryButton}>View Full Pattern History</Link> : null}</div>
               <div className={styles.historyList}>
                 {displayedHistoryEntries.map((entry) => {
                   const supportingNote = entry.scan.result.noteInterpretation?.primaryNote ?? entry.scan.result.dominantBandLabel ?? "-";
@@ -313,12 +257,7 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
                         <h3 className={styles.historyBand}>{entry.report.primaryPattern.name}</h3>
                         <p className={styles.historyTheme}>{entry.report.primaryPattern.theme}</p>
                         {isArchive ? <p className={styles.historySummary}>{entry.selectedSummary}</p> : null}
-                        {isArchive ? (
-                          <div className={styles.historyPills}>
-                            {entry.preferredStyle ? <span className={styles.historyPill}>Summary: {entry.preferredStyle}</span> : null}
-                            <span className={styles.historyPill} style={{ borderColor: `${getSoulScopeNoteColor(supportingNote)}44`, color: getSoulScopeNoteColor(supportingNote), background: `${getSoulScopeNoteColor(supportingNote)}12` }}>Signal detail: {supportingNote}</span>
-                          </div>
-                        ) : null}
+                        {isArchive ? <div className={styles.historyPills}>{entry.preferredStyle ? <span className={styles.historyPill}>Summary: {entry.preferredStyle}</span> : null}<span className={styles.historyPill} style={{ borderColor: `${getSoulScopeNoteColor(supportingNote)}44`, color: getSoulScopeNoteColor(supportingNote), background: `${getSoulScopeNoteColor(supportingNote)}12` }}>Signal detail: {supportingNote}</span></div> : null}
                         <div className={styles.historyDate}>{formatScanTime(entry.scan.created_at)}</div>
                       </div>
                       <Link href={entry.scan.id ? `/results/${entry.scan.id}` : "/dashboard"} className={styles.secondaryButton}>Open Insight</Link>
@@ -330,9 +269,7 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
           </>
         ) : null}
 
-        {!loading && !error && !latestEntry ? (
-          <div className={styles.stateCard}>No scans saved yet. Start a scan to see your first pattern.</div>
-        ) : null}
+        {!loading && !error && !latestEntry ? <div className={styles.stateCard}>No scans saved yet. Start a scan to see your first pattern.</div> : null}
       </main>
     </div>
   );
