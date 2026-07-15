@@ -19,7 +19,6 @@ import { GUIDED_SCAN_QUESTIONS, RESEARCH_REFERENCES, SCAN_OVERVIEW_LINES, VALIDA
 import styles from "./Analyzing.module.css";
 
 type SavedScanResult = ScanWithCompleteness & { id?: string; created_at?: string };
-type InsertedScanRow = { id: string; created_at: string };
 
 const CLOUD_REQUEST_TIMEOUT_MS = 4500;
 const ANALYSIS_REQUEST_TIMEOUT_MS = 15000;
@@ -133,6 +132,8 @@ export default function ScanAnalyzingPage() {
           return;
         }
 
+        const completedAt = new Date().toISOString();
+        const scanId = crypto.randomUUID();
         const result: SavedScanResult = {
           ...merged,
           scanCompleteness: nextCompleteness,
@@ -180,13 +181,14 @@ export default function ScanAnalyzingPage() {
             })),
           },
           researchBasis: { validationNote: VALIDATION_NOTE, references: RESEARCH_REFERENCES },
-          created_at: new Date().toISOString(),
+          id: scanId,
+          created_at: completedAt,
         };
 
         window.localStorage.setItem(LOCAL_SCAN_KEY, JSON.stringify(result));
         const existing = window.localStorage.getItem(LOCAL_SCAN_LIST_KEY);
         const parsed = existing ? (JSON.parse(existing) as SavedScanResult[]) : [];
-        window.localStorage.setItem(LOCAL_SCAN_LIST_KEY, JSON.stringify([result, ...parsed].slice(0, 10)));
+        window.localStorage.setItem(LOCAL_SCAN_LIST_KEY, JSON.stringify([result, ...parsed.filter((scan) => scan.id !== scanId)].slice(0, 10)));
 
         setProgressMessage("Preparing your reflection");
         const authResponse = await withTimeout(supabase.auth.getUser(), CLOUD_REQUEST_TIMEOUT_MS, "Supabase auth");
@@ -196,58 +198,28 @@ export default function ScanAnalyzingPage() {
           return;
         }
 
-        const insertResponse = await withTimeout<{ data: InsertedScanRow | null; error: Error | null }>(
-          supabase
-            .from("scans")
-            .insert({
-              user_id: userData.user.id,
-              status: nextCompleteness.status,
-              expected_recording_count: nextCompleteness.expectedRecordings,
-              valid_recording_count: nextCompleteness.validRecordings,
-              invalid_recording_count: nextCompleteness.invalidRecordings,
-              quality_level: nextCompleteness.qualityLevel,
-              retry_recommended: nextCompleteness.retryRecommended,
-              result: {
-                ...result,
-                scanMeta: { startedAt: scanStartedAt, completedAt: new Date().toISOString(), source: "authenticated" },
-              },
-            })
-            .select("id, created_at")
-            .single(),
-          CLOUD_REQUEST_TIMEOUT_MS,
-          "Supabase scan save",
-        );
-
-        if (insertResponse.error || !insertResponse.data) {
-          console.error("Failed to insert guided scan row", insertResponse.error);
-          setError("Your reflection was created, but it could not be saved to the results database.");
-          return;
-        }
-
-        const savedResult = { ...result, id: insertResponse.data.id, created_at: insertResponse.data.created_at };
-        window.localStorage.setItem(LOCAL_SCAN_KEY, JSON.stringify(savedResult));
-        const latestExisting = window.localStorage.getItem(LOCAL_SCAN_LIST_KEY);
-        const latestParsed = latestExisting ? (JSON.parse(latestExisting) as SavedScanResult[]) : [];
-        window.localStorage.setItem(
-          LOCAL_SCAN_LIST_KEY,
-          JSON.stringify([savedResult, ...latestParsed.filter((scan) => scan.id !== savedResult.id)].slice(0, 10)),
-        );
-
-        try {
-          await persistCanonicalReport(supabase, {
-            scanId: insertResponse.data.id,
+        const report = buildSoulScopeReport(result, { scanId });
+        await withTimeout(
+          persistCanonicalReport(supabase, {
+            scanId,
             userId: userData.user.id,
-            report: buildSoulScopeReport(result),
-          });
-        } catch (persistError) {
-          console.error("Failed to persist canonical resonance report", persistError);
-        }
+            report,
+            completeness: nextCompleteness,
+            rawResult: {
+              ...result,
+              scanMeta: { startedAt: scanStartedAt, completedAt, source: "authenticated" },
+            },
+            startedAt: scanStartedAt,
+          }),
+          20000,
+          "Supabase V2 result save",
+        );
 
         resetGuidedScanSession();
-        void router.replace(`/results/${insertResponse.data.id}`);
+        void router.replace(`/results/${scanId}`);
       } catch (analysisError) {
-        console.error("Guided scan analysis failed", analysisError);
-        setError(hardRetryMessage().body);
+        console.error("Guided scan analysis or persistence failed", analysisError);
+        setError(analysisError instanceof Error ? analysisError.message : hardRetryMessage().body);
       }
     };
 
