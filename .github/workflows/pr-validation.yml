@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - codex/evidence-observation-pipeline
   workflow_dispatch:
 
 jobs:
@@ -24,21 +25,27 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Lint
-        run: npm run lint
-
-      - name: Production build
-        run: npm run build
+        shell: bash
+        run: set -o pipefail; npm run lint 2>&1 | tee lint-output.txt
 
       - name: Tests
         shell: bash
         run: set -o pipefail; npm test 2>&1 | tee test-output.txt
 
-      - name: Upload test output
+      - name: Production build
+        shell: bash
+        run: set -o pipefail; npm run build 2>&1 | tee build-output.txt
+
+      - name: Upload validation output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: personalization-test-output
-          path: frontend/test-output.txt
+          name: validation-output
+          path: |
+            frontend/lint-output.txt
+            frontend/test-output.txt
+            frontend/build-output.txt
+            supabase/manual/soulscope_v2_reset_and_rebuild.sql

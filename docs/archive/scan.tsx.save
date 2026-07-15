@@ -60,7 +60,7 @@ export default function ScanPage() {
         return;
       }
 
-     const { data: scan, error: scanError } = await supabase
+      const { data: scan, error: scanError } = await supabase
         .from("scans")
         .insert({
           user_id: user.id,
