@@ -1,0 +1,40 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { requireAuthenticatedUser, throwIfError } from "./client";
+import type { ReflectionStyle, ScanReflectionPreferenceRow, UserNarrativePreferenceRow } from "./types";
+
+export async function setScanReflectionPreference(
+  client: SupabaseClient,
+  scanId: string,
+  style: ReflectionStyle,
+): Promise<UserNarrativePreferenceRow> {
+  const user = await requireAuthenticatedUser(client);
+  const { data, error } = await client.rpc("set_scan_reflection_preference", {
+    p_scan_id: scanId,
+    p_user_id: user.id,
+    p_selected_style: style,
+    p_selected_title: "",
+    p_selected_summary: "",
+  });
+  throwIfError(error, "Could not save reflection preference");
+  if (!data) throw new Error("Could not save reflection preference: no row returned.");
+  return data as UserNarrativePreferenceRow;
+}
+
+export async function getScanReflectionPreference(
+  client: SupabaseClient,
+  scanId: string,
+): Promise<ScanReflectionPreferenceRow | null> {
+  const user = await requireAuthenticatedUser(client);
+  const { data, error } = await client.from("scan_reflection_preferences").select("*").eq("scan_id", scanId).eq("user_id", user.id).maybeSingle<ScanReflectionPreferenceRow>();
+  throwIfError(error, "Could not load scan preference");
+  return data ?? null;
+}
+
+export async function getUserNarrativePreference(
+  client: SupabaseClient,
+): Promise<UserNarrativePreferenceRow | null> {
+  const user = await requireAuthenticatedUser(client);
+  const { data, error } = await client.from("user_narrative_preferences").select("*").eq("user_id", user.id).maybeSingle<UserNarrativePreferenceRow>();
+  throwIfError(error, "Could not load narrative preference");
+  return data ?? null;
+}
