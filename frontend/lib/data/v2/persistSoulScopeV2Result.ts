@@ -17,7 +17,7 @@ import { mapObservations } from "./mappers/mapObservations";
 import { mapDomains } from "./mappers/mapDomains";
 import { mapPatternMatches } from "./mappers/mapPatternMatches";
 import { mapReflectionVariants } from "./mappers/mapReflectionVariants";
-import type { ScanSessionRow } from "./types";
+import type { ScanSessionRow, ScanSessionUpdate } from "./types";
 
 export interface PersistSoulScopeV2ResultArgs {
   client: SupabaseClient;
@@ -28,6 +28,11 @@ export interface PersistSoulScopeV2ResultArgs {
   rawResult: unknown;
   startedAt?: string | null;
   completedAt?: string;
+}
+
+function finalSessionUpdate(args: ReturnType<typeof mapScanSession>): ScanSessionUpdate {
+  const { id: _id, user_id: _userId, ...updates } = args;
+  return updates;
 }
 
 export async function persistSoulScopeV2Result(args: PersistSoulScopeV2ResultArgs): Promise<ScanSessionRow> {
@@ -54,11 +59,11 @@ export async function persistSoulScopeV2Result(args: PersistSoulScopeV2ResultArg
     await insertDomainResults(args.client, mapDomains(context));
     await insertPatternMatches(args.client, mapPatternMatches(context));
     await insertReflectionVariants(args.client, mapReflectionVariants(context));
-    return await updateScanSession(args.client, args.scanId, {
-      ...mapScanSession(context, args.completeness.status),
-      id: undefined,
-      user_id: undefined,
-    } as never);
+    return await updateScanSession(
+      args.client,
+      args.scanId,
+      finalSessionUpdate(mapScanSession(context, args.completeness.status)),
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "V2 persistence failed.";
     try {
