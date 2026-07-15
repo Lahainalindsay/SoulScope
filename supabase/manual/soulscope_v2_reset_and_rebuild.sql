@@ -19,6 +19,7 @@ set local statement_timeout = '0';
 
 drop function if exists public.set_scan_story_preference(uuid, uuid, text, text, text);
 drop function if exists public.set_scan_reflection_preference(uuid, uuid, text, text, text);
+drop function if exists public.set_scan_reflection_preference(uuid, text);
 drop function if exists public.owns_scan(uuid);
 drop function if exists public.enforce_scan_child_owner();
 drop function if exists public.enforce_preference_variant_scan();
@@ -62,7 +63,6 @@ begin
     'session_tones_used',
     'sessions',
     'recommendations',
-    'user_feedback',
     'user_tone_presets',
     'chakra_tone_presets',
     'chakras',
@@ -627,10 +627,7 @@ grant select, insert, update, delete on table public.personal_baselines to authe
 
 create function public.set_scan_reflection_preference(
   p_scan_id uuid,
-  p_user_id uuid,
-  p_selected_style text,
-  p_selected_title text,
-  p_selected_summary text
+  p_selected_style text
 )
 returns public.user_narrative_preferences
 language plpgsql
@@ -652,8 +649,7 @@ declare
   preferred_value text;
   result_row public.user_narrative_preferences;
 begin
-  if authenticated_user is null
-     or p_user_id is distinct from authenticated_user then
+  if authenticated_user is null then
     raise exception 'Not authorized';
   end if;
 
@@ -683,11 +679,6 @@ begin
   if variant_id is null then
     raise exception 'Selected reflection variant does not exist';
   end if;
-
-  -- Caller-provided text is accepted for API compatibility but canonical stored
-  -- content always comes from the owned reflection variant.
-  perform p_selected_title;
-  perform p_selected_summary;
 
   select srp.selected_style
     into previous_style
@@ -775,9 +766,9 @@ begin
 end;
 $$;
 
-revoke all on function public.set_scan_reflection_preference(uuid, uuid, text, text, text) from public;
-revoke all on function public.set_scan_reflection_preference(uuid, uuid, text, text, text) from anon;
-grant execute on function public.set_scan_reflection_preference(uuid, uuid, text, text, text) to authenticated;
+revoke all on function public.set_scan_reflection_preference(uuid, text) from public;
+revoke all on function public.set_scan_reflection_preference(uuid, text) from anon;
+grant execute on function public.set_scan_reflection_preference(uuid, text) to authenticated;
 
 -- =============================================================================
 -- 9. Read-only compatibility view for legacy scan reads.
