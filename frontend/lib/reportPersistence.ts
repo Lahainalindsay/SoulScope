@@ -2,11 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SoulScopeReport } from "./buildSoulScopeReport";
 import type { ScanCompleteness } from "./partialScan";
 import { persistSoulScopeV2Result } from "./data/v2/persistSoulScopeV2Result";
-import {
-  getUserNarrativePreference as getV2NarrativePreference,
-  setScanReflectionPreference,
-} from "./data/v2/preferenceRepository";
-import { toReflectionStyle } from "./data/v2/mappers/mapReflectionVariants";
+import { getUserNarrativePreference as getV2NarrativePreference } from "./data/v2/preferenceRepository";
 
 export type StoryStyle = SoulScopeReport["storyCandidates"][number]["style"];
 
@@ -30,7 +26,6 @@ type PersistReportArgs = {
   rawResult: unknown;
   startedAt?: string | null;
 };
-type SaveSelectionArgs = { scanId: string; userId: string; style: StoryStyle; title?: string; summary?: string };
 
 /** @deprecated Prefer persistSoulScopeV2Result for new callers. */
 export async function persistCanonicalReport(
@@ -38,14 +33,6 @@ export async function persistCanonicalReport(
   args: PersistReportArgs,
 ) {
   return persistSoulScopeV2Result({ client, ...args });
-}
-
-/** @deprecated Preserved while result components migrate to the V2 preference repository. */
-export async function saveFavoriteStory(
-  client: SupabaseClient,
-  { scanId, style }: SaveSelectionArgs,
-) {
-  return setScanReflectionPreference(client, scanId, toReflectionStyle(style));
 }
 
 function displayStyle(style: string | null): StoryStyle | null {
