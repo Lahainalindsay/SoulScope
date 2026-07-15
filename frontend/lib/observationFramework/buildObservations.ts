@@ -7,6 +7,16 @@ function lowestConfidence(signals: EvidenceSignal[]): ConfidenceLevel {
   return signals.reduce<ConfidenceLevel>((lowest, signal) => CONFIDENCE_RANK[signal.evidenceConfidence] < CONFIDENCE_RANK[lowest] ? signal.evidenceConfidence : lowest, "high");
 }
 
+function interpretationConfidence(signals: EvidenceSignal[], strength: number): ConfidenceLevel {
+  const lowest = lowestConfidence(signals);
+  const directional = signals.filter((signal) => signal.direction !== "stable" && signal.direction !== "mixed" && signal.direction !== "unavailable");
+  const directions = new Set(directional.map((signal) => signal.direction));
+  const agreement = directions.size <= 1;
+  if (signals.length >= 3 && lowest === "high" && agreement && strength >= 0.3) return "high";
+  if (signals.length >= 2 && lowest !== "exploratory" && agreement) return "moderate";
+  return "exploratory";
+}
+
 export function buildObservations(evidenceSignals: EvidenceSignal[]): ObservationResult[] {
   const byId = new Map(evidenceSignals.map((signal) => [signal.evidenceId, signal]));
   return OBSERVATION_DEFINITIONS.flatMap((definition) => {
@@ -14,8 +24,7 @@ export function buildObservations(evidenceSignals: EvidenceSignal[]): Observatio
     const result = definition.calculate(byId);
     if (!result || result.contributingEvidenceIds.length < definition.minimumEvidenceAgreement) return [];
     const contributing = result.contributingEvidenceIds.map((id) => byId.get(id)).filter((signal): signal is EvidenceSignal => Boolean(signal));
-    const captureConfidence = lowestConfidence(contributing);
-    const interpretationConfidence: ConfidenceLevel = contributing.length >= 3 && captureConfidence === "high" ? "high" : contributing.length >= 2 && captureConfidence !== "exploratory" ? "moderate" : "exploratory";
+    const captureConfidence = contributing.reduce<ConfidenceLevel>((lowest, signal) => CONFIDENCE_RANK[signal.captureConfidence] < CONFIDENCE_RANK[lowest] ? signal.captureConfidence : lowest, "high");
     return [{
       id: `observation:${definition.id}`,
       observationId: definition.id,
@@ -26,7 +35,7 @@ export function buildObservations(evidenceSignals: EvidenceSignal[]): Observatio
       contributingEvidenceIds: result.contributingEvidenceIds,
       sourceCaptureIds: Array.from(new Set(contributing.flatMap((signal) => signal.sourceCaptureIds))),
       captureConfidence,
-      interpretationConfidence,
+      interpretationConfidence: interpretationConfidence(contributing, result.strength),
       ruleVersion: definition.version,
       alternatives: definition.alternatives,
     }];
