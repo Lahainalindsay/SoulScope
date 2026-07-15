@@ -16,7 +16,10 @@ export function mapObservations(context: V2MappingContext): ObservationResultIns
     capture_confidence: observation.captureConfidence,
     interpretation_confidence: observation.interpretationConfidence,
     rule_version: observation.ruleVersion,
-    contributing_evidence_ids: observation.contributingEvidenceIds.map((evidenceId) => stableUuid(context.scanId, "evidence", evidenceId, observation.ruleVersion)),
+    contributing_evidence_ids: observation.contributingEvidenceIds.map((evidenceId) => {
+      const source = context.pipeline.evidenceSignals.find((signal) => signal.evidenceId === evidenceId);
+      return stableUuid(context.scanId, "evidence", evidenceId, source?.ruleVersion ?? "unknown");
+    }),
     source_capture_ids: observation.sourceCaptureIds.map((captureId) => stableUuid(context.scanId, "capture", captureId)),
     alternatives: (observation.alternatives ?? []).map(toJsonValue),
   }));
