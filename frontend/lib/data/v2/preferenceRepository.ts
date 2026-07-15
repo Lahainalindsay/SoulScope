@@ -7,13 +7,10 @@ export async function setScanReflectionPreference(
   scanId: string,
   style: ReflectionStyle,
 ): Promise<UserNarrativePreferenceRow> {
-  const user = await requireAuthenticatedUser(client);
+  await requireAuthenticatedUser(client);
   const { data, error } = await client.rpc("set_scan_reflection_preference", {
     p_scan_id: scanId,
-    p_user_id: user.id,
     p_selected_style: style,
-    p_selected_title: "",
-    p_selected_summary: "",
   });
   throwIfError(error, "Could not save reflection preference");
   if (!data) throw new Error("Could not save reflection preference: no row returned.");
