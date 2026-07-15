@@ -11,11 +11,16 @@ export async function insertDomainResults(client: SupabaseClient, rows: DomainRe
   return (data ?? []) as DomainResultRow[];
 }
 
-export async function listDomainsForScan(client: SupabaseClient, scanId: string): Promise<DomainResultRow[]> {
+export async function listDomainsForScans(client: SupabaseClient, scanIds: string[]): Promise<DomainResultRow[]> {
+  if (!scanIds.length) return [];
   const user = await requireAuthenticatedUser(client);
-  const { data, error } = await client.from("domain_results").select("*").eq("scan_id", scanId).eq("user_id", user.id).order("created_at");
+  const { data, error } = await client.from("domain_results").select("*").eq("user_id", user.id).in("scan_id", scanIds).order("created_at");
   throwIfError(error, "Could not load domain results");
   return (data ?? []) as DomainResultRow[];
+}
+
+export async function listDomainsForScan(client: SupabaseClient, scanId: string): Promise<DomainResultRow[]> {
+  return listDomainsForScans(client, [scanId]);
 }
 
 export async function listDomainHistory(client: SupabaseClient, domainId: string, limit = 5): Promise<DomainResultRow[]> {
