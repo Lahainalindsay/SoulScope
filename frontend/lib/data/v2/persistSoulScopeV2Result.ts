@@ -9,6 +9,7 @@ import { insertObservations } from "./observationRepository";
 import { insertDomainResults } from "./domainRepository";
 import { insertPatternMatches } from "./patternRepository";
 import { insertReflectionVariants } from "./reflectionRepository";
+import { refreshPersonalBaselines } from "./refreshPersonalBaselines";
 import { mapScanSession } from "./mappers/mapScanSession";
 import { mapSensorCaptures } from "./mappers/mapSensorCaptures";
 import { mapRawFeatures } from "./mappers/mapRawFeatures";
@@ -59,11 +60,17 @@ export async function persistSoulScopeV2Result(args: PersistSoulScopeV2ResultArg
     await insertDomainResults(args.client, mapDomains(context));
     await insertPatternMatches(args.client, mapPatternMatches(context));
     await insertReflectionVariants(args.client, mapReflectionVariants(context));
-    return await updateScanSession(
+    const session = await updateScanSession(
       args.client,
       args.scanId,
       finalSessionUpdate(mapScanSession(context, args.completeness.status)),
     );
+    try {
+      await refreshPersonalBaselines(args.client, args.userId);
+    } catch (baselineError) {
+      console.warn("The scan was saved, but personal baselines were not refreshed.", baselineError);
+    }
+    return session;
   } catch (error) {
     const message = error instanceof Error ? error.message : "V2 persistence failed.";
     try {
