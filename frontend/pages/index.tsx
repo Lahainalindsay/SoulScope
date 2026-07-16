@@ -23,7 +23,7 @@ export default function HomePage() {
                 SoulScope is an instrument designed to observe those subtle patterns and organize them into meaningful reflections, helping you better understand what your inner world is already expressing.
               </p>
               <div className={styles.heroActions}>
-                <Link href="/auth/login" className={styles.primaryCta}>Begin Resonance Scan</Link>
+                <Link href="/auth/login" className={styles.primaryCta}>Start Scan</Link>
                 <Link href="/how-it-works" className={styles.secondaryCta}>How It Works</Link>
               </div>
               <p className={styles.heroMeta}>About 60 seconds • Private by design • Built for self-understanding</p>
@@ -125,7 +125,7 @@ export default function HomePage() {
             <p className={styles.finalLine}>One reflection.</p>
             <p className={styles.finalLine}>A clearer understanding of what your inner world may already be expressing.</p>
             <div className={styles.finalActions}>
-              <Link href="/auth/login" className={styles.primaryCta}>Begin Resonance Scan</Link>
+              <Link href="/auth/login" className={styles.primaryCta}>Start Scan</Link>
             </div>
             <p className={styles.heroMeta}>SoulScope is designed for personal reflection and self-understanding. It does not diagnose medical or psychological conditions.</p>
           </div>

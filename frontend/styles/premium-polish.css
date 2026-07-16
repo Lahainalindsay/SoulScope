@@ -1,0 +1,87 @@
+/* Shared visual restraint for the SoulScope instrument experience. */
+
+[class*="instrumentHero"],
+[class*="heroPanel"],
+[class*="latestCard"],
+[class*="chartCard"],
+[class*="historySection"],
+[class*="historyCard"],
+[class*="trendInsightCard"],
+[class*="stateCard"] {
+  border-color: rgba(255, 255, 255, 0.065) !important;
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.22) !important;
+}
+
+[class*="trendInsightCard"],
+[class*="historyCard"] {
+  background: rgba(255, 255, 255, 0.022) !important;
+}
+
+[class*="instrumentFlow"] {
+  opacity: 0.72;
+}
+
+[class*="instrumentFlow"] span {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  font-weight: 500 !important;
+}
+
+[class*="primaryButton"],
+[class*="primaryCta"] {
+  border-radius: 999px !important;
+  min-height: 48px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  box-shadow: 0 12px 34px rgba(34, 211, 238, 0.16) !important;
+}
+
+[class*="secondaryButton"],
+[class*="secondaryCta"] {
+  border-radius: 999px !important;
+  min-height: 48px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.06em !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+}
+
+[class*="instrumentLead"],
+[class*="historyTheme"],
+[class*="insightText"],
+[class*="summaryText"] {
+  max-width: 44rem;
+  line-height: 1.72 !important;
+}
+
+[class*="historyList"] {
+  gap: 14px !important;
+}
+
+[class*="historyCard"]:first-child {
+  border-color: rgba(103, 232, 249, 0.16) !important;
+  background: rgba(103, 232, 249, 0.035) !important;
+}
+
+[class*="technical"],
+[class*="evidence"] details,
+details[class*="evidence"] {
+  opacity: 0.88;
+}
+
+@media (max-width: 640px) {
+  [class*="instrumentHero"],
+  [class*="heroPanel"],
+  [class*="latestCard"],
+  [class*="chartCard"],
+  [class*="historySection"] {
+    border-radius: 22px !important;
+  }
+
+  [class*="primaryButton"],
+  [class*="secondaryButton"],
+  [class*="primaryCta"],
+  [class*="secondaryCta"] {
+    width: 100%;
+    min-height: 50px !important;
+  }
+}
