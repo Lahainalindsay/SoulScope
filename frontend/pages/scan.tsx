@@ -21,7 +21,7 @@ export default function ScanIntroPage() {
   return (
     <>
       <Head>
-        <title>Observe | SoulScope</title>
+        <title>Start Scan | SoulScope</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -34,18 +34,15 @@ export default function ScanIntroPage() {
             </Link>
 
             <div className={styles.heroPanel}>
-              <p className={styles.eyebrow}>Observe</p>
+              <p className={styles.eyebrow}>Resonance Scan</p>
               <h1 className={styles.title}>Start with your voice.</h1>
-              <p className={styles.lead}>
-                Find a quiet space, face the camera, and answer naturally. Voice is the first lens.
-              </p>
+              <p className={styles.lead}>Find a quiet space. Face the camera and speak naturally.</p>
               <div className={styles.instructionsCard}>
                 <p className={styles.instructionsTitle}>What to expect</p>
                 <div className={styles.protocolBody}>
-                  <p className={styles.protocolLine}>You will have 3 seconds to read each prompt before recording begins.</p>
-                  <p className={styles.protocolLine}>You will then have 10 seconds to respond out loud.</p>
-                  <p className={styles.protocolLine}>On the first question, hold still while the camera captures a short baseline.</p>
-                  <p className={styles.protocolLine}>Speak naturally. There is no right or wrong answer.</p>
+                  <p className={styles.protocolLine}>Read each prompt, then answer in your own words.</p>
+                  <p className={styles.protocolLine}>Each response records automatically.</p>
+                  <p className={styles.protocolLine}>The first prompt includes a brief camera baseline.</p>
                 </div>
               </div>
 
