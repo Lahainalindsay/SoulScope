@@ -3,6 +3,7 @@ import type { SoulScopeReport } from "./buildSoulScopeReport";
 import type { ScanCompleteness } from "./partialScan";
 import { persistSoulScopeV2Result } from "./data/v2/persistSoulScopeV2Result";
 import { getUserNarrativePreference as getV2NarrativePreference } from "./data/v2/preferenceRepository";
+import { linkCheckInToScan } from "./data/v2/checkInRepository";
 
 export type StoryStyle = SoulScopeReport["storyCandidates"][number]["style"];
 
@@ -32,7 +33,14 @@ export async function persistCanonicalReport(
   client: SupabaseClient,
   args: PersistReportArgs,
 ) {
-  return persistSoulScopeV2Result({ client, ...args });
+  const result = await persistSoulScopeV2Result({ client, ...args });
+  try {
+    await linkCheckInToScan(client, args.scanId);
+  } catch (error) {
+    // Check-in context is optional and must never block or alter scan persistence.
+    console.warn("Could not link today's optional check-in to this scan", error);
+  }
+  return result;
 }
 
 function displayStyle(style: string | null): StoryStyle | null {
