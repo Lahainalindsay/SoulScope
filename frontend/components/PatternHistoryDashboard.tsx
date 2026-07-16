@@ -61,7 +61,7 @@ function buildMovement(entries: HistoryEntry[]) {
       const direction = amount < 4 ? "remained close to your previous scan" : delta > 0 ? "was more present than in your previous scan" : "was less present than in your previous scan";
       return { title: domain.title, direction, amount };
     })
-    .filter((item): item is { title: string; direction: string; amount: number } => Boolean(item))
+    .filter((item): item is NonNullable<typeof item> => item !== null)
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 3);
 }
