@@ -6,6 +6,7 @@ import Navbar from "../components/Navbar";
 import "../styles/globals.css";
 import "../styles/premium-typography.css";
 import "../styles/responsive.css";
+import "../styles/premium-polish.css";
 
 export default function App({ Component, pageProps }: AppProps & { pageProps: { initialSession?: any } }) {
   const { initialSession, ...rest } = pageProps;
