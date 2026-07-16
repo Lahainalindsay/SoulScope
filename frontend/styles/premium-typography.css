@@ -2,20 +2,28 @@
   --type-display: clamp(2.85rem, 7vw, 6.25rem);
   --type-h1: clamp(2.25rem, 5vw, 4.5rem);
   --type-h2: clamp(1.65rem, 3vw, 2.75rem);
+  --type-h3: clamp(1.15rem, 2vw, 1.45rem);
   --type-body-large: clamp(1.05rem, 1.4vw, 1.2rem);
   --type-body: 1rem;
   --type-caption: 0.75rem;
-  --type-heading-line: 1.02;
-  --type-body-line: 1.65;
+  --type-heading-line: 1.04;
+  --type-body-line: 1.68;
+  --space-page: clamp(24px, 5vw, 72px);
+  --space-section: clamp(40px, 7vw, 88px);
+  --radius-control: 999px;
+  --radius-panel: 24px;
+  --motion-standard: 180ms ease;
 }
 
 h1,
 h2,
+h3,
 [class*="Headline"],
 [class*="headline"],
 [class*="Title"],
 [class*="title"] {
   font-family: var(--font-serif) !important;
+  font-weight: 500;
   text-wrap: balance;
 }
 
@@ -29,6 +37,12 @@ h2 {
   font-size: var(--type-h2);
   line-height: 1.08;
   letter-spacing: -0.025em;
+}
+
+h3 {
+  font-size: var(--type-h3);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
 }
 
 [class*="heroHeadline"],
@@ -56,6 +70,16 @@ a {
   font-family: var(--font-sans);
 }
 
+button,
+a[role="button"],
+[class*="Button"],
+[class*="button"],
+[class*="Cta"],
+[class*="CTA"] {
+  min-height: 44px;
+  transition-duration: var(--motion-standard);
+}
+
 [class*="Eyebrow"],
 [class*="eyebrow"],
 [class*="Caption"],
@@ -63,10 +87,16 @@ a {
 [class*="Label"],
 [class*="label"] {
   font-size: var(--type-caption);
+  font-weight: 500;
+  letter-spacing: 0.16em;
 }
 
 p {
   text-wrap: pretty;
+}
+
+main > section {
+  scroll-margin-top: 88px;
 }
 
 @media (max-width: 640px) {
@@ -74,5 +104,10 @@ p {
     --type-display: clamp(2.45rem, 13vw, 4.25rem);
     --type-h1: clamp(2rem, 10vw, 3.25rem);
     --type-h2: clamp(1.5rem, 7vw, 2.15rem);
+  }
+
+  [class*="actions"],
+  [class*="Actions"] {
+    max-width: 100%;
   }
 }
