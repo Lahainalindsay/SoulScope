@@ -1,38 +1,34 @@
 import type { SoulScopeReport } from "./buildSoulScopeReport";
 import type { LongitudinalAnalysis } from "./longitudinalIntelligence";
+import { selectLongitudinalMessage, type LongitudinalMessageKind } from "./patternKnowledge";
 
-function stabilityLine(analysis: LongitudinalAnalysis): string {
-  const consistent = analysis.observationStability.find((item) => item.stability === "consistent");
-  if (consistent) return "This observation has appeared consistently across your recent eligible scans.";
-  const recurring = analysis.observationStability.find((item) => item.stability === "recurring");
-  if (recurring) return "A similar observation has recurred in your recent scan history.";
-  const emerging = analysis.observationStability.find((item) => item.stability === "emerging");
-  return emerging ? "This observation is emerging rather than established in your personal history." : "";
+function messageKind(analysis: LongitudinalAnalysis): LongitudinalMessageKind {
+  const recent = analysis.similarity.recent;
+  if (!recent.available) return "firstObservation";
+  if (recent.category === "Noticeably Different" || recent.category === "Significant Shift") return "noticeablyDifferent";
+  if (analysis.observationStability.some((item) => item.stability === "consistent")) return "consistent";
+  if (analysis.observationStability.some((item) => item.stability === "recurring")) return "recurring";
+  return "emerging";
 }
 
 export function personalizeReportWithHistory(report: SoulScopeReport, analysis: LongitudinalAnalysis): SoulScopeReport {
-  const recentSimilarity = analysis.similarity.recent;
-  const similarityLine = recentSimilarity.available
-    ? recentSimilarity.category === "Very Similar"
-      ? "Current observations remain similar to your recent baseline."
-      : recentSimilarity.category === "Moderately Different"
-      ? "Today's scan is moderately different from your recent baseline."
-      : recentSimilarity.category === "Noticeably Different"
-      ? "Today's scan differs noticeably from your recent baseline."
-      : "Today's scan shows a significant shift from your recent baseline."
-    : "There is not yet enough eligible history to compare this scan with a personal baseline.";
-  const trendLine = analysis.trends.find((trend) => trend.direction !== "stable")?.summary ?? analysis.trends[0]?.summary ?? "";
-  const recurringLine = stabilityLine(analysis);
-  const evolutionLine = analysis.patternEvolution.available ? analysis.patternEvolution.summary : "";
+  const kind = messageKind(analysis);
+  const historySeed = analysis.baselines.recent.sourceScanIds.join(":") || report.primaryPattern.id;
+  const longitudinalMessage = selectLongitudinalMessage(report.primaryPattern.id, kind, historySeed);
+  const trendLine = analysis.trends.find((trend) => trend.direction !== "stable")?.summary ?? "";
 
   return {
     ...report,
+    presentation: {
+      ...report.presentation,
+      longitudinalMessage,
+    },
     storyCandidates: report.storyCandidates.map((candidate) => {
       const historyText = candidate.style === "Direct"
-        ? [similarityLine, trendLine].filter(Boolean).join(" ")
+        ? trendLine
         : candidate.style === "Supportive"
-        ? [recurringLine, similarityLine].filter(Boolean).join(" ")
-        : [evolutionLine, trendLine, recurringLine].filter(Boolean).join(" ");
+        ? longitudinalMessage
+        : [longitudinalMessage, trendLine].filter(Boolean).join(" ");
       return { ...candidate, summary: `${candidate.summary} ${historyText}`.trim() };
     }),
   };

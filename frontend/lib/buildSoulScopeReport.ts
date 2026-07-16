@@ -13,6 +13,7 @@ import {
   type PatternExpression,
   type PatternModifier,
 } from "./patternPersonalization";
+import { buildPatternPresentation, type PatternPresentation } from "./patternKnowledge";
 import type { ScanCompleteness, ScanWithCompleteness } from "./partialScan";
 import type { UserResultDomain, UserResultStoryCandidate } from "./systemDimensions";
 import type { VoiceAnalysisResult } from "./voiceSpectrum";
@@ -26,6 +27,7 @@ export type SoulScopeReport = BaseSoulScopeReport & {
   patternExpression: PatternExpression;
   modifiers: PatternModifier[];
   baselineComparison: BaselineComparison;
+  presentation: PatternPresentation;
   scanCompleteness?: ScanCompleteness;
   observationPipeline?: ObservationPipelineResult;
 };
@@ -39,55 +41,45 @@ function lowerFirst(value: string) {
   return value ? `${value.charAt(0).toLowerCase()}${value.slice(1)}` : value;
 }
 
-function strongestObservations(pipeline?: ObservationPipelineResult) {
-  return (pipeline?.observations ?? [])
-    .filter((observation) => observation.direction !== "stable")
-    .sort((a, b) => {
-      const confidence = { high: 2, moderate: 1, exploratory: 0 } as const;
-      const confidenceDelta = confidence[b.interpretationConfidence] - confidence[a.interpretationConfidence];
-      return confidenceDelta || b.strength - a.strength || a.observationId.localeCompare(b.observationId);
-    })
-    .slice(0, 2);
-}
-
 function personalizeStoryCandidate(
   candidate: UserResultStoryCandidate,
-  expression: PatternExpression,
+  presentation: PatternPresentation,
   modifiers: PatternModifier[],
-  primary: PatternMatch,
   supporting: PatternMatch | undefined,
   baseline: BaselineComparison,
-  pipeline?: ObservationPipelineResult,
   completeness?: ScanCompleteness,
 ): UserResultStoryCandidate {
   const resource = modifiers.find((modifier) => modifier.category === "resource")?.label;
-  const load = modifiers.find((modifier) => modifier.category === "load")?.label;
-  const observations = strongestObservations(pipeline);
-  const observationLine = observations.length
-    ? observations.map((observation) => observation.summary).join(" ")
-    : expression.summary;
   const qualityLine = completeness?.qualityLevel === "limited"
-    ? "Because the captured signal was limited, this reflection stays intentionally broad."
+    ? "This reflection stays broad because only a limited amount of clear voice data was available."
     : completeness?.status === "partial"
-    ? "This reflection uses only the recordings that contained clear usable signal."
+    ? "This reflection is based only on the recordings captured clearly."
     : "";
 
   if (candidate.style === "Direct") {
-    const loadLine = load ? `The clearest current load is that ${lowerFirst(load)}.` : primary.theme;
-    return { ...candidate, summary: `Current expression: ${expression.title}. Current observations suggest ${lowerFirst(expression.title)}. ${observationLine} ${loadLine} ${qualityLine}`.trim() };
+    return {
+      ...candidate,
+      summary: `${presentation.summary} ${presentation.observedBullets[0]} ${qualityLine}`.trim(),
+    };
   }
   if (candidate.style === "Supportive") {
-    const capacityLine = resource ? `At the same time, ${lowerFirst(resource)} remains available.` : "Usable capacity remains present alongside the current demand.";
-    const supportLine = supporting ? `A supporting pattern also points to ${lowerFirst(supporting.theme)}` : "The current picture is mixed rather than one-dimensional.";
-    return { ...candidate, summary: `${observationLine} ${capacityLine} ${supportLine} This is current-state information, not a fixed identity. ${qualityLine}`.trim() };
+    const capacityLine = resource
+      ? `${resource.charAt(0).toUpperCase()}${resource.slice(1)} remains available alongside the areas asking for more care.`
+      : supporting
+      ? `${supporting.name} also adds context to what may be supporting you today.`
+      : "Useful capacity remains present alongside the current demand.";
+    return {
+      ...candidate,
+      summary: `${presentation.explanation[0]} ${capacityLine} ${qualityLine}`.trim(),
+    };
   }
   const baselineLine = baseline.available
-    ? baseline.overallSummary ?? "Your recent scans provide additional context for this shift."
-    : "There is not yet enough personal history to describe this as a change from your usual baseline.";
-  const evidenceLine = expression.matchedSignals.length
-    ? `The differentiating evidence includes ${expression.matchedSignals.slice(0, 2).join(" and ")}.`
-    : "The differentiating evidence comes from the current combination of observations and domain balance.";
-  return { ...candidate, summary: `This pattern often appears when ${lowerFirst(primary.theme)} ${observationLine} ${evidenceLine} ${baselineLine} ${qualityLine}`.trim() };
+    ? baseline.overallSummary ?? presentation.longitudinalMessage
+    : presentation.longitudinalMessage;
+  return {
+    ...candidate,
+    summary: `${presentation.explanation[1]} ${baselineLine} ${qualityLine}`.trim(),
+  };
 }
 
 export function buildSoulScopeReport(
@@ -127,21 +119,25 @@ export function buildSoulScopeReport(
   const patternExpression: PatternExpression = limited
     ? {
         id: "signals-still-resolving",
-        title: "The Available Signals Are Still Resolving",
-        summary: "This limited reflection is based only on the clearest captured signals, so the interpretation remains intentionally broad.",
+        title: "A Limited Reflection",
+        summary: "This reflection is intentionally broad because only the clearest captured voice data could be used.",
         matchedSignals: [`${scanWithCompleteness.scanCompleteness?.validRecordings ?? 0} usable recordings`],
       }
     : buildPatternExpression(primaryPattern.id, scan, domainResults);
   const modifiers = buildPatternModifiers(scan, domainResults).slice(0, limited ? 2 : 6);
   const baselineComparison = buildBaselineComparison(domainResults, options.historicalDomainResults ?? []);
+  const presentation = buildPatternPresentation(
+    primaryPattern,
+    domainResults,
+    baselineComparison,
+    options.scanId ?? `${primaryPattern.id}:${patternExpression.id}`,
+  );
   const storyCandidates = base.storyCandidates.map((candidate) => personalizeStoryCandidate(
     candidate,
-    patternExpression,
+    presentation,
     modifiers,
-    primaryPattern,
     supportingPattern,
     baselineComparison,
-    observationPipeline,
     scanWithCompleteness.scanCompleteness,
   ));
 
@@ -154,6 +150,7 @@ export function buildSoulScopeReport(
     patternExpression,
     modifiers,
     baselineComparison,
+    presentation,
     scanCompleteness: scanWithCompleteness.scanCompleteness,
     observationPipeline,
     storyCandidates,

@@ -212,9 +212,11 @@ test("story variants remain distinct while describing one canonical report", () 
   assert.equal(report.storyCandidates.length, 3);
   const summaries = report.storyCandidates.map((candidate) => candidate.summary);
   assert.equal(new Set(summaries).size, 3);
-  assert.match(report.storyCandidates.find((candidate) => candidate.style === "Direct")?.summary ?? "", /Current expression:/);
-  assert.match(report.storyCandidates.find((candidate) => candidate.style === "Supportive")?.summary ?? "", /current-state information/);
-  assert.match(report.storyCandidates.find((candidate) => candidate.style === "Insight")?.summary ?? "", /differentiating evidence/);
+  const combined = summaries.join(" ");
+  assert.equal(combined.includes("Current expression:"), false);
+  assert.equal(combined.includes("Current observations suggest"), false);
+  assert.equal(combined.includes("differentiating evidence"), false);
+  assert.ok(summaries.every((summary) => summary.length > 40));
 });
 
 test("poor capture quality uses neutral resolving expression", () => {
