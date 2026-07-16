@@ -1,4 +1,5 @@
 import type { SoulScopeReport } from "../../buildSoulScopeReport";
+import { buildPatternPresentation } from "../../patternKnowledge";
 import type { UserResultDomain, UserResultDomainName, UserResultFunctionalState } from "../../systemDimensions";
 import type { DomainResultRow, PatternMatchRow, ReflectionVariantRow } from "./types";
 
@@ -73,7 +74,7 @@ function hydrateStories(rows: ReflectionVariantRow[], report: SoulScopeReport): 
     return {
       style,
       title: row.title,
-      summary: row.summary,
+      summary: fallback.summary,
       strongestResources: strongestResources.length ? strongestResources : fallback.strongestResources,
       areasWorkingHard: areasWorkingHard.length ? areasWorkingHard : fallback.areasWorkingHard,
       areasAskingForSupport: areasAskingForSupport.length ? areasAskingForSupport : fallback.areasAskingForSupport,
@@ -89,13 +90,15 @@ export function hydrateReportFromV2(
   const supportingPattern = hydratePattern("supporting", rows.patterns, report);
   const emergingPattern = hydratePattern("emerging", rows.patterns, report);
   const primaryRow = rows.patterns.find((item) => item.role === "primary");
+  const domainResults = hydrateDomains(rows.domains, report.domainResults);
   return {
     ...report,
     primaryPattern,
     supportingPattern,
     emergingPattern,
-    domainResults: hydrateDomains(rows.domains, report.domainResults),
+    domainResults,
     storyCandidates: hydrateStories(rows.reflections, report),
+    presentation: buildPatternPresentation(primaryPattern, domainResults, report.baselineComparison, primaryRow?.scan_id ?? primaryPattern.id),
     patternExpression: primaryRow?.pattern_expression_id ? {
       id: primaryRow.pattern_expression_id,
       title: primaryRow.pattern_expression_title ?? report.patternExpression.title,
