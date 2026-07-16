@@ -2,27 +2,95 @@
 
 import Head from "next/head";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
+import { supabase } from "../lib/supabaseClient";
+import styles from "./Profile.module.css";
+
+type ProfileSummary = {
+  scansCompleted: number;
+  preferredStyle: string;
+  recentActivity: string;
+};
+
+function formatMemberSince(value?: string) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(new Date(value));
+}
+
+function formatActivity(value?: string | null) {
+  if (!value) return "Your journey begins with your first scan.";
+  return `Last scan ${new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))}`;
+}
 
 export default function ProfilePage() {
   const user = useUser();
+  const [summary, setSummary] = useState<ProfileSummary>({ scansCompleted: 0, preferredStyle: "Not established yet", recentActivity: "Your journey begins with your first scan." });
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const [scanResponse, preferenceResponse, recentResponse] = await Promise.all([
+        supabase.from("scan_sessions").select("id", { count: "exact", head: true }).eq("user_id", user.id).in("status", ["completed", "partial"]),
+        supabase.from("user_narrative_preferences").select("preferred_style").eq("user_id", user.id).maybeSingle(),
+        supabase.from("scan_sessions").select("created_at").eq("user_id", user.id).in("status", ["completed", "partial"]).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+
+      setSummary({
+        scansCompleted: scanResponse.count ?? 0,
+        preferredStyle: preferenceResponse.data?.preferred_style
+          ? `${preferenceResponse.data.preferred_style.charAt(0).toUpperCase()}${preferenceResponse.data.preferred_style.slice(1)}`
+          : "Not established yet",
+        recentActivity: formatActivity(recentResponse.data?.created_at),
+      });
+    };
+    void load();
+  }, [user]);
 
   return (
     <>
       <Head>
-        <title>Profile | SoulScope</title>
+        <title>Your Journey | SoulScope</title>
       </Head>
-      <main style={{ width: "100%", minHeight: "calc(100dvh - 64px)", padding: "clamp(24px, 6vw, 72px) 16px calc(48px + env(safe-area-inset-bottom))" }}>
-        <section style={{ width: "min(100%, 720px)", margin: "0 auto", padding: "clamp(22px, 5vw, 40px)", borderRadius: 24, border: "1px solid rgba(255,255,255,.09)", background: "rgba(8,18,34,.78)" }}>
-          <p style={{ margin: "0 0 10px", color: "rgba(103,232,249,.85)", fontSize: 12, letterSpacing: ".18em", textTransform: "uppercase" }}>Profile</p>
-          <h1 style={{ margin: 0, fontFamily: "var(--font-serif)", fontSize: "clamp(2rem, 8vw, 3.5rem)", lineHeight: 1 }}>Your account</h1>
-          <p style={{ margin: "20px 0 0", color: "rgba(226,232,240,.78)", overflowWrap: "anywhere" }}>
-            {user?.email ?? "Sign in to view your account."}
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 190px), 1fr))", gap: 12, marginTop: 28 }}>
-            <Link href="/dashboard" style={{ minHeight: 48, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 18px", borderRadius: 999, background: "linear-gradient(135deg,#67e8f9,#34d399)", color: "#031019", textDecoration: "none", fontWeight: 700 }}>Today</Link>
-            <Link href="/history" style={{ minHeight: 48, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 18px", borderRadius: 999, border: "1px solid rgba(255,255,255,.12)", color: "#fff", textDecoration: "none" }}>Pattern History</Link>
-          </div>
+      <main className={styles.page}>
+        <section className={styles.shell}>
+          <header className={styles.hero}>
+            <p className={styles.eyebrow}>Profile</p>
+            <h1 className={styles.title}>Your Journey</h1>
+            <p className={styles.lead}>A quiet record of the reflections you return to.</p>
+          </header>
+
+          <section className={styles.summaryGrid} aria-label="Journey summary">
+            <article className={styles.summaryItem}>
+              <p className={styles.label}>Member Since</p>
+              <p className={styles.value}>{formatMemberSince(user?.created_at)}</p>
+            </article>
+            <article className={styles.summaryItem}>
+              <p className={styles.label}>Scans Completed</p>
+              <p className={styles.value}>{summary.scansCompleted}</p>
+            </article>
+            <article className={styles.summaryItem}>
+              <p className={styles.label}>Preferred Reflection</p>
+              <p className={styles.value}>{summary.preferredStyle}</p>
+            </article>
+          </section>
+
+          <section className={styles.activity}>
+            <p className={styles.label}>Recent Activity</p>
+            <h2 className={styles.sectionTitle}>{summary.recentActivity}</h2>
+          </section>
+
+          <section className={styles.account}>
+            <div>
+              <p className={styles.label}>Account</p>
+              <p className={styles.email}>{user?.email ?? "Sign in to view your account."}</p>
+            </div>
+            <div className={styles.actions}>
+              <Link href="/dashboard" className={styles.primaryAction}>Today</Link>
+              <Link href="/history" className={styles.secondaryAction}>Pattern History</Link>
+              <Link href="/scan" className={styles.secondaryAction}>{summary.scansCompleted ? "Start New Scan" : "Start Scan"}</Link>
+            </div>
+          </section>
         </section>
       </main>
     </>
