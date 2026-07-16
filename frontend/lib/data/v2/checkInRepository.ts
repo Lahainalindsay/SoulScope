@@ -36,7 +36,7 @@ export function toLocalDateKey(date = new Date()): string {
 }
 
 export function validateCheckInInput(input: DailyCheckInInput): DailyCheckInInput {
-  const emotions = [...new Set(input.emotions)];
+  const emotions = Array.from(new Set(input.emotions));
   if (emotions.length > 3) throw new Error("Choose up to three emotions.");
   if (emotions.some((emotion) => !emotionSet.has(emotion))) throw new Error("One or more selected emotions are not available.");
   const note = input.note?.trim() || null;
