@@ -8,19 +8,10 @@ import { supabase } from "../lib/supabaseClient";
 import { clearLocalDevSession, getLocalDevSession } from "../lib/localSession";
 import styles from "./Navbar.module.css";
 
-const DESKTOP_NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { href: "/dashboard", label: "Today" },
-  { href: "/scan", label: "Start Scan" },
   { href: "/history", label: "Pattern History" },
   { href: "/how-it-works", label: "How It Works" },
-];
-
-const MOBILE_NAV_ITEMS = [
-  { href: "/dashboard", label: "Today" },
-  { href: "/scan", label: "Start Scan" },
-  { href: "/history", label: "Pattern History" },
-  { href: "/how-it-works", label: "How It Works" },
-  { href: "/profile", label: "Profile" },
 ];
 
 export default function Navbar() {
@@ -80,6 +71,10 @@ export default function Navbar() {
     return router.pathname === href || router.pathname.startsWith(`${href}/`);
   };
 
+  const scanLabel = email ? "Start New Scan" : "Start Scan";
+  const desktopItems = [BASE_NAV_ITEMS[0], { href: "/scan", label: scanLabel }, ...BASE_NAV_ITEMS.slice(1)];
+  const mobileItems = [...desktopItems, { href: "/profile", label: "Profile" }];
+
   return (
     <nav className={styles.nav} aria-label="Main navigation">
       <div className={styles.inner}>
@@ -89,7 +84,7 @@ export default function Navbar() {
         </Link>
 
         <div className={styles.links}>
-          {DESKTOP_NAV_ITEMS.map((item) => (
+          {desktopItems.map((item) => (
             <Link key={item.href} href={item.href} className={`${styles.link} ${isActive(item.href) ? styles.linkActive : ""}`}>
               {item.label}
             </Link>
@@ -128,7 +123,7 @@ export default function Navbar() {
               <button type="button" className={styles.closeButton} onClick={() => setMenuOpen(false)} aria-label="Close menu">×</button>
             </div>
             <div className={styles.mobileLinks}>
-              {MOBILE_NAV_ITEMS.map((item) => (
+              {mobileItems.map((item) => (
                 <Link key={item.href} href={item.href} className={`${styles.mobileLink} ${isActive(item.href) ? styles.mobileLinkActive : ""}`}>
                   {item.label}
                 </Link>
