@@ -79,9 +79,13 @@ function domains(values: Partial<Record<UserResultDomain["title"], { score: numb
   return titles.map((title) => ({
     title,
     score: values[title]?.score ?? 70,
+    activityLevel: "Moderate",
     functionalState: values[title]?.functionalState ?? "Readily Available",
-    explanation: "test",
-    evidence: [],
+    currentPattern: "Test pattern",
+    thisCouldExpressAs: ["Test expression"],
+    itCanAlsoShowUpAs: ["Alternate test expression"],
+    supportiveReframe: "Test reframe",
+    signalSources: ["Test signal"],
   }));
 }
 
