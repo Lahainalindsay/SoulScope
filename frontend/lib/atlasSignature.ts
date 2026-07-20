@@ -19,7 +19,7 @@ export type AtlasSignatureModel = {
   };
 };
 
-const clamp = (value: number) => Math.max(0, Math.min(1, value));
+const clamp = (value: number, min = 0, max = 1) => Math.max(min, Math.min(max, value));
 
 const FAMILY_VISUAL_BIAS: Record<string, Partial<Record<AtlasEvidenceId, number>>> = {
   overextended: { "sustained-effort": .18, "reduced-recovery": .22, "fragmented-processing": .08 },
