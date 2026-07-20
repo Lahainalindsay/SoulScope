@@ -1,0 +1,97 @@
+.shell {
+  aspect-ratio: 1;
+  color: var(--resonance-signature-color, #c6a7ff);
+  contain: layout paint style;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: translateZ(0);
+}
+
+.halo {
+  transform-origin: center;
+  animation: signatureShimmer 12s ease-in-out infinite;
+}
+
+.breathe {
+  transform-origin: center;
+  animation: signatureBreathe 10s ease-in-out infinite;
+  will-change: transform;
+}
+
+.rotate {
+  transform-origin: center;
+  animation: signatureRotate 120s linear infinite;
+  will-change: transform;
+}
+
+.contour {
+  opacity: 0;
+  animation: signatureReveal 1.8s ease-out forwards;
+  shape-rendering: geometricPrecision;
+}
+
+.core {
+  transform-origin: center;
+  animation: signatureCore 8s ease-in-out infinite;
+}
+
+.regions {
+  pointer-events: none;
+}
+
+.region {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.region:focus-visible {
+  stroke: currentColor;
+  stroke-width: 2;
+  outline: none;
+}
+
+@keyframes signatureReveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes signatureBreathe {
+  0%, 100% { transform: scale(0.996); }
+  50% { transform: scale(1.004); }
+}
+
+@keyframes signatureRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes signatureShimmer {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
+}
+
+@keyframes signatureCore {
+  0%, 100% { opacity: 0.34; transform: scale(0.92); }
+  50% { opacity: 0.54; transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halo,
+  .breathe,
+  .rotate,
+  .contour,
+  .core {
+    animation: none;
+  }
+
+  .contour {
+    opacity: 1;
+  }
+}
