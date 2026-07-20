@@ -30,16 +30,6 @@ export default function HomePage() {
               </div>
               <p className={styles.heroMeta}>About 60 seconds • Private by design • Built for self-understanding</p>
             </div>
-
-            <div className={styles.heroVisual}>
-              <div className={styles.visualFrame}>
-                <img
-                  src="/images/resonance-map-hero.png"
-                  alt="SoulScope Resonance Signature illustration"
-                  className={styles.visualImage}
-                />
-              </div>
-            </div>
           </div>
         </section>
 
