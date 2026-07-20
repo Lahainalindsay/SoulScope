@@ -1,5 +1,4 @@
 import type { SoulScopeReport } from "../../buildSoulScopeReport";
-import { buildPatternPresentation } from "../../patternKnowledge";
 import type { UserResultDomain, UserResultDomainName, UserResultFunctionalState } from "../../systemDimensions";
 import type { DomainResultRow, PatternMatchRow, ReflectionVariantRow } from "./types";
 
@@ -98,7 +97,7 @@ export function hydrateReportFromV2(
     emergingPattern,
     domainResults,
     storyCandidates: hydrateStories(rows.reflections, report),
-    presentation: buildPatternPresentation(primaryPattern, domainResults, report.baselineComparison, primaryRow?.scan_id ?? primaryPattern.id),
+    presentation: report.presentation,
     patternExpression: primaryRow?.pattern_expression_id ? {
       id: primaryRow.pattern_expression_id,
       title: primaryRow.pattern_expression_title ?? report.patternExpression.title,
