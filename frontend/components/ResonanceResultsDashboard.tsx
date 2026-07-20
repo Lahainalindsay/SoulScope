@@ -1,5 +1,6 @@
 import HumanReflectionOverview from "./HumanReflectionOverview";
-import ResonanceSignature, { type ResonanceSignatureDatum } from "./ResonanceSignature";
+import ResonanceSignature from "./ResonanceSignature";
+import { ATLAS_EVIDENCE, ATLAS_SUBPATTERNS } from "../lib/patternAtlas";
 import { type SoulScopeReport } from "../lib/buildSoulScopeReport";
 import { orderStoryCandidates, type NarrativePreference } from "../lib/patternPersonalization";
 import styles from "./ResonanceResultsDashboard.module.css";
@@ -13,41 +14,19 @@ type ResonanceResultsDashboardProps = {
   displayName?: string | null;
 };
 
-function signatureData(report: SoulScopeReport, hiddenNotes: string[]): ResonanceSignatureDatum[] {
-  const noteSignals = (report.evidence.noteEnergies ?? [])
-    .filter((entry) => !hiddenNotes.includes(entry.note))
-    .map((entry) => ({
-      id: `resonance:${entry.note}`,
-      value: Math.max(0, Math.min(1, entry.score / 100)),
-      weight: entry.status === "balanced" ? 0.72 : 1,
-    }));
-
-  const domainSignals = (report.domainResults ?? []).map((domain) => ({
-    id: `domain:${domain.title}`,
-    value: Math.max(0, Math.min(1, domain.score / 100)),
-    weight: 0.86,
-  }));
-
-  const patternSignals = (report.patternExpression?.matchedSignals ?? []).map((signal, index) => ({
-    id: `pattern:${signal}`,
-    value: 0.58 + ((index * 17) % 31) / 100,
-    weight: 0.64,
-  }));
-
-  return [...noteSignals, ...domainSignals, ...patternSignals];
-}
-
 export default function ResonanceResultsDashboard({
   report,
-  hiddenNotes = [],
   onSelectStory,
   selectedStoryStyle = null,
   narrativePreference = null,
   displayName = null,
 }: ResonanceResultsDashboardProps) {
   const orderedCandidates = orderStoryCandidates(report.storyCandidates, narrativePreference);
-  const data = signatureData(report, hiddenNotes);
-  const confidence = Math.round(Math.max(0, Math.min(1, report.primaryPattern.confidence ?? 0)) * 100);
+  const atlas = report.atlas;
+  const profile = atlas.result.profile;
+  const confidence = Math.round(Math.max(0, Math.min(1, atlas.result.score ?? 0)) * 100);
+  const supporting = atlas.result.supporting[0];
+  const emerging = atlas.result.supporting[1];
 
   return (
     <section className={styles.section}>
@@ -58,12 +37,16 @@ export default function ResonanceResultsDashboard({
 
       <section className={styles.signatureHero}>
         <div className={styles.signatureFrame}>
-          <ResonanceSignature data={data} label="Your current Resonance Signature" />
+          <ResonanceSignature
+            data={atlas.signature.data}
+            visualState={atlas.signature.visualState}
+            label={`Resonance Signature for ${profile.name}`}
+          />
         </div>
         <div className={styles.patternCopy}>
           <p className={styles.eyebrow}>Current Pattern</p>
-          <h2 className={styles.patternName}>{report.primaryPattern.name}</h2>
-          <p className={styles.patternTheme}>{report.primaryPattern.theme}</p>
+          <h2 className={styles.patternName}>{profile.name}</h2>
+          <p className={styles.patternTheme}>{profile.theme}</p>
           <p className={styles.reflection}>{report.presentation.summary}</p>
           <div className={styles.confidenceRow}>
             <span>Interpretation confidence</span>
@@ -77,20 +60,20 @@ export default function ResonanceResultsDashboard({
 
       <HumanReflectionOverview report={report} />
 
-      {(report.supportingPattern || report.emergingPattern) ? (
+      {(supporting || emerging) ? (
         <section className={styles.patternStrip} aria-label="Additional pattern context">
-          {report.supportingPattern ? (
+          {supporting ? (
             <article className={styles.patternCard}>
               <p className={styles.noteStatus}>Also present</p>
-              <h3>{report.supportingPattern.name}</h3>
-              <p>{report.supportingPattern.theme}</p>
+              <h3>{supporting.profile.name}</h3>
+              <p>{supporting.profile.theme}</p>
             </article>
           ) : null}
-          {report.emergingPattern ? (
+          {emerging ? (
             <article className={styles.patternCard}>
-              <p className={styles.noteStatus}>Beginning to appear</p>
-              <h3>{report.emergingPattern.name}</h3>
-              <p>{report.emergingPattern.theme}</p>
+              <p className={styles.noteStatus}>Secondary possibility</p>
+              <h3>{emerging.profile.name}</h3>
+              <p>{emerging.profile.theme}</p>
             </article>
           ) : null}
         </section>
@@ -100,7 +83,7 @@ export default function ResonanceResultsDashboard({
         <div className={styles.notesHeader}>
           <p className={styles.eyebrow}>Reflection style</p>
           <h2>Choose what reads clearest</h2>
-          <p>Each version reflects the same deterministic scan interpretation.</p>
+          <p>Each version reflects the same deterministic atlas interpretation.</p>
         </div>
         <div className={styles.topNotesGrid}>
           {orderedCandidates.map((candidate) => {
@@ -124,8 +107,33 @@ export default function ResonanceResultsDashboard({
         <summary>Technical details</summary>
         <div className={styles.technicalGrid}>
           <article>
-            <h3>Pattern evidence</h3>
-            <ul>{report.patternExpression.matchedSignals.map((signal) => <li key={signal}>{signal}</li>)}</ul>
+            <h3>Atlas evidence</h3>
+            <ul>
+              {Object.entries(atlas.input)
+                .sort((left, right) => (right[1] ?? 0) - (left[1] ?? 0))
+                .slice(0, 6)
+                .map(([id, score]) => (
+                  <li key={id}>{ATLAS_EVIDENCE[id as keyof typeof ATLAS_EVIDENCE].label}: {Math.round((score ?? 0) * 100)}</li>
+                ))}
+            </ul>
+          </article>
+          <article>
+            <h3>Leading subpatterns</h3>
+            <ul>
+              {atlas.result.subpatterns.map(({ id, score }) => (
+                <li key={id}>{ATLAS_SUBPATTERNS[id].label}: {Math.round(score * 100)}</li>
+              ))}
+            </ul>
+          </article>
+          <article>
+            <h3>Signature geometry</h3>
+            <ul>
+              <li>Density: {Math.round(atlas.signature.visualState.density * 100)}</li>
+              <li>Coherence: {Math.round(atlas.signature.visualState.coherence * 100)}</li>
+              <li>Asymmetry: {Math.round(atlas.signature.visualState.asymmetry * 100)}</li>
+              <li>Expansion: {Math.round(atlas.signature.visualState.expansion * 100)}</li>
+              <li>Center calm: {Math.round(atlas.signature.visualState.centerCalm * 100)}</li>
+            </ul>
           </article>
           <article>
             <h3>Domain signals</h3>
