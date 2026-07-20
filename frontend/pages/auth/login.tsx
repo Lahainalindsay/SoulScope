@@ -1,12 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabaseClient";
 import { clearLocalDevSession } from "../../lib/localSession";
 import styles from "../Auth.module.css";
+
 const DEFAULT_AUTH_HOME = "/dashboard";
+
+function safeInternalDestination(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) return DEFAULT_AUTH_HOME;
+  return candidate;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,6 +22,10 @@ export default function LoginPage() {
   const [error, setError] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const destination = useMemo(() => safeInternalDestination(router.query.next), [router.query.next]);
+  const signupHref = destination === DEFAULT_AUTH_HOME
+    ? "/auth/signup"
+    : { pathname: "/auth/signup", query: { next: destination } };
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,8 +48,8 @@ export default function LoginPage() {
       }
 
       clearLocalDevSession();
-      setStatus("Opening SoulScope...");
-      await router.push(DEFAULT_AUTH_HOME);
+      setStatus(destination === "/scan" ? "Opening your scan..." : "Opening SoulScope...");
+      await router.push(destination);
     } catch (error) {
       console.error("Login request failed", error);
       setError(error instanceof Error ? error.message : "We couldn't sign you in.");
@@ -53,7 +64,7 @@ export default function LoginPage() {
       <section className={styles.card}>
         <p className={styles.brand}>SoulScope</p>
         <h1 className={styles.title}>Welcome back.</h1>
-        <p className={styles.lead}>Return to your reflections.</p>
+        <p className={styles.lead}>{destination === "/scan" ? "Sign in to begin your Resonance Scan." : "Return to your reflections."}</p>
 
         <form className={styles.form} onSubmit={handleLogin}>
           <label className={styles.field}>
@@ -72,7 +83,7 @@ export default function LoginPage() {
         </form>
 
         <p className={styles.secondary}>
-          New here? <Link href="/auth/signup" className={styles.link}>Create Account</Link>
+          New here? <Link href={signupHref} className={styles.link}>Create Account</Link>
         </p>
       </section>
     </main>

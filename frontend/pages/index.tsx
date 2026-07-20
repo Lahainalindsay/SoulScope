@@ -2,6 +2,8 @@ import Head from "next/head";
 import Link from "next/link";
 import styles from "../styles/Home.module.css";
 
+const START_SCAN_LOGIN = { pathname: "/auth/login", query: { next: "/scan" } };
+
 export default function HomePage() {
   return (
     <>
@@ -23,7 +25,7 @@ export default function HomePage() {
                 SoulScope is an instrument designed to observe those subtle patterns and organize them into meaningful reflections, helping you better understand what your inner world is already expressing.
               </p>
               <div className={styles.heroActions}>
-                <Link href="/auth/login" className={styles.primaryCta}>Start Scan</Link>
+                <Link href={START_SCAN_LOGIN} className={styles.primaryCta}>Start Scan</Link>
                 <Link href="/how-it-works" className={styles.secondaryCta}>How It Works</Link>
               </div>
               <p className={styles.heroMeta}>About 60 seconds • Private by design • Built for self-understanding</p>
@@ -33,7 +35,7 @@ export default function HomePage() {
               <div className={styles.visualFrame}>
                 <img
                   src="/images/resonance-map-hero.png"
-                  alt="SoulScope resonance map illustration"
+                  alt="SoulScope Resonance Signature illustration"
                   className={styles.visualImage}
                 />
               </div>
@@ -72,8 +74,8 @@ export default function HomePage() {
               <h3>Your Reflection</h3>
               <p>A simple explanation of the patterns most present in your scan.</p>
 
-              <h3>Your Resonance Map</h3>
-              <p>A visual representation of how those patterns relate to one another.</p>
+              <h3>Your Resonance Signature</h3>
+              <p>A visual expression of how those patterns relate to one another.</p>
 
               <h3>Your Resonance Timeline</h3>
               <p>As you continue scanning, SoulScope helps you recognize how your patterns naturally change over time.</p>
@@ -117,7 +119,7 @@ export default function HomePage() {
             <p className={styles.finalLine}>One reflection.</p>
             <p className={styles.finalLine}>A clearer understanding of what your inner world may already be expressing.</p>
             <div className={styles.finalActions}>
-              <Link href="/auth/login" className={styles.primaryCta}>Start Scan</Link>
+              <Link href={START_SCAN_LOGIN} className={styles.primaryCta}>Start Scan</Link>
             </div>
             <p className={styles.heroMeta}>SoulScope is designed for personal reflection and self-understanding. It does not diagnose medical or psychological conditions.</p>
           </div>
