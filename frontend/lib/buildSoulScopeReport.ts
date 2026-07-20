@@ -13,7 +13,7 @@ import {
   type PatternExpression,
   type PatternModifier,
 } from "./patternPersonalization";
-import { buildPatternPresentation, type PatternPresentation } from "./patternKnowledge";
+import { type PatternPresentation } from "./patternKnowledge";
 import type { ScanCompleteness, ScanWithCompleteness } from "./partialScan";
 import type { UserResultDomain, UserResultStoryCandidate } from "./systemDimensions";
 import type { VoiceAnalysisResult } from "./voiceSpectrum";
@@ -22,6 +22,9 @@ import { buildObservationPipeline } from "./observationFramework/buildObservatio
 import type { ObservationPipelineResult } from "./observationFramework/types";
 import { USE_OBSERVATION_PIPELINE_V2 } from "./observationFramework/versions";
 import { discriminatePatternMatches } from "./patternDiscrimination";
+import { buildAtlasPresentation, buildAtlasRuntime, topAtlasEvidence } from "./atlasRuntime";
+import { buildAtlasSignatureModel, type AtlasSignatureModel } from "./atlasSignature";
+import type { AtlasInput, AtlasResult } from "./patternAtlas";
 
 export type SoulScopeReport = BaseSoulScopeReport & {
   patternExpression: PatternExpression;
@@ -30,6 +33,11 @@ export type SoulScopeReport = BaseSoulScopeReport & {
   presentation: PatternPresentation;
   scanCompleteness?: ScanCompleteness;
   observationPipeline?: ObservationPipelineResult;
+  atlas: {
+    input: AtlasInput;
+    result: AtlasResult;
+    signature: AtlasSignatureModel;
+  };
 };
 
 export type BuildSoulScopeReportOptions = {
@@ -37,15 +45,11 @@ export type BuildSoulScopeReportOptions = {
   scanId?: string;
 };
 
-function lowerFirst(value: string) {
-  return value ? `${value.charAt(0).toLowerCase()}${value.slice(1)}` : value;
-}
-
 function personalizeStoryCandidate(
   candidate: UserResultStoryCandidate,
   presentation: PatternPresentation,
   modifiers: PatternModifier[],
-  supporting: PatternMatch | undefined,
+  supportingName: string | undefined,
   baseline: BaselineComparison,
   completeness?: ScanCompleteness,
 ): UserResultStoryCandidate {
@@ -59,17 +63,19 @@ function personalizeStoryCandidate(
   if (candidate.style === "Direct") {
     return {
       ...candidate,
+      title: "What the signals show",
       summary: `${presentation.summary} ${presentation.observedBullets[0]} ${qualityLine}`.trim(),
     };
   }
   if (candidate.style === "Supportive") {
     const capacityLine = resource
       ? `${resource.charAt(0).toUpperCase()}${resource.slice(1)} remains available alongside the areas asking for more care.`
-      : supporting
-      ? `${supporting.name} also adds context to what may be supporting you today.`
+      : supportingName
+      ? `${supportingName} also adds context to the capacities supporting you today.`
       : "Useful capacity remains present alongside the current demand.";
     return {
       ...candidate,
+      title: "What may be supporting you",
       summary: `${presentation.explanation[0]} ${capacityLine} ${qualityLine}`.trim(),
     };
   }
@@ -78,6 +84,7 @@ function personalizeStoryCandidate(
     : presentation.longitudinalMessage;
   return {
     ...candidate,
+    title: "What may be changing",
     summary: `${presentation.explanation[1]} ${baselineLine} ${qualityLine}`.trim(),
   };
 }
@@ -116,6 +123,11 @@ export function buildSoulScopeReport(
   const supportingPattern = discriminated[1]?.confidence > 0.2 ? discriminated[1] : undefined;
   const emergingPattern = discriminated[2]?.confidence > 0.15 ? discriminated[2] : undefined;
   const limited = scanWithCompleteness.scanCompleteness?.qualityLevel === "limited";
+  const baselineComparison = buildBaselineComparison(domainResults, options.historicalDomainResults ?? []);
+  const atlasRuntime = buildAtlasRuntime(scan, domainResults, baselineComparison);
+  const atlasSignature = buildAtlasSignatureModel(atlasRuntime.input, atlasRuntime.result);
+  const atlasEvidence = topAtlasEvidence(atlasRuntime.input, limited ? 2 : 4);
+
   const patternExpression: PatternExpression = limited
     ? {
         id: "signals-still-resolving",
@@ -123,20 +135,25 @@ export function buildSoulScopeReport(
         summary: "This reflection is intentionally broad because only the clearest captured voice data could be used.",
         matchedSignals: [`${scanWithCompleteness.scanCompleteness?.validRecordings ?? 0} usable recordings`],
       }
-    : buildPatternExpression(primaryPattern.id, scan, domainResults);
+    : {
+        id: `atlas:${atlasRuntime.result.profile.id}`,
+        title: atlasRuntime.result.profile.name,
+        summary: atlasRuntime.result.profile.theme,
+        matchedSignals: atlasEvidence.map((evidence) => `${evidence.label} · ${Math.round(evidence.score * 100)}%`),
+      };
+
+  const legacyExpression = buildPatternExpression(primaryPattern.id, scan, domainResults);
+  if (!limited && legacyExpression.matchedSignals.length) {
+    patternExpression.matchedSignals.push(...legacyExpression.matchedSignals.slice(0, 2));
+  }
+
   const modifiers = buildPatternModifiers(scan, domainResults).slice(0, limited ? 2 : 6);
-  const baselineComparison = buildBaselineComparison(domainResults, options.historicalDomainResults ?? []);
-  const presentation = buildPatternPresentation(
-    primaryPattern,
-    domainResults,
-    baselineComparison,
-    options.scanId ?? `${primaryPattern.id}:${patternExpression.id}`,
-  );
+  const presentation = buildAtlasPresentation(atlasRuntime.input, atlasRuntime.result, baselineComparison);
   const storyCandidates = base.storyCandidates.map((candidate) => personalizeStoryCandidate(
     candidate,
     presentation,
     modifiers,
-    supportingPattern,
+    atlasRuntime.result.supporting[0]?.profile.name,
     baselineComparison,
     scanWithCompleteness.scanCompleteness,
   ));
@@ -154,6 +171,11 @@ export function buildSoulScopeReport(
     scanCompleteness: scanWithCompleteness.scanCompleteness,
     observationPipeline,
     storyCandidates,
+    atlas: {
+      input: atlasRuntime.input,
+      result: atlasRuntime.result,
+      signature: atlasSignature,
+    },
   };
 }
 
