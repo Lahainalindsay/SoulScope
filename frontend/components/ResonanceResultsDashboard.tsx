@@ -1,3 +1,4 @@
+import { useState } from "react";
 import HumanReflectionOverview from "./HumanReflectionOverview";
 import ResonanceSignature from "./ResonanceSignature";
 import { ATLAS_EVIDENCE, ATLAS_SUBPATTERNS } from "../lib/patternAtlas";
@@ -14,86 +15,72 @@ type ResonanceResultsDashboardProps = {
   displayName?: string | null;
 };
 
+const ACCURACY_OPTIONS = ["Not accurate", "A little accurate", "Mostly accurate", "Very accurate", "Exactly right"];
+const LENGTH_OPTIONS = ["Could be shorter", "The length is right", "Could be longer"];
+const REJECTION_REASONS = [
+  "I just preferred the response I selected",
+  "This response did not feel accurate",
+  "I did not connect with the language used",
+  "It felt too general",
+  "It felt too specific",
+  "It was too long",
+  "It was too short",
+];
+
 export default function ResonanceResultsDashboard({
   report,
   onSelectStory,
   selectedStoryStyle = null,
   narrativePreference = null,
-  displayName = null,
 }: ResonanceResultsDashboardProps) {
   const orderedCandidates = orderStoryCandidates(report.storyCandidates, narrativePreference);
   const atlas = report.atlas;
   const profile = atlas.result.profile;
-  const confidence = Math.round(Math.max(0, Math.min(1, atlas.result.score ?? 0)) * 100);
-  const supporting = atlas.result.supporting[0];
-  const emerging = atlas.result.supporting[1];
+  const [accuracy, setAccuracy] = useState("");
+  const [lengthPreference, setLengthPreference] = useState("");
+  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string[]>>({});
+
+  const toggleReason = (style: string, reason: string) => {
+    setRejectionReasons((current) => {
+      const selected = current[style] ?? [];
+      return {
+        ...current,
+        [style]: selected.includes(reason)
+          ? selected.filter((item) => item !== reason)
+          : [...selected, reason],
+      };
+    });
+  };
 
   return (
     <section className={styles.section}>
-      <header className={styles.greeting}>
-        <p className={styles.eyebrow}>Your current state</p>
-        <h1>{displayName ? `Welcome back, ${displayName}` : "Your Resonance Signature"}</h1>
-      </header>
-
-      <section className={styles.signatureHero}>
-        <div className={styles.signatureFrame}>
-          <ResonanceSignature
-            data={atlas.signature.data}
-            visualState={atlas.signature.visualState}
-            label={`Resonance Signature for ${profile.name}`}
-          />
-        </div>
-        <div className={styles.patternCopy}>
-          <p className={styles.eyebrow}>Current Pattern</p>
-          <h2 className={styles.patternName}>{profile.name}</h2>
-          <p className={styles.patternTheme}>{profile.theme}</p>
-          <p className={styles.reflection}>{report.presentation.summary}</p>
-          <div className={styles.confidenceRow}>
-            <span>Interpretation confidence</span>
-            <strong>{confidence}%</strong>
-          </div>
-          <div className={styles.confidenceTrack} aria-hidden="true">
-            <span style={{ width: `${confidence}%` }} />
-          </div>
-        </div>
+      <section className={styles.patternCopy}>
+        <h1 className={styles.patternName}>{profile.name}</h1>
+        <p className={styles.patternTheme}>{profile.theme}</p>
       </section>
 
-      <HumanReflectionOverview report={report} />
-
-      {(supporting || emerging) ? (
-        <section className={styles.patternStrip} aria-label="Additional pattern context">
-          {supporting ? (
-            <article className={styles.patternCard}>
-              <p className={styles.noteStatus}>Also present</p>
-              <h3>{supporting.profile.name}</h3>
-              <p>{supporting.profile.theme}</p>
-            </article>
-          ) : null}
-          {emerging ? (
-            <article className={styles.patternCard}>
-              <p className={styles.noteStatus}>Secondary possibility</p>
-              <h3>{emerging.profile.name}</h3>
-              <p>{emerging.profile.theme}</p>
-            </article>
-          ) : null}
-        </section>
-      ) : null}
-
-      <section className={styles.notesSection}>
+      <section className={styles.notesSection} aria-labelledby="beta-reflection-heading">
         <div className={styles.notesHeader}>
-          <p className={styles.eyebrow}>Reflection style</p>
-          <h2>Choose what reads clearest</h2>
-          <p>Each version reflects the same deterministic atlas interpretation.</p>
+          <p className={styles.eyebrow}>Prelaunch reflection test</p>
+          <h2 id="beta-reflection-heading">Help us make SoulScope as clear and useful as possible.</h2>
+          <p>SoulScope is testing three different ways of interpreting and presenting your result. Choose the response that describes your pattern most accurately.</p>
         </div>
+
         <div className={styles.topNotesGrid}>
           {orderedCandidates.map((candidate) => {
             const isSelected = candidate.style === selectedStoryStyle;
-            const usuallyPreferred = narrativePreference?.established && narrativePreference.preferredStyle === candidate.style;
             return (
               <article key={candidate.style} className={styles.noteCard}>
                 <div className={styles.noteTop}>
-                  <p className={styles.noteStatus}>{candidate.style}{usuallyPreferred ? " · Usually preferred" : ""}</p>
-                  <button type="button" className={styles.selectButton} onClick={() => onSelectStory?.(candidate.style)} aria-pressed={isSelected}>{isSelected ? "Selected" : "Select"}</button>
+                  <p className={styles.noteStatus}>{candidate.style}</p>
+                  <button
+                    type="button"
+                    className={styles.selectButton}
+                    onClick={() => onSelectStory?.(candidate.style)}
+                    aria-pressed={isSelected}
+                  >
+                    {isSelected ? "My preferred response" : "Choose this response"}
+                  </button>
                 </div>
                 <h3>{candidate.title}</h3>
                 <p>{candidate.summary}</p>
@@ -101,10 +88,62 @@ export default function ResonanceResultsDashboard({
             );
           })}
         </div>
+
+        {selectedStoryStyle ? (
+          <div className={styles.technicalGrid}>
+            <fieldset className={styles.noteCard}>
+              <legend>How accurate is the response you selected?</legend>
+              {ACCURACY_OPTIONS.map((option) => (
+                <label key={option}>
+                  <input type="radio" name="accuracy" value={option} checked={accuracy === option} onChange={() => setAccuracy(option)} /> {option}
+                </label>
+              ))}
+            </fieldset>
+
+            <fieldset className={styles.noteCard}>
+              <legend>How does the response length feel?</legend>
+              {LENGTH_OPTIONS.map((option) => (
+                <label key={option}>
+                  <input type="radio" name="length" value={option} checked={lengthPreference === option} onChange={() => setLengthPreference(option)} /> {option}
+                </label>
+              ))}
+            </fieldset>
+
+            {orderedCandidates.filter((candidate) => candidate.style !== selectedStoryStyle).map((candidate) => (
+              <fieldset key={candidate.style} className={styles.noteCard}>
+                <legend>Why didn’t you prefer the {candidate.style} response?</legend>
+                <p className={styles.noteStatus}>Select as many as apply.</p>
+                {REJECTION_REASONS.map((reason) => (
+                  <label key={reason}>
+                    <input
+                      type="checkbox"
+                      checked={(rejectionReasons[candidate.style] ?? []).includes(reason)}
+                      onChange={() => toggleReason(candidate.style, reason)}
+                    /> {reason}
+                  </label>
+                ))}
+              </fieldset>
+            ))}
+          </div>
+        ) : null}
       </section>
 
+      <section className={styles.signatureHero} aria-label="Your Resonance Signature">
+        <div className={styles.signatureFrame}>
+          <ResonanceSignature
+            data={atlas.signature.data}
+            visualState={atlas.signature.visualState}
+            label={`Resonance Signature for ${profile.name}`}
+          />
+        </div>
+      </section>
+
+      <p className={styles.reflection}>{report.presentation.summary}</p>
+
+      <HumanReflectionOverview report={report} />
+
       <details className={styles.technicalDetails}>
-        <summary>Technical details</summary>
+        <summary>Supporting signals and technical details</summary>
         <div className={styles.technicalGrid}>
           <article>
             <h3>Atlas evidence</h3>
@@ -126,18 +165,8 @@ export default function ResonanceResultsDashboard({
             </ul>
           </article>
           <article>
-            <h3>Signature geometry</h3>
-            <ul>
-              <li>Density: {Math.round(atlas.signature.visualState.density * 100)}</li>
-              <li>Coherence: {Math.round(atlas.signature.visualState.coherence * 100)}</li>
-              <li>Asymmetry: {Math.round(atlas.signature.visualState.asymmetry * 100)}</li>
-              <li>Expansion: {Math.round(atlas.signature.visualState.expansion * 100)}</li>
-              <li>Center calm: {Math.round(atlas.signature.visualState.centerCalm * 100)}</li>
-            </ul>
-          </article>
-          <article>
             <h3>Domain signals</h3>
-            <ul>{report.domainResults.map((domain) => <li key={domain.title}>{domain.title}: {Math.round(domain.score)} · {domain.functionalState}</li>)}</ul>
+            <ul>{report.domainResults.map((domain) => <li key={domain.title}>{domain.title}: {domain.functionalState}</li>)}</ul>
           </article>
         </div>
       </details>
