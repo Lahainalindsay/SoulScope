@@ -47,11 +47,6 @@ export default function HomePage() {
             <h2 className={styles.sectionTitle}>The patterns are already there.</h2>
             <p className={styles.sectionIntro}>Every day, your inner world influences the way you naturally express yourself.</p>
             <div className={styles.editorialBlock}>
-              <p>Stress may change rhythm.</p>
-              <p>Recovery may change steadiness.</p>
-              <p>Confidence may change tone.</p>
-              <p>Emotion may change expression.</p>
-              <p>Focus may change pacing.</p>
               <p>Most of these changes happen outside conscious awareness.</p>
               <p>SoulScope organizes these naturally occurring patterns into meaningful reflections, giving you a clearer perspective on your current state.</p>
             </div>
@@ -63,9 +58,7 @@ export default function HomePage() {
             <p className={styles.sectionEyebrow}>A Different Kind of Self-Reflection</p>
             <h2 className={styles.sectionTitle}>SoulScope begins by listening.</h2>
             <div className={styles.editorialBlock}>
-              <p>Most self-assessments ask you to describe yourself.</p>
               <p>Instead of asking you to rate your stress, choose your mood, or explain how you&apos;re feeling, a Resonance Scan starts with a signal your body is already expressing.</p>
-              <p>The goal isn&apos;t to tell you who you are.</p>
               <p>The goal is to help you better understand what your inner world is already expressing.</p>
             </div>
           </div>
@@ -98,7 +91,6 @@ export default function HomePage() {
             <div className={styles.editorialBlock}>
               <p>Some days bring more clarity.</p>
               <p>Some bring more recovery.</p>
-              <p>Others bring stress, excitement, uncertainty, or growth.</p>
               <p>As life changes, your Resonance Timeline becomes a living record of those shifts, helping you recognize patterns that may have otherwise gone unnoticed.</p>
             </div>
           </div>
