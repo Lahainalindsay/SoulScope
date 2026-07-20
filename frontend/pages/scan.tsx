@@ -35,14 +35,24 @@ export default function ScanIntroPage() {
 
             <div className={styles.heroPanel}>
               <p className={styles.eyebrow}>Resonance Scan</p>
-              <h1 className={styles.title}>Start with your voice.</h1>
-              <p className={styles.lead}>Find a quiet space. Face the camera and speak naturally.</p>
+              <h1 className={styles.title}>Before you begin your Resonance Scan.</h1>
+              <p className={styles.lead}>Find a quiet place. Face the camera and speak naturally.</p>
+
               <div className={styles.instructionsCard}>
-                <p className={styles.instructionsTitle}>What to expect</p>
+                <p className={styles.instructionsTitle}>For best results</p>
                 <div className={styles.protocolBody}>
-                  <p className={styles.protocolLine}>Read each prompt, then answer in your own words.</p>
-                  <p className={styles.protocolLine}>Each response records automatically.</p>
-                  <p className={styles.protocolLine}>The first prompt includes a brief camera baseline.</p>
+                  <p className={styles.protocolLine}>You will be guided through five short prompts, with up to 10 seconds to answer each one.</p>
+                  <p className={styles.protocolLine}>Do your best to give a spoken response to every prompt. Even “I don’t know” or “I don’t have an answer” gives SoulScope more usable vocal information than silence.</p>
+                  <p className={styles.protocolLine}>Your words are not being judged. SoulScope listens to how your voice and expression respond during the scan.</p>
+                </div>
+              </div>
+
+              <div className={styles.instructionsCard}>
+                <p className={styles.instructionsTitle}>Microphone and camera privacy</p>
+                <div className={styles.protocolBody}>
+                  <p className={styles.protocolLine}>Microphone access is required to complete the scan.</p>
+                  <p className={styles.protocolLine}>For the most complete result, allow camera access as well. Camera input adds facial timing and movement context to the voice measurements.</p>
+                  <p className={styles.protocolLine}>Your browser controls these permissions. You can cancel before recording begins or change access later in your device or browser settings.</p>
                 </div>
               </div>
 
@@ -56,7 +66,7 @@ export default function ScanIntroPage() {
                   disabled={!introReady}
                   onClick={() => router.push("/scan/question/1")}
                 >
-                  Start Scan
+                  Begin Scan
                 </button>
               </div>
             </div>
