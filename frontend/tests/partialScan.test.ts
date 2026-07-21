@@ -101,9 +101,35 @@ test("missing recordings are counted, never duplicated or fabricated", () => {
 
 test("quality checks reject weak recordings", () => {
   assert.equal(isUsableAnalysis(validAnalysis()), true);
-  assert.equal(isUsableAnalysis(validAnalysis({ voiceDynamics: { ...validAnalysis().voiceDynamics!, captureQuality: "poor" } })), false);
+  assert.equal(isUsableAnalysis(validAnalysis({ voiceDynamics: { ...validAnalysis().voiceDynamics!, captureQuality: "poor", voicedFrameCount: 5, voicedDurationMs: 300, voicedFrameRatio: 0.08, activeFrameRatio: 0.1 } })), false);
   assert.equal(isUsableAnalysis(validAnalysis({ voiceDynamics: { ...validAnalysis().voiceDynamics!, voicedFrameCount: 2 } })), false);
   assert.equal(isUsableAnalysis(validAnalysis({ voiceDynamics: { ...validAnalysis().voiceDynamics!, clippingFrameRatio: 0.8 } })), false);
+});
+
+test("continuous clean speech remains usable when pitch tracking underrates a low voice", () => {
+  const lowVoice = validAnalysis({
+    coreFrequencyHz: 72,
+    voiceDynamics: {
+      ...validAnalysis().voiceDynamics!,
+      captureQuality: "poor",
+      primaryNoteSource: "spectral-fallback",
+      pitchFrameCount: 2,
+      medianPitchHz: null,
+      lowPitchHz: null,
+      highPitchHz: null,
+      pitchClarity: 0.18,
+      voicedFrameCount: 64,
+      voicedDurationMs: 4200,
+      voicedFrameRatio: 0.76,
+      activeFrameRatio: 0.82,
+      clippingFrameRatio: 0.01,
+    },
+  });
+
+  assert.equal(isUsableAnalysis(lowVoice), true);
+  const completeness = buildScanCompleteness({ expectedRecordings: 7, analyses: Array.from({ length: 7 }, () => lowVoice) });
+  assert.equal(completeness.status, "completed");
+  assert.equal(completeness.qualityLevel, "high");
 });
 
 test("limited and failed scans are excluded from baseline", () => {
