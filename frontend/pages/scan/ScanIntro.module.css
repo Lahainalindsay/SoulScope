@@ -1,20 +1,19 @@
 .page {
   min-height: 100vh;
-  color: #f8fbff;
+  color: var(--color-text-primary);
   background:
-    radial-gradient(circle at 18% 0%, rgba(34, 211, 238, 0.16), transparent 24%),
-    radial-gradient(circle at 100% 14%, rgba(52, 211, 153, 0.12), transparent 22%),
-    linear-gradient(180deg, #040813 0%, #08101f 46%, #050914 100%);
+    var(--gradient-ambient),
+    linear-gradient(180deg, var(--color-void) 0%, var(--color-midnight) 46%, var(--color-void) 100%);
 }
 
 .gridOverlay {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.3;
+  opacity: 0.18;
   background-image:
-    linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(177, 207, 224, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(177, 207, 224, 0.04) 1px, transparent 1px);
   background-size: 42px 42px;
 }
 
@@ -33,12 +32,12 @@
   align-items: center;
   justify-content: flex-start;
   overflow: hidden;
-  border-radius: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xl);
+  border: var(--border-standard);
   background:
-    radial-gradient(circle at 50% 24%, rgba(103, 232, 249, 0.12), transparent 22%),
-    linear-gradient(145deg, rgba(7, 16, 31, 0.95), rgba(8, 19, 40, 0.78));
-  box-shadow: 0 36px 120px rgba(0, 0, 0, 0.4);
+    radial-gradient(circle at 50% 24%, rgba(89, 225, 230, 0.1), transparent 22%),
+    var(--surface-card);
+  box-shadow: var(--shadow-elevated);
 }
 
 .skipLink {
@@ -46,11 +45,20 @@
   top: 22px;
   right: 24px;
   z-index: 2;
-  color: rgba(226, 232, 240, 0.66);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
   text-decoration: none;
   font-size: 12px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
+  cursor: pointer;
+}
+
+.skipLink:hover,
+.skipLink:focus-visible {
+  color: var(--color-cyan);
+  outline: none;
 }
 
 .heroPanel {
@@ -67,18 +75,19 @@
 .statLabel {
   margin: 0;
   font-size: 11px;
-  letter-spacing: 0.36em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
 }
 
 .eyebrow {
-  color: rgba(103, 232, 249, 0.84);
+  color: var(--color-cyan);
 }
 
 .title {
   margin: 18px 0 0;
   font-family: var(--font-serif);
   font-size: clamp(46px, 7vw, 84px);
+  font-weight: 500;
   line-height: 0.93;
   letter-spacing: -0.045em;
 }
@@ -88,18 +97,28 @@
   margin: 24px auto 0;
   font-size: 18px;
   line-height: 1.9;
-  color: rgba(226, 232, 240, 0.82);
+  color: var(--color-text-secondary);
 }
 
-.instructionsCard {
+.instructionsCard,
+.privacyCard,
+.subjectCard {
   margin: 26px auto 0;
   max-width: 680px;
   padding: 22px 24px;
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-lg);
+  border: var(--border-standard);
+  background: rgba(255, 255, 255, 0.025);
   text-align: center;
   backdrop-filter: blur(18px);
+}
+
+.privacyCard {
+  text-align: left;
+}
+
+.subjectCard {
+  text-align: left;
 }
 
 .instructionsTitle {
@@ -107,7 +126,150 @@
   font-size: 11px;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: rgba(103, 232, 249, 0.84);
+  color: var(--color-cyan);
+}
+
+.subjectHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.subjectIntro {
+  margin: 10px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.subjectOptions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.subjectOption {
+  min-height: 72px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(129, 192, 220, 0.14);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--color-text-bright);
+  padding: var(--space-4);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-standard),
+    background var(--motion-standard),
+    color var(--motion-standard),
+    transform var(--motion-standard);
+}
+
+.subjectOption:hover,
+.subjectOption:focus-visible {
+  border-color: rgba(89, 225, 230, 0.3);
+  background: rgba(89, 225, 230, 0.055);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.subjectOptionSelected {
+  border-color: rgba(89, 225, 230, 0.56);
+  background:
+    linear-gradient(145deg, rgba(89, 225, 230, 0.11), rgba(79, 168, 232, 0.05)),
+    rgba(255, 255, 255, 0.025);
+}
+
+.subjectOption span {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.subjectOption small {
+  display: block;
+  margin-top: 6px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.subjectForm {
+  margin-top: var(--space-5);
+}
+
+.subjectLabel {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.subjectFormRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.subjectInput {
+  width: 100%;
+  min-height: 46px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(129, 192, 220, 0.16);
+  background: rgba(2, 7, 17, 0.42);
+  color: var(--color-text-primary);
+  padding: 0 var(--space-4);
+  font: inherit;
+}
+
+.subjectInput::placeholder {
+  color: var(--color-text-disabled);
+}
+
+.subjectInput:focus-visible {
+  border-color: rgba(89, 225, 230, 0.56);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(89, 225, 230, 0.12);
+}
+
+.secondaryButton {
+  min-height: 46px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(129, 192, 220, 0.22);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--color-text-bright);
+  padding: 0 var(--space-5);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-standard),
+    color var(--motion-standard),
+    background var(--motion-standard);
+}
+
+.secondaryButton:hover,
+.secondaryButton:focus-visible {
+  border-color: rgba(89, 225, 230, 0.3);
+  color: var(--color-cyan);
+  outline: none;
+}
+
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  color: var(--color-text-disabled);
+  border-color: rgba(129, 192, 220, 0.1);
+}
+
+.subjectStatus {
+  margin: var(--space-4) 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .mobilePills {
@@ -145,22 +307,21 @@
   min-width: 196px;
   min-height: 58px;
   border: none;
-  border-radius: 22px;
+  border-radius: var(--radius-pill);
   padding: 0 26px;
-  background: linear-gradient(90deg, #67e8f9, #34d399);
-  color: #04111f;
-  font-size: 13px;
+  background: var(--gradient-button);
+  color: #031017;
+  font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  box-shadow: 0 22px 56px rgba(34, 211, 238, 0.24);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
+  box-shadow: var(--shadow-button);
+  transition: transform var(--motion-standard), box-shadow var(--motion-standard), opacity var(--motion-standard), filter var(--motion-standard);
 }
 
 .primaryButton:hover {
   transform: translateY(-1px);
-  box-shadow: 0 28px 62px rgba(34, 211, 238, 0.3);
+  box-shadow: var(--shadow-button);
 }
 
 .primaryButtonWaiting {
@@ -206,7 +367,7 @@
   margin: 0;
   font-size: 17px;
   line-height: 1.85;
-  color: rgba(226, 232, 240, 0.84);
+  color: var(--color-text-secondary);
 }
 
 .protocolLoading {
@@ -323,6 +484,21 @@
   .instructionsCard {
     padding: 18px;
     border-radius: 24px;
+  }
+
+  .privacyCard,
+  .subjectCard {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .subjectOptions,
+  .subjectFormRow {
+    grid-template-columns: 1fr;
+  }
+
+  .secondaryButton {
+    min-height: 48px;
   }
 
   .actions {

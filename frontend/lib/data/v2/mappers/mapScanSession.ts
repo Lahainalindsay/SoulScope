@@ -8,6 +8,16 @@ function confidenceFor(quality: V2MappingContext["completeness"]["qualityLevel"]
   return "exploratory";
 }
 
+function subjectIdFromRawResult(rawResult: unknown) {
+  if (!rawResult || typeof rawResult !== "object") return null;
+  const scanMeta = (rawResult as { scanMeta?: unknown }).scanMeta;
+  if (!scanMeta || typeof scanMeta !== "object") return null;
+  const subject = (scanMeta as { subject?: unknown }).subject;
+  if (!subject || typeof subject !== "object") return null;
+  const subjectId = (subject as { subjectId?: unknown }).subjectId;
+  return typeof subjectId === "string" && subjectId.length ? subjectId : null;
+}
+
 export function mapScanSession(context: V2MappingContext, status: ScanSessionInsert["status"] = "processing"): ScanSessionInsert {
   const { completeness, pipeline } = context;
   return {
@@ -25,6 +35,7 @@ export function mapScanSession(context: V2MappingContext, status: ScanSessionIns
     observation_engine_version: pipeline.engineVersion,
     observation_pipeline: toJsonObject(pipeline),
     observation_pipeline_created_at: pipeline.generatedAt,
+    subject_id: subjectIdFromRawResult(context.rawResult),
     raw_result: toJsonObject(context.rawResult),
     completeness_metadata: toJsonObject(completeness),
     invalid_recording_reasons: completeness.invalidRecordingReasons.map(toJsonValue),

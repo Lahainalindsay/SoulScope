@@ -1,0 +1,187 @@
+.page {
+  min-height: 100vh;
+  color: var(--color-text-primary);
+  background:
+    var(--gradient-ambient),
+    linear-gradient(180deg, var(--color-void) 0%, var(--color-midnight) 52%, var(--color-void) 100%);
+}
+
+.shell {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 48px 20px 88px;
+}
+
+.header,
+.panel,
+.metricCard,
+.state {
+  border: var(--border-standard);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
+}
+
+.header {
+  padding: var(--space-6);
+  margin-bottom: var(--space-5);
+}
+
+.eyebrow,
+.metricLabel {
+  margin: 0;
+  color: var(--color-cyan);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(2.75rem, 5vw, 4.75rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+.lead,
+.state,
+.empty {
+  color: var(--color-text-secondary);
+  line-height: 1.65;
+}
+
+.lead {
+  max-width: 760px;
+  margin: var(--space-5) 0 0;
+  font-size: 1.125rem;
+}
+
+.state {
+  padding: var(--space-5);
+}
+
+.error {
+  border-color: rgba(226, 125, 136, 0.28);
+  color: var(--color-error);
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.metricCard {
+  padding: var(--space-5);
+}
+
+.metricValue {
+  display: block;
+  margin-top: var(--space-3);
+  color: var(--color-text-bright);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  line-height: 1;
+}
+
+.metricHint {
+  display: block;
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.panel {
+  padding: var(--space-6);
+  margin-top: var(--space-5);
+}
+
+.sectionTitle {
+  margin: 0 0 var(--space-5);
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 500;
+  line-height: 1.08;
+}
+
+.countGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.countItem {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(129, 192, 220, 0.12);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.countName {
+  color: var(--color-text-bright);
+  font-weight: 600;
+}
+
+.countMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 960px;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 12px;
+  border-bottom: var(--border-divider);
+  color: var(--color-text-secondary);
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.5;
+  vertical-align: top;
+}
+
+.table th {
+  color: var(--color-cyan);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.mono {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .shell {
+    padding: 32px 16px 72px;
+  }
+
+  .header,
+  .panel {
+    padding: var(--space-5);
+  }
+}

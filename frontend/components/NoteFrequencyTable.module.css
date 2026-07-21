@@ -18,7 +18,7 @@
   font-size: 11px;
   letter-spacing: 0.34em;
   text-transform: uppercase;
-  color: rgba(103, 232, 249, 0.78);
+  color: rgba(89, 225, 230, 0.78);
 }
 
 .title {
@@ -76,7 +76,7 @@
 .table td:first-child {
   font-size: 18px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-bright);
 }
 
 .sectionBlock,

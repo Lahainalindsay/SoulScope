@@ -35,6 +35,29 @@ export async function persistCanonicalReport(
 ) {
   const result = await persistSoulScopeV2Result({ client, ...args });
   try {
+    const diagnosticsResponse = await client.from("scan_interpretation_diagnostics").upsert(
+      {
+        scan_id: args.scanId,
+        user_id: args.userId,
+        subject_id: args.report.dynamicPattern.baseline.subjectId,
+        pattern_signature: args.report.dynamicPattern.patternSignature,
+        display_name: args.report.dynamicPattern.displayName,
+        family: args.report.dynamicPattern.family,
+        confidence: args.report.dynamicPattern.confidence,
+        state_vector: args.report.dynamicPattern.stateVector,
+        evidence_ledger: args.report.dynamicPattern.evidenceLedger,
+        dimension_ledger: args.report.dynamicPattern.dimensions,
+        decision_ledger: args.report.dynamicPattern.decisionLedger,
+        baseline: args.report.dynamicPattern.baseline,
+        interpretation_limits: args.report.dynamicPattern.interpretationLimits,
+      },
+      { onConflict: "scan_id" },
+    );
+    if (diagnosticsResponse.error) throw diagnosticsResponse.error;
+  } catch (error) {
+    console.warn("Scan interpretation diagnostics were not persisted.", error);
+  }
+  try {
     await linkCheckInToScan(client, args.scanId);
   } catch (error) {
     // Check-in context is optional and must never block or alter scan persistence.

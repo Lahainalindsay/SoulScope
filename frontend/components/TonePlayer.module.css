@@ -4,20 +4,20 @@
   border: none;
   border-radius: 18px;
   padding: 0 18px;
-  background: linear-gradient(90deg, #67e8f9, #34d399);
+  background: linear-gradient(90deg, var(--color-cyan), var(--color-blue));
   color: #04111f;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 18px 44px rgba(34, 211, 238, 0.22);
+  box-shadow: 0 18px 44px rgba(89, 225, 230, 0.22);
   transition: transform 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
 }
 
 .button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 24px 52px rgba(34, 211, 238, 0.28);
+  box-shadow: 0 24px 52px rgba(89, 225, 230, 0.28);
 }
 
 .button:disabled {

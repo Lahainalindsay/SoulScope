@@ -1,4 +1,5 @@
 import { getResonanceSystem } from "./resonanceLanguage";
+import { buildDynamicPatternResult, type DynamicPatternResult } from "./patternInterpretation";
 import {
   buildSystemDimensions,
   buildUserResultDomains,
@@ -56,6 +57,7 @@ export type SoulScopeReport = {
   emergingPattern?: PatternMatch;
   domainResults: UserResultDomain[];
   storyCandidates: UserResultStoryCandidate[];
+  dynamicPattern: DynamicPatternResult;
   evidence: {
     noteEnergies: NoteEnergyResult[];
     topNotes: Array<{
@@ -447,6 +449,46 @@ function rankPatterns(scan: VoiceAnalysisResult) {
     });
 }
 
+function humanizeDimensionKey(key: string) {
+  if (key === "relationalOrientation") return "relational orientation";
+  return key;
+}
+
+function buildDynamicPatternMatch(dynamicPattern: DynamicPatternResult, fallbackPattern: PatternDefinition): PatternMatch {
+  const dimensions = Object.values(dynamicPattern.dimensions);
+  const sorted = [...dimensions].sort((a, b) => Math.abs(b.score - 0.5) - Math.abs(a.score - 0.5));
+  const primary = sorted.slice(0, 3);
+  const support = dynamicPattern.evidenceLedger.supporting.slice(0, 3);
+  const missing = dynamicPattern.evidenceLedger.missing.slice(0, 2);
+  const contradictionText = dynamicPattern.evidenceLedger.contradictory.length
+    ? ` Contradictory evidence is present, so this reflection should be read with extra caution.`
+    : "";
+
+  return {
+    id: fallbackPattern.id,
+    name: dynamicPattern.displayName,
+    theme: `${primary.map((dimension) => `${humanizeDimensionKey(dimension.key)} ${dimension.state}`).join(", ")}.`,
+    explanation:
+      `This reflection is built from the scan signature rather than a fixed profile winner. The clearest dimensions are ${primary
+        .map((dimension) => `${dimension.label.toLowerCase()} (${dimension.state})`)
+        .join(", ")}.${contradictionText}`,
+    whatThisMayFeelLike: primary.map((dimension) => `${dimension.label} appears ${dimension.state} in this scan.`),
+    supportiveFactors: support.length
+      ? support.map((entry) => entry.label)
+      : ["The scan produced enough signal to describe a bounded current pattern."],
+    whatIsWorkingHardest: [
+      ...dynamicPattern.evidenceLedger.supporting
+        .filter((entry) => ["high-activation", "activation-with-fragmentation", "slow-recovery", "cross-prompt-escalation"].includes(entry.id))
+        .map((entry) => entry.label),
+      ...missing.map((entry) => `Missing: ${entry.label}`),
+    ].slice(0, 4),
+    whatNeedsAttention:
+      dynamicPattern.interpretationLimits[0] ??
+      "Use this as a current pattern reflection, not as a fixed identity or diagnosis.",
+    confidence: dynamicPattern.confidence,
+  };
+}
+
 function buildStoryCandidates(report: {
   primaryPattern: PatternMatch;
   supportingPattern?: PatternMatch;
@@ -536,21 +578,20 @@ export function buildSoulScopeReport(scan: VoiceAnalysisResult): SoulScopeReport
   const dimensions = buildSystemDimensions(scan);
   const domainResults = buildUserResultDomains(scan);
   const ranked = rankPatterns(scan);
-  const primaryRank = ranked[0];
+  const dynamicPattern = buildDynamicPatternResult(
+    scan,
+    domainResults,
+    ranked.map((pattern) => ({
+      id: pattern.id,
+      name: pattern.name,
+      confidence: pattern.confidence,
+    })),
+  );
+  const primaryRank = ranked[0] ?? PATTERN_LIBRARY[0];
   const supportingRank = ranked[1];
   const emergingRank = ranked[2];
 
-  const primaryPattern: PatternMatch = {
-    id: primaryRank.id,
-    name: primaryRank.name,
-    theme: primaryRank.theme,
-    explanation: primaryRank.explanation,
-    whatThisMayFeelLike: primaryRank.whatThisMayFeelLike,
-    supportiveFactors: primaryRank.supportiveFactors,
-    whatIsWorkingHardest: primaryRank.whatIsWorkingHardest,
-    whatNeedsAttention: primaryRank.whatNeedsAttention,
-    confidence: primaryRank.confidence,
-  };
+  const primaryPattern: PatternMatch = buildDynamicPatternMatch(dynamicPattern, primaryRank);
 
   const supporting = supportingRank?.confidence > 0.2
     ? {
@@ -585,6 +626,7 @@ export function buildSoulScopeReport(scan: VoiceAnalysisResult): SoulScopeReport
     supportingPattern: supporting,
     emergingPattern: emerging,
     domainResults,
+    dynamicPattern,
     storyCandidates: buildStoryCandidates({
       primaryPattern,
       supportingPattern: supporting,

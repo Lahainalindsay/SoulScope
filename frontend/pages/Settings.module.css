@@ -1,0 +1,193 @@
+.page {
+  min-height: 100vh;
+  color: var(--color-text-primary);
+  background:
+    var(--gradient-ambient),
+    linear-gradient(180deg, var(--color-void) 0%, var(--color-midnight) 52%, var(--color-void) 100%);
+}
+
+.shell {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 112px 20px 80px;
+}
+
+.header,
+.panel,
+.state {
+  border: var(--border-standard);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
+}
+
+.header {
+  padding: var(--space-6);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-cyan);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(2.75rem, 5vw, 4.75rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+.lead,
+.body,
+.state,
+.message {
+  color: var(--color-text-secondary);
+  line-height: 1.65;
+}
+
+.lead {
+  max-width: 640px;
+  margin: var(--space-5) 0 0;
+  font-size: 1.125rem;
+}
+
+.panel,
+.state {
+  margin-top: var(--space-5);
+  padding: var(--space-6);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 3vw, 3rem);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.018em;
+}
+
+.body {
+  margin: var(--space-4) 0 0;
+}
+
+.details {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.details li {
+  padding-left: var(--space-4);
+  border-left: 1px solid rgba(89, 225, 230, 0.28);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.dangerButton,
+.secondaryButton {
+  min-height: 52px;
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-5);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-standard),
+    color var(--motion-standard),
+    background var(--motion-standard),
+    box-shadow var(--motion-standard);
+}
+
+.dangerButton {
+  border: 1px solid rgba(226, 125, 136, 0.34);
+  background: rgba(226, 125, 136, 0.08);
+  color: var(--color-error);
+}
+
+.secondaryButton {
+  border: 1px solid rgba(129, 192, 220, 0.22);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--color-text-bright);
+}
+
+.dangerButton:hover,
+.dangerButton:focus-visible {
+  border-color: rgba(226, 125, 136, 0.62);
+  background: rgba(226, 125, 136, 0.12);
+  outline: none;
+}
+
+.secondaryButton:hover,
+.secondaryButton:focus-visible {
+  border-color: rgba(89, 225, 230, 0.3);
+  color: var(--color-cyan);
+  outline: none;
+}
+
+.dangerButton:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.confirmBox {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(226, 125, 136, 0.28);
+  background: rgba(226, 125, 136, 0.055);
+}
+
+.confirmTitle {
+  margin: 0;
+  color: var(--color-text-bright);
+  font-weight: 600;
+}
+
+.message {
+  margin: var(--space-4) 0 0;
+  font-size: 0.95rem;
+}
+
+.error {
+  color: var(--color-error);
+}
+
+@media (max-width: 720px) {
+  .shell {
+    padding: 96px 16px 64px;
+  }
+
+  .header,
+  .panel,
+  .state {
+    padding: var(--space-5);
+  }
+
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dangerButton,
+  .secondaryButton {
+    width: 100%;
+  }
+}

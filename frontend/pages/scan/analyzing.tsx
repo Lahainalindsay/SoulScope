@@ -8,7 +8,9 @@ import {
   getGuidedScanCameraCaptures,
   getGuidedScanAnswers,
   getGuidedScanStartedAt,
+  getGuidedScanSubject,
   resetGuidedScanSession,
+  type GuidedScanSubject,
 } from "../../lib/guidedScanSession";
 import { analyzeVoiceSpectrum, mergeVoiceAnalyses, type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
 import { buildSoulScopeReport } from "../../lib/buildSoulScopeReport";
@@ -22,6 +24,13 @@ type SavedScanResult = ScanWithCompleteness & { id?: string; created_at?: string
 
 const CLOUD_REQUEST_TIMEOUT_MS = 4500;
 const ANALYSIS_REQUEST_TIMEOUT_MS = 15000;
+const UNCONFIRMED_SUBJECT: GuidedScanSubject = {
+  subjectId: null,
+  subjectLabel: "Unconfirmed subject",
+  identityConfidence: 0,
+  historyEligible: false,
+  status: "unconfirmed",
+};
 
 async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string) {
   return await new Promise<T>((resolve, reject) => {
@@ -77,6 +86,7 @@ export default function ScanAnalyzingPage() {
       const cameraCaptures = getGuidedScanCameraCaptures();
       const cameraBaseline = getGuidedScanCameraBaseline();
       const scanStartedAt = getGuidedScanStartedAt();
+      const scanSubject = getGuidedScanSubject() ?? UNCONFIRMED_SUBJECT;
       const expectedRecordings = GUIDED_SCAN_QUESTIONS.length;
 
       if (!answers.length) {
@@ -181,6 +191,12 @@ export default function ScanAnalyzingPage() {
             })),
           },
           researchBasis: { validationNote: VALIDATION_NOTE, references: RESEARCH_REFERENCES },
+          scanMeta: {
+            subject: scanSubject,
+            startedAt: scanStartedAt,
+            completedAt,
+            source: "guided-resonance-scan",
+          },
           id: scanId,
           created_at: completedAt,
         };
@@ -207,7 +223,13 @@ export default function ScanAnalyzingPage() {
             completeness: nextCompleteness,
             rawResult: {
               ...result,
-              scanMeta: { startedAt: scanStartedAt, completedAt, source: "authenticated" },
+              scanMeta: {
+                ...result.scanMeta,
+                subject: scanSubject,
+                startedAt: scanStartedAt,
+                completedAt,
+                source: "authenticated",
+              },
             },
             startedAt: scanStartedAt,
           }),

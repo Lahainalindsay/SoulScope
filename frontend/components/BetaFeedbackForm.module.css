@@ -2,7 +2,7 @@
   border-radius: 28px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
-    radial-gradient(circle at top left, rgba(103, 232, 249, 0.1), transparent 28%),
+    radial-gradient(circle at top left, rgba(89, 225, 230, 0.1), transparent 28%),
     rgba(255, 255, 255, 0.035);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
   padding: 24px;
@@ -19,7 +19,7 @@
   font-size: 11px;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: rgba(103, 232, 249, 0.84);
+  color: rgba(89, 225, 230, 0.84);
 }
 
 .title {
@@ -77,9 +77,9 @@
 }
 
 .ratingButtonActive {
-  border-color: rgba(103, 232, 249, 0.7);
-  background: rgba(103, 232, 249, 0.16);
-  color: #ffffff;
+  border-color: rgba(89, 225, 230, 0.7);
+  background: rgba(89, 225, 230, 0.16);
+  color: var(--color-text-bright);
 }
 
 .textarea {
@@ -110,7 +110,7 @@
   border: 0;
   border-radius: 999px;
   padding: 12px 18px;
-  background: linear-gradient(135deg, #67e8f9, #a78bfa);
+  background: linear-gradient(135deg, var(--color-cyan), #a78bfa);
   color: #020617;
   font-size: 12px;
   font-weight: 800;

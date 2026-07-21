@@ -1,1 +1,1 @@
-.progressTrack{height:8px;border-radius:999px;overflow:hidden;background:#223;margin-bottom:14px}.progressFill{height:100%;background:#67e8f9}.scanStatusRow{width:100%;display:flex;gap:12px}.wide{grid-column:1/-1}.smallOrb{min-height:260px}.smallOrbFrame{width:300px}
+.progressTrack{height:8px;border-radius:999px;overflow:hidden;background:#223;margin-bottom:14px}.progressFill{height:100%;background:var(--color-cyan)}.scanStatusRow{width:100%;display:flex;gap:12px}.wide{grid-column:1/-1}.smallOrb{min-height:260px}.smallOrbFrame{width:300px}

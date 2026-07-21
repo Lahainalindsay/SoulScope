@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { buildSoulScopeReport } from "../lib/buildSoulScopeReport";
-import { buildScanCompleteness } from "../lib/partialScan";
+import { buildScanCompleteness, type ScanWithCompleteness } from "../lib/partialScan";
 import type { VoiceAnalysisResult } from "../lib/voiceSpectrum";
 import { mapScanSession } from "../lib/data/v2/mappers/mapScanSession";
 import { mapSensorCaptures } from "../lib/data/v2/mappers/mapSensorCaptures";
@@ -64,7 +64,8 @@ function context(validRecordings = 7) {
       reason: "No usable voice signal",
     })),
   });
-  const report = buildSoulScopeReport({ ...source, scanCompleteness: completeness }, { scanId: "11111111-1111-4111-a111-111111111111" });
+  const scanWithCompleteness = { ...source, scanCompleteness: completeness } satisfies ScanWithCompleteness;
+  const report = buildSoulScopeReport(scanWithCompleteness, { scanId: "11111111-1111-4111-a111-111111111111" });
   assert.ok(report.observationPipeline);
   return {
     scanId: "11111111-1111-4111-a111-111111111111",

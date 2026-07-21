@@ -30,6 +30,14 @@ export type GuidedScanCameraBaseline = {
   framesAnalyzed: number;
 };
 
+export type GuidedScanSubject = {
+  subjectId: string | null;
+  subjectLabel: string;
+  identityConfidence: number;
+  historyEligible: boolean;
+  status: "confirmed" | "unconfirmed" | "guest" | "unidentified";
+};
+
 type GuidedScanAnswerRecord = Omit<GuidedScanAnswer, "blob"> & {
   blobKey: string;
   captureKind?: "sustained_vowel" | "guided_speech";
@@ -37,6 +45,7 @@ type GuidedScanAnswerRecord = Omit<GuidedScanAnswer, "blob"> & {
 
 type GuidedScanSessionState = {
   startedAt: string | null;
+  subject: GuidedScanSubject | null;
   answers: GuidedScanAnswerRecord[];
   cameraCaptures: GuidedScanCameraCapture[];
   cameraBaseline: GuidedScanCameraBaseline | null;
@@ -49,6 +58,7 @@ const AUDIO_STORE = "audio-blobs";
 
 let state: GuidedScanSessionState = {
   startedAt: null,
+  subject: null,
   answers: [],
   cameraCaptures: [],
   cameraBaseline: null,
@@ -159,8 +169,26 @@ function hydrateState() {
 
   try {
     const parsed = JSON.parse(stored) as Partial<GuidedScanSessionState>;
+    const parsedSubject =
+      parsed.subject &&
+      typeof parsed.subject === "object" &&
+      typeof parsed.subject.subjectLabel === "string" &&
+      typeof parsed.subject.identityConfidence === "number" &&
+      typeof parsed.subject.historyEligible === "boolean" &&
+      typeof parsed.subject.status === "string"
+        ? parsed.subject
+        : null;
     state = {
       startedAt: parsed.startedAt ?? null,
+      subject: parsedSubject
+        ? {
+            subjectId: typeof parsedSubject.subjectId === "string" ? parsedSubject.subjectId : null,
+            subjectLabel: parsedSubject.subjectLabel,
+            identityConfidence: parsedSubject.identityConfidence,
+            historyEligible: parsedSubject.historyEligible,
+            status: parsedSubject.status,
+          }
+        : null,
       answers: Array.isArray(parsed.answers)
         ? parsed.answers.filter(
             (answer): answer is GuidedScanAnswerRecord =>
@@ -211,6 +239,7 @@ function hydrateState() {
 export function resetGuidedScanSession() {
   state = {
     startedAt: new Date().toISOString(),
+    subject: null,
     answers: [],
     cameraCaptures: [],
     cameraBaseline: null,
@@ -276,6 +305,17 @@ export function getGuidedScanProgress() {
 export function getGuidedScanStartedAt() {
   hydrateState();
   return state.startedAt;
+}
+
+export function getGuidedScanSubject() {
+  hydrateState();
+  return state.subject;
+}
+
+export function setGuidedScanSubject(subject: GuidedScanSubject) {
+  hydrateState();
+  state.subject = subject;
+  writeState();
 }
 
 export function getGuidedScanCameraCaptures() {

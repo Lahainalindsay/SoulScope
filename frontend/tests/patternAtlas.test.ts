@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { resolveAtlasProfile } from "../lib/patternAtlas";
 
 describe("Pattern Atlas", () => {
@@ -17,9 +18,9 @@ describe("Pattern Atlas", () => {
       "reduced-recovery": 0.08,
     });
 
-    expect(loaded.profile.id).not.toBe(grounded.profile.id);
-    expect(["overextended-steward", "quietly-overloaded"]).toContain(loaded.profile.id);
-    expect(["grounded-navigator", "steady-supporter"]).toContain(grounded.profile.id);
+    assert.notEqual(loaded.profile.id, grounded.profile.id);
+    assert.ok(["overextended-steward", "quietly-overloaded"].includes(loaded.profile.id));
+    assert.ok(["grounded-navigator", "steady-supporter"].includes(grounded.profile.id));
   });
 
   it("distinguishes protective expression from open expression", () => {
@@ -36,8 +37,8 @@ describe("Pattern Atlas", () => {
       "protective-restraint": 0.05,
     });
 
-    expect(["reflective-protector", "contained-communicator"]).toContain(protectedResult.profile.id);
-    expect(openResult.profile.id).toBe("open-integrator");
+    assert.ok(["reflective-protector", "contained-communicator"].includes(protectedResult.profile.id));
+    assert.equal(openResult.profile.id, "open-integrator");
   });
 
   it("returns two alternative profiles based on the same evidence graph", () => {
@@ -48,8 +49,8 @@ describe("Pattern Atlas", () => {
       "reduced-recovery": 0.35,
     });
 
-    expect(result.supporting).toHaveLength(2);
-    expect(new Set([result.profile.id, ...result.supporting.map((entry) => entry.profile.id)]).size).toBe(3);
-    expect(result.subpatterns.length).toBeGreaterThanOrEqual(3);
+    assert.equal(result.supporting.length, 2);
+    assert.equal(new Set([result.profile.id, ...result.supporting.map((entry) => entry.profile.id)]).size, 3);
+    assert.ok(result.subpatterns.length >= 3);
   });
 });

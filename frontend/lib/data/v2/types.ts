@@ -27,6 +27,7 @@ export interface ScanSessionRow {
   observation_engine_version: string | null;
   observation_pipeline: JsonObject | null;
   observation_pipeline_created_at: string | null;
+  subject_id?: string | null;
   raw_result: JsonObject | null;
   completeness_metadata: JsonObject;
   invalid_recording_reasons: JsonValue[];

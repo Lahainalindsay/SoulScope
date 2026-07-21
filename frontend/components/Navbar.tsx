@@ -11,6 +11,7 @@ import styles from "./Navbar.module.css";
 const BASE_NAV_ITEMS = [
   { href: "/dashboard", label: "Today" },
   { href: "/history", label: "Pattern History" },
+  { href: "/settings", label: "Settings" },
   { href: "/how-it-works", label: "How It Works" },
 ];
 
@@ -68,6 +69,7 @@ export default function Navbar() {
   const isActive = (href: string) => {
     if (href === "/dashboard") return router.pathname === "/dashboard";
     if (href === "/history") return router.pathname === "/history";
+    if (href === "/settings") return router.pathname === "/settings";
     return router.pathname === href || router.pathname.startsWith(`${href}/`);
   };
 

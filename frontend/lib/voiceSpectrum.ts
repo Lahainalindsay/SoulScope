@@ -132,6 +132,18 @@ export type VoiceAnalysisResult = {
       note: string;
     }[];
   };
+  scanMeta?: {
+    subject?: {
+      subjectId?: string | null;
+      subjectLabel?: string;
+      identityConfidence?: number;
+      historyEligible?: boolean;
+      status?: "confirmed" | "unconfirmed" | "guest" | "unidentified";
+    };
+    startedAt?: string | null;
+    completedAt?: string;
+    source?: string;
+  };
   cymaticReference?: CymaticReference;
   methodology: string;
   caution: string;

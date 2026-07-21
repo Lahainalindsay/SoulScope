@@ -67,7 +67,7 @@ export default function CymaticSigil({ amplitude, className = "" }: CymaticSigil
               className={`soulscope-cymatic-layer soulscope-cymatic-layer-${layer.key}`}
               style={{
                 opacity: layer.opacity,
-                filter: `blur(${layer.blur}px) drop-shadow(0 18px 34px rgba(34, 211, 238, ${0.08 + a * 0.08}))`,
+                filter: `blur(${layer.blur}px) drop-shadow(0 18px 34px rgba(89, 225, 230, ${0.08 + a * 0.08}))`,
               transform: `translate(-50%, -50%) rotateZ(${layer.rotate}deg) scale(${layer.scale})`,
               }}
             >
@@ -77,9 +77,9 @@ export default function CymaticSigil({ amplitude, className = "" }: CymaticSigil
                 <stop offset="100%" stopColor="rgba(255,255,255,0)" />
               </radialGradient>
               <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="rgba(125,211,252,0.95)" />
-                <stop offset="48%" stopColor="rgba(255,255,255,0.94)" />
-                <stop offset="100%" stopColor="rgba(16,185,129,0.86)" />
+                <stop offset="0%" stopColor="rgba(89,225,230,0.95)" />
+                <stop offset="48%" stopColor="rgba(79,168,232,0.9)" />
+                <stop offset="100%" stopColor="rgba(149,105,216,0.78)" />
               </linearGradient>
               <filter id={softId}>
                 <feGaussianBlur stdDeviation="0.7" />
@@ -111,7 +111,7 @@ export default function CymaticSigil({ amplitude, className = "" }: CymaticSigil
 
               <polygon
                 points={radialPoints.map((point) => `${point.x},${point.y}`).join(" ")}
-                fill="rgba(34,211,238,0.025)"
+                fill="rgba(89,225,230,0.025)"
                 stroke={`url(#${gradientId})`}
                 strokeWidth="1.05"
                 opacity={0.42 + a * 0.2}
@@ -172,7 +172,7 @@ export default function CymaticSigil({ amplitude, className = "" }: CymaticSigil
                   y1={point.y}
                   x2={outerFlowerPoints[(index + 1) % outerFlowerPoints.length].x}
                   y2={outerFlowerPoints[(index + 1) % outerFlowerPoints.length].y}
-                  stroke="rgba(125,211,252,0.14)"
+                  stroke="rgba(89,225,230,0.14)"
                   strokeWidth="0.7"
                 />
               ))}
@@ -206,8 +206,8 @@ export default function CymaticSigil({ amplitude, className = "" }: CymaticSigil
               }}
             >
               <circle cx="110" cy="110" r={18 + a * 10} fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.45)" strokeWidth="0.8" />
-              <circle cx="110" cy="110" r={12 + a * 4} fill="none" stroke="rgba(103,232,249,0.45)" strokeWidth="1" filter={`url(#${glowId})`} />
-              <circle cx="110" cy="110" r={6 + a * 2.5} fill="rgba(255,255,255,0.9)" />
+              <circle cx="110" cy="110" r={12 + a * 4} fill="none" stroke="rgba(89,225,230,0.45)" strokeWidth="1" filter={`url(#${glowId})`} />
+              <circle cx="110" cy="110" r={6 + a * 2.5} fill="rgba(237,245,250,0.86)" />
             </g>
 
             {Array.from({ length: 12 }).map((_, index) => {
@@ -241,7 +241,7 @@ export default function CymaticSigil({ amplitude, className = "" }: CymaticSigil
         .soulscope-cymatic-scene {
           position: absolute;
           inset: 0;
-          animation: soulscope-cymatic-spin linear infinite;
+          animation: soulscope-cymatic-drift ease-in-out infinite;
           transform-origin: 50% 50%;
           will-change: transform;
         }
@@ -251,11 +251,11 @@ export default function CymaticSigil({ amplitude, className = "" }: CymaticSigil
           inset: 13%;
           border-radius: 999px;
           background:
-            radial-gradient(circle at 50% 44%, rgba(255, 255, 255, ${0.16 + a * 0.12}), transparent 34%),
-            radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.24), transparent 58%),
-            radial-gradient(circle at 48% 58%, rgba(16, 185, 129, 0.16), transparent 68%);
+            radial-gradient(circle at 50% 44%, rgba(237, 245, 250, ${0.12 + a * 0.1}), transparent 34%),
+            radial-gradient(circle at 50% 50%, rgba(89, 225, 230, 0.2), transparent 58%),
+            radial-gradient(circle at 48% 58%, rgba(149, 105, 216, 0.12), transparent 68%);
           box-shadow:
-            0 0 42px rgba(34, 211, 238, ${0.18 + a * 0.12}),
+            0 0 42px rgba(89, 225, 230, ${0.14 + a * 0.1}),
             inset 0 0 34px rgba(255, 255, 255, 0.08);
           transform: scale(0.84);
         }
@@ -278,15 +278,15 @@ export default function CymaticSigil({ amplitude, className = "" }: CymaticSigil
           animation: soulscope-cymatic-pulse ease-in-out infinite;
         }
 
-        @keyframes soulscope-cymatic-spin {
-          from {
-            transform: rotate(0deg);
+        @keyframes soulscope-cymatic-drift {
+          0%,
+          100% {
+            transform: scale(0.995);
+            opacity: 0.9;
           }
           50% {
-            transform: rotate(180deg);
-          }
-          to {
-            transform: rotate(360deg);
+            transform: scale(1.01);
+            opacity: 1;
           }
         }
 
@@ -299,6 +299,13 @@ export default function CymaticSigil({ amplitude, className = "" }: CymaticSigil
           50% {
             transform: scale(1.05);
             opacity: 1;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .soulscope-cymatic-scene,
+          .soulscope-cymatic-pulse {
+            animation: none;
           }
         }
       `}</style>

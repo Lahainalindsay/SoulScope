@@ -1,28 +1,76 @@
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
 
 :root {
   color-scheme: dark;
-  background-color: #020617;
-  font-family: var(--font-primary, "Inter"), "Segoe UI", system-ui,
-    -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-serif: "Playfair Display", "Cormorant Garamond", serif;
-  --font-sans: "Inter", "Sofia Pro", "Space Grotesk", system-ui, -apple-system,
-    BlinkMacSystemFont, sans-serif;
-  --font-mono: "JetBrains Mono", "Space Mono", "SFMono-Regular", Consolas,
-    monospace;
-  --ss-bg: #0c0a0f;
-  --ss-grad-1: #7a5ccb;
-  --ss-grad-2: #f4c2c2;
-  --ss-grad-3: #0f3d33;
-  --ss-card: rgba(18, 16, 24, 0.95);
-  --ss-card-border: rgba(244, 194, 194, 0.35);
-  --ss-primary: #f4c2c2;
-  --ss-primary-soft: rgba(244, 194, 194, 0.12);
-  --ss-accent: #e8d38c;
-  --ss-text-main: #f9f6ff;
-  --ss-text-soft: #d3ccf0;
-  --ss-text-muted: #a7a0c7;
-  --ss-error: #ff7b96;
+  background-color: var(--color-void);
+  font-family: var(--font-sans);
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+
+  --color-void: #020711;
+  --color-midnight: #050d19;
+  --color-surface: #081321;
+  --color-surface-elevated: #0b192a;
+  --color-text-primary: #f4f1ea;
+  --color-text-bright: #edf5fa;
+  --color-text-secondary: #b9c8d5;
+  --color-text-muted: #71869a;
+  --color-text-disabled: #46586a;
+  --color-cyan: #59e1e6;
+  --color-blue: #4fa8e8;
+  --color-violet: #9569d8;
+  --color-violet-deep: #64459a;
+  --color-teal: #34c6b3;
+  --color-success: #5fd0af;
+  --color-notice: #e5c779;
+  --color-error: #e27d88;
+
+  --gradient-signature: linear-gradient(135deg, #59e1e6 0%, #4fa8e8 48%, #9569d8 100%);
+  --gradient-button: linear-gradient(110deg, #66e8e5 0%, #4fc3dd 52%, #65a9e8 100%);
+  --gradient-ambient: radial-gradient(circle at 50% 40%, rgba(89, 225, 230, 0.14) 0%, rgba(79, 168, 232, 0.07) 32%, rgba(149, 105, 216, 0.04) 52%, transparent 72%);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
+  --space-9: 64px;
+  --space-10: 80px;
+  --space-11: 96px;
+  --space-12: 128px;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  --border-standard: 1px solid rgba(129, 192, 220, 0.14);
+  --border-hover: 1px solid rgba(89, 225, 230, 0.3);
+  --border-selected: 1px solid rgba(89, 225, 230, 0.56);
+  --divider: 1px solid rgba(177, 207, 224, 0.09);
+  --surface-card: linear-gradient(145deg, rgba(11, 25, 42, 0.94), rgba(6, 15, 27, 0.96));
+  --surface-glass: rgba(8, 19, 33, 0.78);
+  --shadow-card: 0 24px 80px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  --shadow-elevated: 0 32px 100px rgba(0, 0, 0, 0.46), 0 0 0 1px rgba(89, 225, 230, 0.06);
+  --shadow-button: 0 10px 30px rgba(89, 225, 230, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --signature-glow: drop-shadow(0 0 12px rgba(89, 225, 230, 0.28)) drop-shadow(0 0 28px rgba(79, 168, 232, 0.16));
+  --motion-standard: 220ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  --ss-bg: var(--color-void);
+  --ss-card: rgba(11, 25, 42, 0.94);
+  --ss-card-border: rgba(129, 192, 220, 0.14);
+  --ss-primary: var(--color-cyan);
+  --ss-primary-soft: rgba(89, 225, 230, 0.12);
+  --ss-accent: var(--color-blue);
+  --ss-text-main: var(--color-text-primary);
+  --ss-text-soft: var(--color-text-secondary);
+  --ss-text-muted: var(--color-text-muted);
+  --ss-error: var(--color-error);
 }
 
 *,
@@ -35,10 +83,28 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: var(--font-sans);
-  background: radial-gradient(circle at top left, #312e81, #020617 55%);
-  color: #e5e7eb;
+  background:
+    var(--gradient-ambient),
+    linear-gradient(180deg, var(--color-void) 0%, var(--color-midnight) 52%, var(--color-void) 100%);
+  color: var(--color-text-primary);
   line-height: 1.6;
   overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(89, 225, 230, 0.78);
+  outline-offset: 3px;
 }
 
 .ss-app-wrapper {
@@ -48,8 +114,8 @@ body {
 .ss-root {
   position: relative;
   overflow: hidden;
-  border-radius: 32px;
-  border: 1px solid rgba(244, 194, 194, 0.2);
+  border-radius: var(--radius-xl);
+  border: var(--border-standard);
   background: var(--ss-bg);
   box-shadow:
     0 40px 80px rgba(0, 0, 0, 0.65),
@@ -60,9 +126,9 @@ body {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at top left, rgba(122, 92, 203, 0.45), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(244, 194, 194, 0.4), transparent 55%),
-    radial-gradient(circle at top right, rgba(15, 61, 51, 0.55), transparent 60%);
+    radial-gradient(circle at top left, rgba(89, 225, 230, 0.18), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(79, 168, 232, 0.12), transparent 55%),
+    radial-gradient(circle at top right, rgba(149, 105, 216, 0.1), transparent 60%);
   filter: blur(2px);
   z-index: 0;
 }
@@ -115,7 +181,7 @@ body {
 
 .ss-brand-title {
   margin: 0;
-  font-family: "Playfair Display", "Times New Roman", serif;
+  font-family: var(--font-serif);
   font-size: 1.9rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -132,16 +198,10 @@ body {
 }
 
 .ss-card {
-  border-radius: 24px;
-  border: 1px solid var(--ss-card-border);
-  background: linear-gradient(
-      145deg,
-      rgba(12, 10, 15, 0.97),
-      rgba(13, 10, 21, 0.9)
-    );
-  box-shadow:
-    0 18px 60px rgba(0, 0, 0, 0.7),
-    0 0 0 1px rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-lg);
+  border: var(--border-standard);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
   padding: 22px 22px 26px;
 }
 
@@ -201,7 +261,7 @@ body {
 
 .ss-title {
   margin: 0 0 6px;
-  font-family: "Playfair Display", "Times New Roman", serif;
+  font-family: var(--font-serif);
   font-size: 1.5rem;
 }
 
@@ -225,16 +285,12 @@ body {
   padding: 10px 20px;
   font-size: 0.9rem;
   font-weight: 500;
-  background: linear-gradient(
-    120deg,
-    rgba(244, 194, 194, 0.9),
-    rgba(232, 211, 140, 0.9)
-  );
-  color: #2b1824;
+  min-height: 52px;
+  background: var(--gradient-button);
+  color: #031017;
   cursor: pointer;
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
+    var(--shadow-button);
   transition:
     transform 0.12s ease-out,
     box-shadow 0.12s ease-out,
@@ -245,16 +301,15 @@ body {
   transform: translateY(-1px);
   filter: brightness(1.05);
   box-shadow:
-    0 12px 34px rgba(0, 0, 0, 0.8),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
+    var(--shadow-button);
 }
 
 .ss-btn-secondary {
   border-radius: 999px;
   padding: 9px 18px;
   font-size: 0.88rem;
-  background: var(--ss-primary-soft);
-  border: 1px solid rgba(244, 194, 194, 0.5);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(129, 192, 220, 0.22);
   color: var(--ss-text-main);
   cursor: pointer;
   transition:
@@ -263,8 +318,8 @@ body {
 }
 
 .ss-btn-secondary:hover {
-  background: rgba(244, 194, 194, 0.18);
-  border-color: rgba(232, 211, 140, 0.7);
+  background: rgba(89, 225, 230, 0.08);
+  border-color: rgba(89, 225, 230, 0.3);
 }
 
 .ss-btn-ghost {
@@ -398,10 +453,10 @@ body {
   width: 72px;
   height: 72px;
   border-radius: 999px;
-  background: radial-gradient(circle, #f4c2c2, #7a5ccb);
+  background: radial-gradient(circle, var(--color-cyan), var(--color-blue), var(--color-violet));
   box-shadow:
-    0 0 30px rgba(244, 194, 194, 0.8),
-    0 0 80px rgba(122, 92, 203, 0.8);
+    0 0 30px rgba(89, 225, 230, 0.28),
+    0 0 80px rgba(79, 168, 232, 0.16);
   animation: ss-breath-pulse 4.5s ease-in-out infinite;
 }
 
@@ -497,9 +552,9 @@ body {
   width: 100%;
   max-width: 420px;
   border-radius: 24px;
-  border: 1px solid rgba(244, 194, 194, 0.25);
+  border: var(--border-standard);
   padding: 2rem;
-  background: rgba(10, 8, 14, 0.92);
+  background: var(--surface-card);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
 }
 
@@ -530,15 +585,15 @@ body {
 
 .auth-input {
   border-radius: 999px;
-  border: 1px solid rgba(244, 194, 194, 0.4);
+  border: var(--border-standard);
   padding: 0.8rem 1rem;
   background: rgba(13, 11, 17, 0.9);
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 .auth-input:focus {
   outline: none;
-  border-color: rgba(232, 211, 140, 0.7);
+  border-color: rgba(89, 225, 230, 0.56);
 }
 
 .auth-error {
@@ -562,7 +617,7 @@ body {
 .auth-toggle {
   border: none;
   background: none;
-  color: rgba(244, 194, 194, 0.95);
+  color: var(--color-cyan);
   cursor: pointer;
   font-size: 0.9rem;
 }
@@ -597,11 +652,12 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at 20% 40%, rgba(99, 102, 241, 0.25), transparent 55%),
-    radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.2), transparent 45%),
-    radial-gradient(circle at 50% 80%, rgba(45, 212, 191, 0.15), transparent 50%);
+  background:
+    radial-gradient(circle at 20% 40%, rgba(89, 225, 230, 0.08), transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(79, 168, 232, 0.06), transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(149, 105, 216, 0.05), transparent 50%);
   filter: blur(80px);
-  opacity: 0.8;
+  opacity: 0.72;
   z-index: -1;
 }
 
@@ -1146,7 +1202,7 @@ body::before {
 
 .status-chip--done {
   background: rgba(52, 211, 153, 0.2);
-  color: #34d399;
+  color: var(--color-blue);
 }
 
 .frequency-card {
@@ -1352,8 +1408,8 @@ body::before {
 }
 
 .sensor-chip--stable {
-  border-color: #34d399;
-  color: #34d399;
+  border-color: var(--color-blue);
+  color: var(--color-blue);
 }
 
 .sensor-chip--recording {
@@ -1362,8 +1418,8 @@ body::before {
 }
 
 .sensor-chip--done {
-  border-color: #34d399;
-  color: #34d399;
+  border-color: var(--color-blue);
+  color: var(--color-blue);
 }
 
 .preview-card__copy {

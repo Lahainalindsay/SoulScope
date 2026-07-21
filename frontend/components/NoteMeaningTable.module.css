@@ -117,7 +117,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 20px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-bright);
 }
 
 .copy {
