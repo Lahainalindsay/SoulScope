@@ -33,30 +33,32 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className={styles.nameDefinitionSection} aria-labelledby="soulscope-definition-title">
-          <div className={styles.nameDefinitionInner}>
-            <div className={styles.nameDefinitionGrid}>
-              <div className={styles.nameDefinitionColumn}>
-                <h2 className={styles.nameDefinitionWord}>SOUL</h2>
-                <p className={styles.nameDefinitionText}>
-                  “The inner world of a person — their feelings, awareness, identity, and lived experience.”
-                </p>
-              </div>
+        <section className="dictionarySection" aria-labelledby="soulscope-definition-title">
+          <div className="dictionaryInner">
+            <div className="dictionaryPair">
+              <article className="dictionaryEntry">
+                <div className="dictionaryHeading">
+                  <h2>SOUL</h2>
+                  <span>noun</span>
+                </div>
+                <p>“The inner world of a person — their feelings, awareness, identity, and lived experience.”</p>
+              </article>
 
-              <div className={styles.nameDefinitionConnector} aria-hidden="true" />
+              <div className="dictionaryLight" aria-hidden="true" />
 
-              <div className={styles.nameDefinitionColumn}>
-                <h2 className={styles.nameDefinitionWord}>SCOPE</h2>
-                <p className={styles.nameDefinitionText}>
-                  “An instrument used to observe, examine, and bring what is difficult to see into clearer view.”
-                </p>
-              </div>
+              <article className="dictionaryEntry">
+                <div className="dictionaryHeading">
+                  <h2>SCOPE</h2>
+                  <span>noun</span>
+                </div>
+                <p>“An instrument used to observe, examine, and bring what is difficult to see into clearer view.”</p>
+              </article>
             </div>
 
-            <div className={styles.nameDefinitionCombined}>
-              <h2 id="soulscope-definition-title" className={styles.nameDefinitionCombinedWord}>SOULSCOPE</h2>
-              <p className={styles.nameDefinitionStatement}>“A private instrument for seeing more clearly within.”</p>
-              <p className={styles.nameDefinitionSupport}>
+            <div className="dictionaryCombined">
+              <h2 id="soulscope-definition-title">SOULSCOPE</h2>
+              <p className="dictionaryStatement">“A private instrument for seeing more clearly within.”</p>
+              <p className="dictionarySupport">
                 “SoulScope observes patterns in your voice and expression and transforms them into a personal Resonance Signature and Reflection — helping you recognize what may be present beneath the surface.”
               </p>
             </div>
@@ -145,6 +147,125 @@ export default function HomePage() {
           </div>
         </section>
       </main>
+
+      <style jsx>{`
+        .dictionarySection {
+          width: 100%;
+          padding: clamp(42px, 6vw, 72px) clamp(16px, 4vw, 24px);
+        }
+
+        .dictionaryInner {
+          width: min(100%, 980px);
+          margin: 0 auto;
+        }
+
+        .dictionaryPair {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(90px, 0.22fr) minmax(0, 1fr);
+          align-items: start;
+          gap: clamp(20px, 4vw, 44px);
+        }
+
+        .dictionaryEntry {
+          min-width: 0;
+          text-align: left;
+        }
+
+        .dictionaryHeading {
+          display: flex;
+          align-items: baseline;
+          gap: 10px;
+          padding-bottom: 9px;
+          border-bottom: 1px solid rgba(222, 211, 176, 0.18);
+        }
+
+        .dictionaryHeading h2,
+        .dictionaryCombined h2 {
+          margin: 0;
+          font-family: Georgia, "Times New Roman", serif;
+          font-weight: 500;
+          color: #f3f1e8;
+        }
+
+        .dictionaryHeading h2 {
+          font-size: clamp(1.45rem, 2.2vw, 2rem);
+          line-height: 1;
+          letter-spacing: 0.01em;
+        }
+
+        .dictionaryHeading span {
+          font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+          font-size: 0.68rem;
+          font-style: italic;
+          letter-spacing: 0.04em;
+          text-transform: lowercase;
+          color: rgba(210, 203, 184, 0.66);
+        }
+
+        .dictionaryEntry p {
+          margin: 13px 0 0;
+          max-width: 27rem;
+          font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+          font-size: clamp(0.84rem, 1.15vw, 0.94rem);
+          line-height: 1.72;
+          color: rgba(205, 216, 230, 0.82);
+        }
+
+        .dictionaryLight {
+          align-self: center;
+          width: 100%;
+          height: 1px;
+          margin-top: 8px;
+          background: linear-gradient(90deg, transparent, rgba(255, 244, 196, 0.2), rgba(255, 235, 155, 0.92), rgba(255, 249, 222, 0.98), rgba(255, 235, 155, 0.92), rgba(255, 244, 196, 0.2), transparent);
+          box-shadow: 0 0 8px rgba(255, 230, 145, 0.42), 0 0 20px rgba(255, 239, 188, 0.18);
+        }
+
+        .dictionaryCombined {
+          width: min(100%, 720px);
+          margin: clamp(34px, 5vw, 54px) auto 0;
+          text-align: center;
+        }
+
+        .dictionaryCombined h2 {
+          font-size: clamp(1.9rem, 3.6vw, 3rem);
+          line-height: 1;
+          letter-spacing: 0.015em;
+        }
+
+        .dictionaryStatement {
+          margin: 14px auto 0;
+          font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+          font-size: clamp(0.94rem, 1.4vw, 1.04rem);
+          line-height: 1.65;
+          color: rgba(238, 240, 244, 0.92);
+        }
+
+        .dictionarySupport {
+          margin: 20px auto 0;
+          max-width: 44rem;
+          font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+          font-size: clamp(0.84rem, 1.15vw, 0.94rem);
+          line-height: 1.78;
+          color: rgba(194, 208, 224, 0.78);
+        }
+
+        @media (max-width: 700px) {
+          .dictionaryPair {
+            grid-template-columns: 1fr;
+            gap: 24px;
+          }
+
+          .dictionaryLight {
+            width: min(70%, 220px);
+            margin: 0 auto;
+          }
+
+          .dictionaryEntry {
+            width: min(100%, 440px);
+            margin: 0 auto;
+          }
+        }
+      `}</style>
     </>
   );
 }
