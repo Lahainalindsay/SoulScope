@@ -33,6 +33,36 @@ export default function HomePage() {
           </div>
         </section>
 
+        <section className={styles.nameDefinitionSection} aria-labelledby="soulscope-definition-title">
+          <div className={styles.nameDefinitionInner}>
+            <div className={styles.nameDefinitionGrid}>
+              <div className={styles.nameDefinitionColumn}>
+                <h2 className={styles.nameDefinitionWord}>SOUL</h2>
+                <p className={styles.nameDefinitionText}>
+                  “The inner world of a person — their feelings, awareness, identity, and lived experience.”
+                </p>
+              </div>
+
+              <div className={styles.nameDefinitionConnector} aria-hidden="true" />
+
+              <div className={styles.nameDefinitionColumn}>
+                <h2 className={styles.nameDefinitionWord}>SCOPE</h2>
+                <p className={styles.nameDefinitionText}>
+                  “An instrument used to observe, examine, and bring what is difficult to see into clearer view.”
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.nameDefinitionCombined}>
+              <h2 id="soulscope-definition-title" className={styles.nameDefinitionCombinedWord}>SOULSCOPE</h2>
+              <p className={styles.nameDefinitionStatement}>“A private instrument for seeing more clearly within.”</p>
+              <p className={styles.nameDefinitionSupport}>
+                “SoulScope observes patterns in your voice and expression and transforms them into a personal Resonance Signature and Reflection — helping you recognize what may be present beneath the surface.”
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className={styles.section}>
           <div className={styles.sectionInner}>
             <p className={styles.sectionEyebrow}>What SoulScope Observes</p>
