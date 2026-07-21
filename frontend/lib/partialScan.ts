@@ -26,6 +26,22 @@ export type ScanWithCompleteness = VoiceAnalysisResult & {
   scanCompleteness?: ScanCompleteness;
 };
 
+function hasStrongSpeechEvidence(result: VoiceAnalysisResult) {
+  const dynamics = result.voiceDynamics;
+  if (!dynamics) return false;
+
+  // Pitch tracking is only one signal-quality input. Naturally low voices can
+  // produce fewer tracked-pitch frames while still providing continuous,
+  // unclipped, speech-like audio and a stable spectral result.
+  return (
+    (dynamics.voicedFrameCount ?? 0) >= 12 &&
+    (dynamics.voicedDurationMs ?? 0) >= 700 &&
+    (dynamics.voicedFrameRatio ?? 0) >= 0.18 &&
+    (dynamics.activeFrameRatio ?? 0) >= 0.22 &&
+    (dynamics.clippingFrameRatio ?? 0) <= 0.2
+  );
+}
+
 export function isUsableAnalysis(result: VoiceAnalysisResult | null | undefined) {
   if (!result) return false;
   const dynamics = result.voiceDynamics;
@@ -38,7 +54,7 @@ export function isUsableAnalysis(result: VoiceAnalysisResult | null | undefined)
   if ((dynamics.voicedDurationMs ?? 0) < 250) return false;
   if ((dynamics.voicedFrameRatio ?? 0) < 0.06) return false;
   if ((dynamics.clippingFrameRatio ?? 0) > 0.5) return false;
-  if (dynamics.captureQuality === "poor") return false;
+  if (dynamics.captureQuality === "poor" && !hasStrongSpeechEvidence(result)) return false;
   return true;
 }
 
@@ -95,5 +111,5 @@ export function shouldIncludeInBaseline(scan: ScanWithCompleteness) {
   if (!completeness) return scan.voiceDynamics?.captureQuality === "good";
   if (completeness.status === "failed") return false;
   if (completeness.qualityLevel === "limited") return false;
-  return scan.voiceDynamics?.captureQuality !== "poor";
+  return scan.voiceDynamics?.captureQuality !== "poor" || hasStrongSpeechEvidence(scan);
 }
