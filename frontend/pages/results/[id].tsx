@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import BetaFeedbackForm from "../../components/BetaFeedbackForm";
 import DeveloperAnalysisDebug from "../../components/DeveloperAnalysisDebug";
@@ -38,6 +38,7 @@ function preferenceFromViewModel(viewModel: ScanResultViewModel): NarrativePrefe
 export default function ResultDetailPage() {
   const router = useRouter();
   const { id } = router.query;
+  const requestSequence = useRef(0);
   const [viewModel, setViewModel] = useState<ScanResultViewModel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,25 +47,46 @@ export default function ResultDetailPage() {
 
   useEffect(() => {
     if (!id || typeof id !== "string") return;
+
+    const requestedScanId = id;
+    const sequence = ++requestSequence.current;
+    let cancelled = false;
+
+    setLoading(true);
+    setError(null);
+    setViewModel(null);
+    setSelectedStoryStyle(null);
+    setNarrativePreference(null);
+
     const load = async () => {
-      setLoading(true);
-      setError(null);
       try {
-        const next = await getScanResultViewModel(supabase, id, false);
+        const next = await getScanResultViewModel(supabase, requestedScanId, false);
+        if (cancelled || sequence !== requestSequence.current) return;
+
+        if (next && next.session.id !== requestedScanId) {
+          throw new Error("The requested scan could not be matched to its saved reflection.");
+        }
+
         setViewModel(next);
         if (next) {
           setNarrativePreference(preferenceFromViewModel(next));
           setSelectedStoryStyle(displayStyle(next.selectedPreference?.selected_style));
         }
       } catch (fetchError) {
+        if (cancelled || sequence !== requestSequence.current) return;
         console.error("Failed to load V2 scan result", fetchError);
         setError(fetchError instanceof Error ? fetchError.message : "Could not load this insight.");
         setViewModel(null);
       } finally {
-        setLoading(false);
+        if (!cancelled && sequence === requestSequence.current) setLoading(false);
       }
     };
+
     void load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   const report = viewModel?.report ?? null;
@@ -97,11 +119,15 @@ export default function ResultDetailPage() {
   const handleStorySelect = (style: string) => {
     const selected = storyCandidates.find((candidate) => candidate.style === style);
     if (!selected || typeof id !== "string") return;
+    const selectedScanId = id;
     setSelectedStoryStyle(selected.style);
-    try { window.localStorage.setItem(`${STORY_PREFERENCE_PREFIX}${id}`, JSON.stringify(selected)); } catch {}
+    try {
+      window.localStorage.setItem(`${STORY_PREFERENCE_PREFIX}${selectedScanId}`, JSON.stringify(selected));
+    } catch {}
     void (async () => {
       try {
-        const aggregate = await setScanReflectionPreference(supabase, id, toReflectionStyle(selected.style));
+        const aggregate = await setScanReflectionPreference(supabase, selectedScanId, toReflectionStyle(selected.style));
+        if (router.query.id !== selectedScanId) return;
         setNarrativePreference(computeNarrativePreference(
           { Direct: aggregate.direct_count, Supportive: aggregate.supportive_count, Insight: aggregate.insight_count },
           displayStyle(aggregate.last_selected_style),
@@ -136,14 +162,26 @@ export default function ResultDetailPage() {
               </section>
             ) : null}
             <ResonanceResultsDashboard
+              key={scanRow?.id ?? (typeof id === "string" ? id : "unknown-scan")}
               report={report}
               hiddenNotes={["G"]}
               selectedStoryStyle={selectedStory?.style ?? null}
               narrativePreference={narrativePreference}
               onSelectStory={handleStorySelect}
             />
-            <DeveloperAnalysisDebug scanId={scanRow?.id ?? (typeof id === "string" ? id : null)} createdAt={scanRow?.created_at ?? null} scan={scan as ScanWithCompleteness} report={report} />
-            <BetaFeedbackForm page="results" scanId={typeof id === "string" ? id : null} selectedSummaryStyle={selectedStory?.style ?? null} />
+            <DeveloperAnalysisDebug
+              key={`debug-${scanRow?.id ?? (typeof id === "string" ? id : "unknown-scan")}`}
+              scanId={scanRow?.id ?? (typeof id === "string" ? id : null)}
+              createdAt={scanRow?.created_at ?? null}
+              scan={scan as ScanWithCompleteness}
+              report={report}
+            />
+            <BetaFeedbackForm
+              key={`feedback-${scanRow?.id ?? (typeof id === "string" ? id : "unknown-scan")}`}
+              page="results"
+              scanId={typeof id === "string" ? id : null}
+              selectedSummaryStyle={selectedStory?.style ?? null}
+            />
             <section className={styles.footerNote}>
               <p>SoulScope uses voice as the first sensing lens and translates observed tendencies into a private current-state pattern insight.</p>
               <p>{scan.caution}</p>
