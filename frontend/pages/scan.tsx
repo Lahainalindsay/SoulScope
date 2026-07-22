@@ -11,9 +11,11 @@ import styles from "./scan/ScanIntro.module.css";
 
 type ScanSubjectRow = {
   id: string;
-  display_name: string;
-  subject_kind: "primary" | "secondary" | "guest" | "unidentified";
-  identity_confidence: number | null;
+  name: string;
+  subject_type: "primary" | "secondary" | "guest" | "unidentified";
+  identity_metadata: {
+    identityConfidence?: number;
+  } | null;
 };
 
 const GUEST_SUBJECT: GuidedScanSubject = {
@@ -26,16 +28,16 @@ const GUEST_SUBJECT: GuidedScanSubject = {
 
 function subjectFromRow(subject: ScanSubjectRow): GuidedScanSubject {
   const confidence =
-    subject.subject_kind === "unidentified"
+    subject.subject_type === "unidentified"
       ? 0
-      : Math.max(0.7, Math.min(1, subject.identity_confidence ?? 0.9));
+      : Math.max(0.7, Math.min(1, subject.identity_metadata?.identityConfidence ?? 0.9));
 
   return {
     subjectId: subject.id,
-    subjectLabel: subject.display_name,
+    subjectLabel: subject.name,
     identityConfidence: confidence,
-    historyEligible: subject.subject_kind !== "unidentified",
-    status: subject.subject_kind === "unidentified" ? "unidentified" : "confirmed",
+    historyEligible: subject.subject_type !== "unidentified",
+    status: subject.subject_type === "unidentified" ? "unidentified" : "confirmed",
   };
 }
 
@@ -76,7 +78,7 @@ export default function ScanIntroPage() {
       setIsSignedIn(true);
       const response = await supabase
         .from("scan_subjects")
-        .select("id, display_name, subject_kind, identity_confidence")
+        .select("id, name, subject_type, identity_metadata")
         .eq("user_id", userResponse.data.user.id)
         .order("created_at", { ascending: false });
 
@@ -131,11 +133,11 @@ export default function ScanIntroPage() {
         .from("scan_subjects")
         .insert({
           user_id: userResponse.data.user.id,
-          display_name: normalizedName,
-          subject_kind: "secondary",
-          identity_confidence: 0.9,
+          name: normalizedName,
+          subject_type: "secondary",
+          identity_metadata: { identityConfidence: 0.9 },
         })
-        .select("id, display_name, subject_kind, identity_confidence")
+        .select("id, name, subject_type, identity_metadata")
         .single();
 
       if (response.error || !response.data) {
@@ -218,7 +220,7 @@ export default function ScanIntroPage() {
                       aria-checked={selectedSubjectKey === subject.id}
                       onClick={() => setSelectedSubjectKey(subject.id)}
                     >
-                      <span>{subject.display_name}</span>
+                      <span>{subject.name}</span>
                       <small>Confirmed subject</small>
                     </button>
                   ))}
