@@ -1,18 +1,8 @@
 import Head from "next/head";
 import Link from "next/link";
-import ResonanceSignature, { type ResonanceSignatureDatum } from "../components/ResonanceSignature";
 import styles from "../styles/Home.module.css";
 
 const START_SCAN_LOGIN = { pathname: "/auth/login", query: { next: "/scan" } };
-
-const DEMO_SIGNATURE_DATA: ResonanceSignatureDatum[] = [
-  { id: "illustrative:timing", value: 0.64, weight: 0.86 },
-  { id: "illustrative:steadiness", value: 0.58, weight: 0.78 },
-  { id: "illustrative:rhythm", value: 0.72, weight: 0.82 },
-  { id: "illustrative:energy", value: 0.49, weight: 0.7 },
-  { id: "illustrative:expression", value: 0.68, weight: 0.74 },
-  { id: "illustrative:recovery", value: 0.42, weight: 0.62 },
-];
 
 export default function HomePage() {
   return (
@@ -26,38 +16,6 @@ export default function HomePage() {
       </Head>
 
       <main className={styles.page}>
-        <section className={styles.heroWrap}>
-          <div className={styles.heroPanel}>
-            <div className={styles.heroCopy}>
-              <p className={styles.heroEyebrow}>A private instrument for self-awareness</p>
-              <h1 className={styles.heroHeadline}>Clarity comes from within.</h1>
-              <p className={styles.heroBody}>
-                Your voice carries subtle patterns shaped by the way you are responding to life. SoulScope organizes
-                those patterns into a personal Resonance Signature and Reflection, helping you see what may be difficult
-                to notice on your own.
-              </p>
-              <div className={styles.heroActions}>
-                <Link href={START_SCAN_LOGIN} className={styles.primaryCta}>Begin Your Resonance Scan</Link>
-                <Link href="/how-it-works" className={styles.secondaryCta}>How SoulScope Works</Link>
-              </div>
-              <p className={styles.heroMeta}>Private by design · About 60 seconds · No diagnosis</p>
-            </div>
-
-            <figure className={styles.heroVisual}>
-              <div className={styles.signatureFrame}>
-                <ResonanceSignature
-                  data={DEMO_SIGNATURE_DATA}
-                  size={520}
-                  label="Illustrative SoulScope Resonance Signature showing how scan patterns may become a visual signature."
-                />
-              </div>
-              <figcaption className={styles.illustrativeLabel}>
-                Illustrative SoulScope signature. Your personal signature is created after a Resonance Scan.
-              </figcaption>
-            </figure>
-          </div>
-        </section>
-
         <section className={styles.definitionSection} aria-labelledby="soulscope-definition-title">
           <div className={styles.definitionInner}>
             <div className={styles.definitionPair}>
@@ -75,13 +33,30 @@ export default function HomePage() {
             </div>
 
             <div className={styles.dictionaryCombined}>
-              <h2 id="soulscope-definition-title">SOULSCOPE</h2>
+              <h1 id="soulscope-definition-title">SOULSCOPE</h1>
               <p className={styles.dictionaryStatement}>A private instrument for seeing more clearly within.</p>
               <p className={styles.dictionarySupport}>
                 SoulScope observes patterns in your voice and expression and transforms them into a personal Resonance
                 Signature and Reflection — helping you recognize what may be present beneath the surface.
               </p>
             </div>
+          </div>
+        </section>
+
+        <section className={styles.productIntro}>
+          <div className={styles.productIntroInner}>
+            <p className={styles.heroEyebrow}>A private instrument for self-awareness</p>
+            <h2 className={styles.heroHeadline}>Clarity comes from within.</h2>
+            <p className={styles.heroBody}>
+              Your voice carries subtle patterns shaped by the way you are responding to life. SoulScope organizes those
+              patterns into a personal Resonance Signature and Reflection, helping you see what may be difficult to
+              notice on your own.
+            </p>
+            <div className={styles.heroActions}>
+              <Link href={START_SCAN_LOGIN} className={styles.primaryCta}>Begin Your Resonance Scan</Link>
+              <Link href="/how-it-works" className={styles.secondaryCta}>How SoulScope Works</Link>
+            </div>
+            <p className={styles.heroMeta}>Private by design · Guided voice scan · No diagnosis</p>
           </div>
         </section>
 

@@ -64,7 +64,7 @@ test("profile styles protect mobile width and email overflow", () => {
   assert.match(source, /overflow-wrap:anywhere/);
   assert.match(source, /max-width:360px/);
 });
-test("Resonance Map interaction foundation is disabled by default", () => {
+test("legacy note map interaction foundation is disabled by default", () => {
   const source = fs.readFileSync(path.join(process.cwd(), "components/NoteAuraMap.tsx"), "utf8");
   assert.match(source, /interactionsEnabled = false/);
   assert.match(source, /entityType: ResonanceMapEntityType/);

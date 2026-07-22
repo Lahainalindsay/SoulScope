@@ -8,7 +8,7 @@
     linear-gradient(180deg, var(--color-void) 0%, var(--color-midnight) 46%, var(--color-void) 100%);
 }
 
-.heroWrap,
+.productIntro,
 .definitionSection,
 .section,
 .finalSection {
@@ -17,29 +17,38 @@
   padding-right: clamp(16px, 4vw, 48px);
 }
 
-.heroWrap {
-  padding-top: clamp(112px, 14vw, 156px);
-  padding-bottom: clamp(72px, 10vw, 112px);
+.productIntro {
+  padding-top: clamp(72px, 9vw, 112px);
+  padding-bottom: clamp(72px, 9vw, 112px);
 }
 
-.heroPanel {
-  width: min(100%, 1240px);
-  min-height: 78vh;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: minmax(0, 0.98fr) minmax(300px, 0.9fr);
-  gap: clamp(40px, 6vw, 80px);
-  align-items: center;
-}
-
-.heroCopy,
-.heroVisual,
+.productIntroInner,
 .definitionInner,
 .sectionInner,
 .sectionInnerNarrow,
 .receiveLayout,
 .finalInner {
   min-width: 0;
+}
+
+.productIntroInner {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+  position: relative;
+  padding: clamp(32px, 5vw, 56px) 0;
+}
+
+.productIntroInner::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: min(44vw, 420px);
+  height: min(44vw, 420px);
+  border-radius: 999px;
+  background: var(--gradient-ambient);
+  transform: translate(-22%, -24%);
+  opacity: 0.68;
+  pointer-events: none;
 }
 
 .heroEyebrow,
@@ -55,8 +64,9 @@
 }
 
 .heroHeadline {
+  position: relative;
   margin: 0;
-  max-width: 11ch;
+  max-width: 12ch;
   font-family: var(--font-serif);
   font-size: clamp(4.5rem, 8vw, 7.5rem);
   font-weight: 500;
@@ -67,6 +77,7 @@
 }
 
 .heroBody {
+  position: relative;
   margin: var(--space-5) 0 0;
   max-width: 42rem;
   font-size: 1.125rem;
@@ -128,6 +139,7 @@
 }
 
 .heroMeta {
+  position: relative;
   margin: var(--space-4) 0 0;
   max-width: 40rem;
   font-size: 0.875rem;
@@ -135,38 +147,9 @@
   color: var(--color-text-muted);
 }
 
-.heroVisual {
-  margin: 0;
-  display: grid;
-  justify-items: center;
-  gap: var(--space-4);
-}
-
-.signatureFrame {
-  width: min(100%, 560px);
-  aspect-ratio: 1 / 1;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-xl);
-  border: 1px solid rgba(129, 192, 220, 0.14);
-  background:
-    radial-gradient(circle at 50% 40%, rgba(89, 225, 230, 0.14) 0%, rgba(79, 168, 232, 0.07) 32%, rgba(149, 105, 216, 0.04) 52%, transparent 72%),
-    linear-gradient(145deg, rgba(8, 19, 33, 0.72), rgba(2, 7, 17, 0.96));
-  box-shadow: var(--shadow-elevated);
-}
-
-.illustrativeLabel {
-  max-width: 24rem;
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  line-height: 1.55;
-  text-align: center;
-}
-
 .definitionSection {
-  padding-top: clamp(72px, 10vw, 112px);
-  padding-bottom: clamp(72px, 10vw, 112px);
+  padding-top: clamp(72px, 10vw, 128px);
+  padding-bottom: clamp(64px, 9vw, 112px);
 }
 
 .definitionInner,
@@ -187,7 +170,7 @@
 }
 
 .dictionaryEntry h2,
-.dictionaryCombined h2,
+.dictionaryCombined h1,
 .sectionTitle,
 .finalTitle {
   font-family: var(--font-serif);
@@ -234,7 +217,7 @@
   text-align: center;
 }
 
-.dictionaryCombined h2 {
+.dictionaryCombined h1 {
   margin: 0;
   font-size: clamp(2.75rem, 5vw, 4.75rem);
   line-height: 1;
@@ -475,18 +458,9 @@
 }
 
 @media (max-width: 940px) {
-  .heroPanel,
   .receiveLayout,
   .pairedGrid {
     grid-template-columns: 1fr;
-  }
-
-  .heroPanel {
-    min-height: auto;
-  }
-
-  .heroVisual {
-    grid-row: 2;
   }
 
   .privacyGrid,
@@ -496,11 +470,6 @@
 }
 
 @media (max-width: 700px) {
-  .heroWrap {
-    padding-top: 112px;
-    padding-bottom: 72px;
-  }
-
   .heroHeadline {
     max-width: none;
     font-size: clamp(3.25rem, 15vw, 4.75rem);
@@ -518,19 +487,24 @@
     width: 100%;
   }
 
-  .signatureFrame {
-    width: min(100%, 390px);
-    border-radius: var(--radius-lg);
-  }
-
   .definitionPair {
-    grid-template-columns: 1fr;
-    gap: var(--space-6);
+    grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr);
+    gap: var(--space-3);
+    align-items: start;
   }
 
   .dictionaryLight {
-    width: min(70%, 240px);
-    margin: 0 auto;
+    width: 1px;
+    min-height: 100%;
+    justify-self: center;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(89, 225, 230, 0.18),
+      rgba(79, 168, 232, 0.64),
+      rgba(149, 105, 216, 0.34),
+      transparent
+    );
   }
 
   .section,
@@ -554,12 +528,26 @@
 }
 
 @media (max-width: 360px) {
-  .heroWrap,
+  .productIntro,
   .definitionSection,
   .section,
   .finalSection {
     padding-left: 16px;
     padding-right: 16px;
+  }
+}
+
+@media (max-width: 330px) {
+  .definitionPair {
+    grid-template-columns: 1fr;
+  }
+
+  .dictionaryLight {
+    width: min(70%, 220px);
+    height: 1px;
+    min-height: 1px;
+    margin: 0 auto;
+    background: linear-gradient(90deg, transparent, rgba(89, 225, 230, 0.18), rgba(79, 168, 232, 0.64), rgba(149, 105, 216, 0.34), transparent);
   }
 }
 

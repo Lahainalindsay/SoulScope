@@ -1,5 +1,6 @@
 import Head from "next/head";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import {
   resetGuidedScanSession,
@@ -18,148 +19,73 @@ type ScanSubjectRow = {
   } | null;
 };
 
-const GUEST_SUBJECT: GuidedScanSubject = {
+const DEFAULT_SELF_SCAN_SUBJECT: GuidedScanSubject = {
   subjectId: null,
-  subjectLabel: "Guest scan",
-  identityConfidence: 0,
+  subjectLabel: "My Resonance Scan",
+  identityConfidence: 0.85,
   historyEligible: false,
-  status: "guest",
+  status: "confirmed",
 };
 
-function subjectFromRow(subject: ScanSubjectRow): GuidedScanSubject {
-  const confidence =
-    subject.subject_type === "unidentified"
-      ? 0
-      : Math.max(0.7, Math.min(1, subject.identity_metadata?.identityConfidence ?? 0.9));
-
+function subjectFromPrimaryRow(subject: ScanSubjectRow): GuidedScanSubject {
   return {
     subjectId: subject.id,
     subjectLabel: subject.name,
-    identityConfidence: confidence,
-    historyEligible: subject.subject_type !== "unidentified",
-    status: subject.subject_type === "unidentified" ? "unidentified" : "confirmed",
+    identityConfidence: Math.max(0.7, Math.min(1, subject.identity_metadata?.identityConfidence ?? 0.9)),
+    historyEligible: subject.subject_type === "primary",
+    status: "confirmed",
   };
 }
 
 export default function ScanIntroPage() {
   const router = useRouter();
-  const [introReady, setIntroReady] = useState(false);
-  const [subjects, setSubjects] = useState<ScanSubjectRow[]>([]);
-  const [selectedSubjectKey, setSelectedSubjectKey] = useState<string>("guest");
-  const [subjectName, setSubjectName] = useState("");
-  const [subjectStatus, setSubjectStatus] = useState("Opening your scan...");
-  const [isCreatingSubject, setIsCreatingSubject] = useState(false);
-  const [isSignedIn, setIsSignedIn] = useState(false);
-
-  useEffect(() => {
-    resetGuidedScanSession();
-    const timer = window.setTimeout(() => {
-      setIntroReady(true);
-    }, 2400);
-
-    return () => window.clearTimeout(timer);
-  }, []);
+  const [preparationConfirmed, setPreparationConfirmed] = useState(false);
+  const [scanSubject, setScanSubject] = useState<GuidedScanSubject | null>(null);
 
   useEffect(() => {
     let active = true;
+    resetGuidedScanSession();
 
-    const loadSubjects = async () => {
-      const userResponse = await supabase.auth.getUser();
-      if (!active) return;
+    const resolveSelfScanSubject = async () => {
+      try {
+        const userResponse = await supabase.auth.getUser();
+        if (!active) return;
 
-      if (userResponse.error || !userResponse.data.user) {
-        setIsSignedIn(false);
-        setSubjects([]);
-        setSelectedSubjectKey("guest");
-        setSubjectStatus("Sign in to save named subjects. Guest scans will not shape your Resonance Timeline.");
-        return;
+        if (userResponse.error || !userResponse.data.user) {
+          setScanSubject(DEFAULT_SELF_SCAN_SUBJECT);
+          return;
+        }
+
+        const response = await supabase
+          .from("scan_subjects")
+          .select("id, name, subject_type, identity_metadata")
+          .eq("user_id", userResponse.data.user.id)
+          .eq("subject_type", "primary")
+          .maybeSingle();
+
+        if (!active) return;
+
+        const primarySubject = response.data as ScanSubjectRow | null;
+        setScanSubject(primarySubject ? subjectFromPrimaryRow(primarySubject) : DEFAULT_SELF_SCAN_SUBJECT);
+      } catch {
+        if (active) setScanSubject(DEFAULT_SELF_SCAN_SUBJECT);
       }
-
-      setIsSignedIn(true);
-      const response = await supabase
-        .from("scan_subjects")
-        .select("id, name, subject_type, identity_metadata")
-        .eq("user_id", userResponse.data.user.id)
-        .order("created_at", { ascending: false });
-
-      if (!active) return;
-
-      if (response.error) {
-        setSubjects([]);
-        setSelectedSubjectKey("guest");
-        setSubjectStatus("Saved subjects are unavailable in this environment. Guest scans remain available.");
-        return;
-      }
-
-      const rows = (response.data ?? []) as ScanSubjectRow[];
-      setSubjects(rows);
-      setSelectedSubjectKey(rows[0]?.id ?? "guest");
-      setSubjectStatus(
-        rows.length
-          ? "Choose the person being scanned so history only compares the same confirmed subject."
-          : "Add a named subject to build a subject-specific Resonance Timeline after future scans."
-      );
     };
 
-    void loadSubjects();
+    void resolveSelfScanSubject();
 
     return () => {
       active = false;
     };
   }, []);
 
-  const selectedSubject = useMemo<GuidedScanSubject | null>(() => {
-    if (selectedSubjectKey === "guest") return GUEST_SUBJECT;
-    const row = subjects.find((subject) => subject.id === selectedSubjectKey);
-    return row ? subjectFromRow(row) : null;
-  }, [selectedSubjectKey, subjects]);
-
-  const createSubject = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const normalizedName = subjectName.trim().replace(/\s+/g, " ");
-    if (!normalizedName || isCreatingSubject) return;
-
-    setIsCreatingSubject(true);
-    setSubjectStatus("Saving subject...");
-
-    try {
-      const userResponse = await supabase.auth.getUser();
-      if (userResponse.error || !userResponse.data.user) {
-        setSubjectStatus("Sign in before adding a saved subject. You can still continue with a guest scan.");
-        return;
-      }
-
-      const response = await supabase
-        .from("scan_subjects")
-        .insert({
-          user_id: userResponse.data.user.id,
-          name: normalizedName,
-          subject_type: "secondary",
-          identity_metadata: { identityConfidence: 0.9 },
-        })
-        .select("id, name, subject_type, identity_metadata")
-        .single();
-
-      if (response.error || !response.data) {
-        setSubjectStatus("The subject could not be saved. Guest scan is still available.");
-        return;
-      }
-
-      const created = response.data as ScanSubjectRow;
-      setSubjects((current) => [created, ...current]);
-      setSelectedSubjectKey(created.id);
-      setSubjectName("");
-      setSubjectStatus("Subject saved. Future history will only compare scans assigned to this subject.");
-    } finally {
-      setIsCreatingSubject(false);
-    }
-  };
-
   const startScan = () => {
-    if (!selectedSubject) return;
-    setGuidedScanSubject(selectedSubject);
+    if (!preparationConfirmed || !scanSubject) return;
+    setGuidedScanSubject(scanSubject);
     void router.push("/scan/question/1");
   };
+
+  const canBegin = preparationConfirmed && Boolean(scanSubject);
 
   return (
     <>
@@ -171,113 +97,101 @@ export default function ScanIntroPage() {
       <div className={styles.page}>
         <div className={styles.gridOverlay} />
         <main className={styles.shell}>
-          <section className={styles.introStage}>
-            <button type="button" className={styles.skipLink} onClick={startScan}>
-              Skip
-            </button>
-
+          <section className={styles.introStage} aria-labelledby="scan-preparation-title">
             <div className={styles.heroPanel}>
-              <p className={styles.eyebrow}>Resonance Scan</p>
-              <h1 className={styles.title}>Let&apos;s create a quiet moment.</h1>
-              <p className={styles.lead}>The scan takes about one minute. Find a comfortable position, reduce background noise if possible, and speak in your natural voice.</p>
+              <p className={styles.eyebrow}>Before Your Resonance Scan</p>
+              <h1 id="scan-preparation-title" className={styles.title}>Prepare for the clearest possible recording.</h1>
+              <p className={styles.lead}>
+                Your surroundings and the way you position your device directly affect the quality of your scan. Please
+                follow each step before you begin.
+              </p>
+              <p className={styles.duration}>Set aside about 3 minutes.</p>
 
-              <div className={styles.instructionsCard}>
-                <p className={styles.instructionsTitle}>What to expect</p>
-                <div className={styles.protocolBody}>
-                  <p className={styles.protocolLine}>You will be guided through seven short prompts, with up to 10 seconds to answer each spoken prompt.</p>
-                  <p className={styles.protocolLine}>Pause when you need to. There are no right answers.</p>
-                  <p className={styles.protocolLine}>Your words provide context. Your voice provides the signal.</p>
+              <section className={styles.preparationCard} aria-labelledby="scan-preparation-steps-title">
+                <div className={styles.cardHeader}>
+                  <p className={styles.instructionsTitle}>Scan Preparation</p>
+                  <h2 id="scan-preparation-steps-title">Complete these steps before starting.</h2>
+                  <p>They help SoulScope capture a clear and consistent voice sample.</p>
                 </div>
-              </div>
 
-              <div className={styles.instructionsCard}>
-                <p className={styles.instructionsTitle}>Privacy and permission</p>
-                <div className={styles.protocolBody}>
-                  <p className={styles.protocolLine}>Microphone access is needed to record your responses.</p>
-                  <p className={styles.protocolLine}>Camera access is optional where supported. When enabled, SoulScope may observe broad changes in facial movement during the scan.</p>
-                  <p className={styles.protocolLine}>Your browser controls these permissions. You can cancel before recording begins or change access later in your device or browser settings.</p>
-                  <p className={styles.protocolLine}>Saved scan records contain derived measurements, your Resonance Signature, Reflection, and history. Saved scan records can be deleted from Settings.</p>
-                </div>
-              </div>
+                <ol className={styles.preparationList}>
+                  <li>
+                    <strong>Choose a quiet location</strong>
+                    <span>Turn off music, television, fans, and other nearby sound. Ask others not to speak while your scan is recording.</span>
+                  </li>
+                  <li>
+                    <strong>Position your device</strong>
+                    <span>Place your device about 12 to 18 inches from your face. Keep it in the same position throughout the scan.</span>
+                  </li>
+                  <li>
+                    <strong>Speak naturally</strong>
+                    <span>Use your normal speaking voice. Do not whisper, shout, perform, or try to change how you sound.</span>
+                  </li>
+                  <li>
+                    <strong>Remain comfortably still</strong>
+                    <span>Sit or stand in a relaxed position and avoid unnecessary movement while responding.</span>
+                  </li>
+                  <li>
+                    <strong>Allow enough time</strong>
+                    <span>Complete the scan without interruptions. Each response is recorded separately before your Reflection is created.</span>
+                  </li>
+                  <li>
+                    <strong>Keep your face visible</strong>
+                    <span>Face the screen in steady, even light. Avoid strong light directly behind you.</span>
+                  </li>
+                </ol>
+              </section>
 
-              <div className={styles.subjectCard}>
-                <div className={styles.subjectHeader}>
+              <section className={styles.privacySummary} aria-labelledby="scan-permissions-title">
+                <p className={styles.instructionsTitle}>Permissions and privacy</p>
+                <h2 id="scan-permissions-title">You remain in control.</h2>
+                <dl>
                   <div>
-                    <p className={styles.instructionsTitle}>Scan subject</p>
-                    <p className={styles.subjectIntro}>Choose who this scan belongs to before recording begins.</p>
+                    <dt>Microphone</dt>
+                    <dd>Required to record your spoken responses.</dd>
                   </div>
-                </div>
-                <div className={styles.subjectOptions} role="radiogroup" aria-label="Scan subject">
-                  {subjects.map((subject) => (
-                    <button
-                      key={subject.id}
-                      type="button"
-                      className={[
-                        styles.subjectOption,
-                        selectedSubjectKey === subject.id ? styles.subjectOptionSelected : "",
-                      ].join(" ")}
-                      role="radio"
-                      aria-checked={selectedSubjectKey === subject.id}
-                      onClick={() => setSelectedSubjectKey(subject.id)}
-                    >
-                      <span>{subject.name}</span>
-                      <small>Confirmed subject</small>
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className={[
-                      styles.subjectOption,
-                      selectedSubjectKey === "guest" ? styles.subjectOptionSelected : "",
-                    ].join(" ")}
-                    role="radio"
-                    aria-checked={selectedSubjectKey === "guest"}
-                    onClick={() => setSelectedSubjectKey("guest")}
-                  >
-                    <span>Guest scan</span>
-                    <small>No history comparison</small>
-                  </button>
-                </div>
-                {isSignedIn ? (
-                  <form className={styles.subjectForm} onSubmit={createSubject}>
-                    <label className={styles.subjectLabel} htmlFor="scan-subject-name">
-                      Add subject
-                    </label>
-                    <div className={styles.subjectFormRow}>
-                      <input
-                        id="scan-subject-name"
-                        className={styles.subjectInput}
-                        value={subjectName}
-                        maxLength={48}
-                        placeholder="Name"
-                        onChange={(event) => setSubjectName(event.target.value)}
-                      />
-                      <button
-                        type="submit"
-                        className={styles.secondaryButton}
-                        disabled={isCreatingSubject || !subjectName.trim()}
-                      >
-                        {isCreatingSubject ? "Saving..." : "Save"}
-                      </button>
-                    </div>
-                  </form>
-                ) : null}
-                <p className={styles.subjectStatus}>{subjectStatus}</p>
-              </div>
+                  <div>
+                    <dt>Camera</dt>
+                    <dd>Optional where supported. When enabled, it may be used to observe broad changes in facial movement.</dd>
+                  </div>
+                  <div>
+                    <dt>Control</dt>
+                    <dd>Your browser will ask before allowing access. You can stop before recording begins.</dd>
+                  </div>
+                  <div>
+                    <dt>Data</dt>
+                    <dd>Your completed scan creates derived measurements, a Resonance Signature, and a Reflection connected to your account.</dd>
+                  </div>
+                </dl>
+                <Link href="/#privacy" className={styles.privacyLink}>Read the privacy overview</Link>
+              </section>
+
+              <label className={styles.confirmation}>
+                <input
+                  type="checkbox"
+                  checked={preparationConfirmed}
+                  onChange={(event) => setPreparationConfirmed(event.target.checked)}
+                />
+                <span>I have followed the scan preparation steps.</span>
+              </label>
 
               <div className={styles.actions}>
                 <button
                   type="button"
                   className={[
                     styles.primaryButton,
-                    introReady ? styles.primaryButtonReady : styles.primaryButtonWaiting,
+                    canBegin ? styles.primaryButtonReady : styles.primaryButtonWaiting,
                   ].join(" ")}
-                  disabled={!introReady || !selectedSubject}
+                  disabled={!canBegin}
+                  aria-describedby="scan-confirmation-help"
                   onClick={startScan}
                 >
-                  I&apos;m Ready
+                  Begin My Scan
                 </button>
               </div>
+              <p id="scan-confirmation-help" className={styles.actionHelp}>
+                {canBegin ? "Your scan will begin with the first voice prompt." : "Confirm the preparation steps to begin your scan."}
+              </p>
             </div>
           </section>
         </main>

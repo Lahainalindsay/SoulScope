@@ -2,6 +2,7 @@
 
 import Head from "next/head";
 import Link from "next/link";
+import ResonanceSignature, { type ResonanceSignatureDatum } from "../components/ResonanceSignature";
 import { VALIDATION_NOTE } from "../lib/scanProtocol";
 import styles from "./HowItWorks.module.css";
 
@@ -18,6 +19,15 @@ const steps = [
     title: "Reflect",
     description: "Receive a Resonance Signature, a clear Reflection, and something meaningful to notice.",
   },
+];
+
+const DEMO_SIGNATURE_DATA: ResonanceSignatureDatum[] = [
+  { id: "illustrative:timing", value: 0.64, weight: 0.86 },
+  { id: "illustrative:steadiness", value: 0.58, weight: 0.78 },
+  { id: "illustrative:rhythm", value: 0.72, weight: 0.82 },
+  { id: "illustrative:energy", value: 0.49, weight: 0.7 },
+  { id: "illustrative:expression", value: 0.68, weight: 0.74 },
+  { id: "illustrative:recovery", value: 0.42, weight: 0.62 },
 ];
 
 export default function HowItWorks() {
@@ -61,8 +71,24 @@ export default function HowItWorks() {
 
           <section className={styles.frameCard}>
             <p className={styles.sectionEyebrow}>Resonance Signature</p>
-            <h2 className={styles.sectionTitle}>How the Resonance Signature is formed.</h2>
-            <p className={styles.frameText}>SoulScope organizes the strongest supported relationships in a scan into one visual signature and one Reflection for this moment.</p>
+            <h2 className={styles.sectionTitle}>Many measured patterns. One visual signature.</h2>
+            <p className={styles.frameText}>
+              SoulScope organizes relationships across the scan into a single visual expression. Changes in spacing,
+              movement, density, and balance help each scan take on its own form.
+            </p>
+            <figure className={styles.signatureExample}>
+              <div className={styles.signatureFrame}>
+                <ResonanceSignature
+                  data={DEMO_SIGNATURE_DATA}
+                  size={460}
+                  label="Illustrative Resonance Signature showing how measured scan relationships can become a visual signature."
+                />
+              </div>
+              <figcaption>
+                An illustrative Resonance Signature. Your personal signature is created from the patterns present in
+                your own scan.
+              </figcaption>
+            </figure>
           </section>
 
           <section className={styles.frameCard}>
