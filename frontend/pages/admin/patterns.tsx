@@ -23,6 +23,9 @@ type DiagnosticRow = {
   pattern_signature: string | null;
   display_name: string | null;
   family: string | null;
+  canonical_pattern_signature: string | null;
+  canonical_display_name: string | null;
+  canonical_family: string | null;
   confidence: number | null;
   baseline: BaselinePayload | null;
   decision_ledger: DecisionLedgerPayload | null;
@@ -87,7 +90,7 @@ export default function AdminPatternsPage() {
 
       const { data, error: diagnosticsError } = await supabase
         .from("scan_interpretation_diagnostics")
-        .select("created_at, pattern_signature, display_name, family, confidence, baseline, decision_ledger")
+        .select("created_at, pattern_signature, display_name, family, canonical_pattern_signature, canonical_display_name, canonical_family, confidence, baseline, decision_ledger")
         .order("created_at", { ascending: false })
         .limit(1000);
 
@@ -103,9 +106,9 @@ export default function AdminPatternsPage() {
   }, []);
 
   const summary = useMemo(() => {
-    const familyCounts = countBy(rows, (row) => row.family);
-    const nameCounts = countBy(rows, (row) => row.display_name);
-    const signatureCounts = countBy(rows, (row) => row.pattern_signature);
+    const familyCounts = countBy(rows, (row) => row.canonical_family ?? row.family);
+    const nameCounts = countBy(rows, (row) => row.canonical_display_name ?? row.display_name);
+    const signatureCounts = countBy(rows, (row) => row.canonical_pattern_signature ?? row.pattern_signature);
     const averageConfidence = average(rows.map((row) => row.confidence ?? Number.NaN));
     const averageNearestAlternative = average(
       rows.map((row) => nearestAlternative(row) ?? Number.NaN)
@@ -237,14 +240,14 @@ export default function AdminPatternsPage() {
                       {rows.slice(0, 80).map((row, index) => (
                         <tr key={`${row.created_at ?? "row"}-${row.pattern_signature ?? index}`}>
                           <td>{row.created_at ? new Date(row.created_at).toLocaleString() : "Unknown"}</td>
-                          <td>{row.display_name ?? "-"}</td>
-                          <td>{row.family ?? "-"}</td>
+                          <td>{row.canonical_display_name ?? row.display_name ?? "-"}</td>
+                          <td>{row.canonical_family ?? row.family ?? "-"}</td>
                           <td>{typeof row.confidence === "number" ? row.confidence.toFixed(2) : "-"}</td>
                           <td>
                             {nearestAlternative(row) === null ? "-" : nearestAlternative(row)?.toFixed(2)}
                           </td>
                           <td>{row.baseline?.comparisonAvailable ? "Yes" : "No"}</td>
-                          <td className={styles.mono}>{row.pattern_signature ?? "-"}</td>
+                          <td className={styles.mono}>{row.canonical_pattern_signature ?? row.pattern_signature ?? "-"}</td>
                         </tr>
                       ))}
                     </tbody>

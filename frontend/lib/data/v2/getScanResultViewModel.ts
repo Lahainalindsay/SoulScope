@@ -11,6 +11,7 @@ import { listObservationsForScan } from "./observationRepository";
 import { listEvidenceForScan } from "./evidenceRepository";
 import { getScanReflectionPreference, getUserNarrativePreference } from "./preferenceRepository";
 import { getPersonalBaselines } from "./baselineRepository";
+import { listInterpretationDiagnosticsForScan } from "./diagnosticsRepository";
 import { listLongitudinalSnapshots } from "./longitudinalRepository";
 import { hydrateReportFromV2 } from "./hydrateReportFromV2";
 import type {
@@ -45,7 +46,7 @@ export async function getScanResultViewModel(client: SupabaseClient, scanId: str
   const session = await getScanSession(client, scanId);
   if (!session) return null;
   const scan = parseRawResult(session.raw_result);
-  const [patterns, reflections, domains, observations, allEvidence, selectedPreference, narrativePreference, baselines, history] = await Promise.all([
+  const [patterns, reflections, domains, observations, allEvidence, selectedPreference, narrativePreference, baselines, history, diagnostics] = await Promise.all([
     listPatternMatchesForScan(client, scanId),
     listReflectionVariantsForScan(client, scanId),
     listDomainsForScan(client, scanId),
@@ -55,6 +56,7 @@ export async function getScanResultViewModel(client: SupabaseClient, scanId: str
     getUserNarrativePreference(client),
     getPersonalBaselines(client),
     listLongitudinalSnapshots(client, { before: session.created_at, excludeScanId: scanId, limit: 200 }),
+    listInterpretationDiagnosticsForScan(client, scanId),
   ]);
   const current: LongitudinalScanSnapshot = {
     scanId,
@@ -70,7 +72,7 @@ export async function getScanResultViewModel(client: SupabaseClient, scanId: str
     resonanceDistribution: scan.noteEnergies?.slice().sort((a, b) => a.note.localeCompare(b.note)).map((note) => note.score / 100) ?? [],
   };
   const longitudinal = buildLongitudinalAnalysis(current, history);
-  const hydrated = hydrateReportFromV2(buildSoulScopeReport(scan, { scanId }), { patterns, reflections, domains });
+  const hydrated = hydrateReportFromV2(buildSoulScopeReport(scan, { scanId }), { patterns, reflections, domains, diagnostics });
   const report = personalizeReportWithHistory(hydrated, longitudinal);
   return { session, scan, report, selectedPreference, narrativePreference, observations, evidence: includeEvidence ? allEvidence : [], baselines, longitudinal };
 }

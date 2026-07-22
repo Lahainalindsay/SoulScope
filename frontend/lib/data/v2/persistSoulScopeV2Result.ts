@@ -19,6 +19,8 @@ import { mapDomains } from "./mappers/mapDomains";
 import { mapPatternMatches } from "./mappers/mapPatternMatches";
 import { mapReflectionVariants } from "./mappers/mapReflectionVariants";
 import type { ScanSessionRow, ScanSessionUpdate } from "./types";
+import { toJsonObject, toJsonValue } from "./json";
+import { throwIfError } from "./client";
 
 export interface PersistSoulScopeV2ResultArgs {
   client: SupabaseClient;
@@ -34,6 +36,37 @@ export interface PersistSoulScopeV2ResultArgs {
 function finalSessionUpdate(args: ReturnType<typeof mapScanSession>): ScanSessionUpdate {
   const { id: _id, user_id: _userId, ...updates } = args;
   return updates;
+}
+
+async function upsertInterpretationDiagnostics(args: PersistSoulScopeV2ResultArgs) {
+  const canonical = args.report.canonicalPattern;
+  const response = await args.client.from("scan_interpretation_diagnostics").upsert(
+    {
+      scan_id: args.scanId,
+      user_id: args.userId,
+      subject_id: args.report.dynamicPattern.baseline.subjectId,
+      pattern_signature: canonical.canonicalPatternSignature,
+      display_name: canonical.canonicalDisplayName,
+      family: canonical.canonicalFamily,
+      canonical_pattern_signature: canonical.canonicalPatternSignature,
+      canonical_display_name: canonical.canonicalDisplayName,
+      canonical_family: canonical.canonicalFamily,
+      primary_family: canonical.primaryFamily,
+      secondary_family: canonical.secondaryFamily,
+      confidence: canonical.confidence,
+      confidence_margin: canonical.confidenceMargin,
+      state_vector: toJsonObject(canonical.stateVector),
+      evidence_ledger: toJsonObject(canonical.evidenceLedger),
+      dimension_ledger: toJsonObject(canonical.dimensionLedger),
+      decision_ledger: toJsonObject(canonical.decisionLedger),
+      baseline: toJsonObject(args.report.dynamicPattern.baseline),
+      interpretation_limits: canonical.interpretationLimits.map(toJsonValue),
+      reflection_source: toJsonObject(canonical.reflectionSource),
+      engine_version: canonical.engineVersion,
+    },
+    { onConflict: "scan_id" },
+  );
+  throwIfError(response.error, "Could not save scan interpretation diagnostics");
 }
 
 export async function persistSoulScopeV2Result(args: PersistSoulScopeV2ResultArgs): Promise<ScanSessionRow> {
@@ -60,6 +93,7 @@ export async function persistSoulScopeV2Result(args: PersistSoulScopeV2ResultArg
     await insertDomainResults(args.client, mapDomains(context));
     await insertPatternMatches(args.client, mapPatternMatches(context));
     await insertReflectionVariants(args.client, mapReflectionVariants(context));
+    await upsertInterpretationDiagnostics(args);
     const session = await updateScanSession(
       args.client,
       args.scanId,

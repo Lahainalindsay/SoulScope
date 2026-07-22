@@ -35,7 +35,7 @@ export default function ResonanceResultsDashboard({
 }: ResonanceResultsDashboardProps) {
   const orderedCandidates = orderStoryCandidates(report.storyCandidates, narrativePreference);
   const atlas = report.atlas;
-  const profile = atlas.result.profile;
+  const canonical = report.canonicalPattern;
   const [accuracy, setAccuracy] = useState("");
   const [lengthPreference, setLengthPreference] = useState("");
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string[]>>({});
@@ -55,8 +55,8 @@ export default function ResonanceResultsDashboard({
   return (
     <section className={styles.section}>
       <section className={styles.patternCopy}>
-        <h1 className={styles.patternName}>{profile.name}</h1>
-        <p className={styles.patternTheme}>{profile.theme}</p>
+        <h1 className={styles.patternName}>{canonical.canonicalDisplayName}</h1>
+        <p className={styles.patternTheme}>{canonical.summary}</p>
       </section>
 
       <section className={styles.notesSection} aria-labelledby="beta-reflection-heading">
@@ -133,7 +133,7 @@ export default function ResonanceResultsDashboard({
           <ResonanceSignature
             data={atlas.signature.data}
             visualState={atlas.signature.visualState}
-            label={`Resonance Signature for ${profile.name}`}
+            label={`Resonance Signature for ${canonical.canonicalDisplayName}`}
           />
         </div>
       </section>

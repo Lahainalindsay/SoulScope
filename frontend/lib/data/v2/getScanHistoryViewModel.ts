@@ -6,6 +6,7 @@ import { listPatternMatchesForScans } from "./patternRepository";
 import { listReflectionVariantsForScans } from "./reflectionRepository";
 import { listScanReflectionPreferences } from "./preferenceRepository";
 import { listDomainsForScans } from "./domainRepository";
+import { listInterpretationDiagnosticsForScans } from "./diagnosticsRepository";
 import { hydrateReportFromV2 } from "./hydrateReportFromV2";
 import type { JsonObject, QualityLevel, ReflectionStyle, ScanStatus } from "./types";
 
@@ -39,11 +40,12 @@ export async function getScanHistoryViewModel(
 ): Promise<ScanHistoryViewModel> {
   const sessions = await listScanHistory(client, limit);
   const scanIds = sessions.map((session) => session.id);
-  const [patterns, reflections, preferences, domains] = await Promise.all([
+  const [patterns, reflections, preferences, domains, diagnostics] = await Promise.all([
     listPatternMatchesForScans(client, scanIds),
     listReflectionVariantsForScans(client, scanIds),
     listScanReflectionPreferences(client, scanIds),
     listDomainsForScans(client, scanIds),
+    listInterpretationDiagnosticsForScans(client, scanIds),
   ]);
 
   const items = sessions.map((session) => {
@@ -51,6 +53,8 @@ export async function getScanHistoryViewModel(
     const scanPatterns = patterns.filter((row) => row.scan_id === session.id);
     const scanReflections = reflections.filter((row) => row.scan_id === session.id);
     const scanDomains = domains.filter((row) => row.scan_id === session.id);
+    const scanDiagnostics = diagnostics.filter((row) => row.scan_id === session.id);
+    const diagnostic = scanDiagnostics[0];
     const primary = scanPatterns.find((row) => row.role === "primary");
     const preference = preferences.find((row) => row.scan_id === session.id);
     const selected = preference
@@ -61,16 +65,23 @@ export async function getScanHistoryViewModel(
           patterns: scanPatterns,
           reflections: scanReflections,
           domains: scanDomains,
+          diagnostics: scanDiagnostics,
         })
       : null;
+    const canonicalName = diagnostic?.canonical_display_name
+      ?? diagnostic?.display_name
+      ?? primary?.pattern_expression_title
+      ?? primary?.pattern_name
+      ?? report?.primaryPattern.name
+      ?? "Current Pattern";
     return {
       scanId: session.id,
       createdAt: session.created_at,
       status: session.status,
       quality: session.capture_quality,
-      patternName: primary?.pattern_name ?? report?.primaryPattern.name ?? "Current Pattern",
+      patternName: canonicalName,
       patternId: primary?.pattern_id ?? report?.primaryPattern.id ?? "unknown",
-      expressionTitle: primary?.pattern_expression_title ?? report?.patternExpression.title ?? null,
+      expressionTitle: canonicalName ?? report?.patternExpression.title ?? null,
       conciseSummary: selected?.summary ?? primary?.explanation ?? report?.storyCandidates[0]?.summary ?? "Open this scan to view your reflection.",
       selectedStyle: preference?.selected_style ?? selected?.style ?? null,
       rawResult: session.raw_result,

@@ -90,6 +90,32 @@ export interface PatternMatchRow {
 }
 export type PatternMatchInsert = Omit<PatternMatchRow, "created_at" | "updated_at">;
 
+export interface ScanInterpretationDiagnosticRow {
+  scan_id: string;
+  user_id: string;
+  subject_id: string | null;
+  pattern_signature: string | null;
+  display_name: string | null;
+  family: string | null;
+  canonical_pattern_signature?: string | null;
+  canonical_display_name?: string | null;
+  canonical_family?: string | null;
+  primary_family?: string | null;
+  secondary_family?: string | null;
+  confidence: number | null;
+  confidence_margin?: number | null;
+  state_vector: JsonObject | null;
+  evidence_ledger: JsonObject | null;
+  dimension_ledger: JsonObject | null;
+  decision_ledger: JsonObject | null;
+  baseline: JsonObject | null;
+  interpretation_limits: JsonValue;
+  reflection_source?: JsonObject | null;
+  engine_version: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ReflectionVariantRow {
   id: string; scan_id: string; user_id: string; style: ReflectionStyle; title: string;
   summary: string; content: JsonObject; created_at: string; updated_at: string;

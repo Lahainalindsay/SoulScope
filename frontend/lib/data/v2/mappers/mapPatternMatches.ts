@@ -15,23 +15,33 @@ export function mapPatternMatches(context: V2MappingContext): PatternMatchInsert
   ];
   if (context.report.supportingPattern) matches.push({ role: "supporting", pattern: context.report.supportingPattern });
   if (context.report.emergingPattern) matches.push({ role: "emerging", pattern: context.report.emergingPattern });
+  const canonical = context.report.canonicalPattern;
 
-  return matches.map(({ role, pattern }) => ({
-    id: stableUuid(context.scanId, "pattern", role),
-    scan_id: context.scanId,
-    user_id: context.userId,
-    role,
-    pattern_id: pattern.id,
-    pattern_name: pattern.name,
-    pattern_theme: pattern.theme ?? null,
-    explanation: pattern.explanation,
-    confidence: confidenceLevel(pattern.confidence),
-    confidence_score: pattern.confidence,
-    pattern_expression_id: role === "primary" ? context.report.patternExpression.id : null,
-    pattern_expression_title: role === "primary" ? context.report.patternExpression.title : null,
-    pattern_expression_summary: role === "primary" ? context.report.patternExpression.summary : null,
-    modifiers: role === "primary" ? context.report.modifiers.map(toJsonValue) : [],
-    evidence_provenance: role === "primary" ? context.report.patternExpression.matchedSignals.map(toJsonValue) : [],
-    baseline_comparison: role === "primary" ? toJsonObject(context.report.baselineComparison) : null,
-  }));
+  return matches.map(({ role, pattern }) => {
+    const isPrimary = role === "primary";
+    const confidence = isPrimary ? canonical.confidence : pattern.confidence;
+    return {
+      id: stableUuid(context.scanId, "pattern", role),
+      scan_id: context.scanId,
+      user_id: context.userId,
+      role,
+      pattern_id: pattern.id,
+      pattern_name: isPrimary ? canonical.canonicalDisplayName : pattern.name,
+      pattern_theme: isPrimary ? canonical.summary : pattern.theme ?? null,
+      explanation: isPrimary ? canonical.explanation[0] : pattern.explanation,
+      confidence: confidenceLevel(confidence),
+      confidence_score: confidence,
+      pattern_expression_id: isPrimary ? canonical.canonicalPatternSignature : null,
+      pattern_expression_title: isPrimary ? canonical.canonicalDisplayName : null,
+      pattern_expression_summary: isPrimary ? canonical.summary : null,
+      modifiers: isPrimary ? context.report.modifiers.map(toJsonValue) : [],
+      evidence_provenance: isPrimary
+        ? [
+            ...context.report.patternExpression.matchedSignals.map(toJsonValue),
+            toJsonValue({ canonicalDecision: canonical.decisionLedger.selected }),
+          ]
+        : [],
+      baseline_comparison: isPrimary ? toJsonObject(context.report.baselineComparison) : null,
+    };
+  });
 }

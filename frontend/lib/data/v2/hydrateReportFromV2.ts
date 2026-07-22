@@ -1,6 +1,6 @@
 import type { SoulScopeReport } from "../../buildSoulScopeReport";
 import type { UserResultDomain, UserResultDomainName, UserResultFunctionalState } from "../../systemDimensions";
-import type { DomainResultRow, PatternMatchRow, ReflectionVariantRow } from "./types";
+import type { DomainResultRow, PatternMatchRow, ReflectionVariantRow, ScanInterpretationDiagnosticRow } from "./types";
 
 const DOMAIN_NAMES: Record<string, UserResultDomainName> = {
   energy_vitality: "Energy & Vitality",
@@ -81,15 +81,59 @@ function hydrateStories(rows: ReflectionVariantRow[], report: SoulScopeReport): 
   });
 }
 
+function canonicalDiagnostic(rows: ScanInterpretationDiagnosticRow[] | undefined): ScanInterpretationDiagnosticRow | undefined {
+  return rows?.[0];
+}
+
+function canonicalDisplayName(row: ScanInterpretationDiagnosticRow | undefined, primaryRow: PatternMatchRow | undefined, report: SoulScopeReport) {
+  return row?.canonical_display_name
+    ?? row?.display_name
+    ?? primaryRow?.pattern_expression_title
+    ?? primaryRow?.pattern_name
+    ?? report.canonicalPattern.canonicalDisplayName;
+}
+
+function canonicalSignature(row: ScanInterpretationDiagnosticRow | undefined, primaryRow: PatternMatchRow | undefined, report: SoulScopeReport) {
+  return row?.canonical_pattern_signature
+    ?? row?.pattern_signature
+    ?? primaryRow?.pattern_expression_id
+    ?? report.canonicalPattern.canonicalPatternSignature;
+}
+
 export function hydrateReportFromV2(
   report: SoulScopeReport,
-  rows: { domains: DomainResultRow[]; patterns: PatternMatchRow[]; reflections: ReflectionVariantRow[] },
+  rows: {
+    domains: DomainResultRow[];
+    patterns: PatternMatchRow[];
+    reflections: ReflectionVariantRow[];
+    diagnostics?: ScanInterpretationDiagnosticRow[];
+  },
 ): SoulScopeReport {
-  const primaryPattern = hydratePattern("primary", rows.patterns, report) ?? report.primaryPattern;
+  const diagnostic = canonicalDiagnostic(rows.diagnostics);
+  const primaryRow = rows.patterns.find((item) => item.role === "primary");
+  const displayName = canonicalDisplayName(diagnostic, primaryRow, report);
+  const signature = canonicalSignature(diagnostic, primaryRow, report);
+  const hydratedPrimary = hydratePattern("primary", rows.patterns, report) ?? report.primaryPattern;
+  const primaryPattern = {
+    ...hydratedPrimary,
+    name: displayName,
+    theme: primaryRow?.pattern_expression_summary ?? report.canonicalPattern.summary,
+    explanation: primaryRow?.explanation ?? report.canonicalPattern.explanation[0],
+    confidence: diagnostic?.confidence ?? hydratedPrimary.confidence,
+  };
   const supportingPattern = hydratePattern("supporting", rows.patterns, report);
   const emergingPattern = hydratePattern("emerging", rows.patterns, report);
-  const primaryRow = rows.patterns.find((item) => item.role === "primary");
   const domainResults = hydrateDomains(rows.domains, report.domainResults);
+  const canonicalPattern = {
+    ...report.canonicalPattern,
+    canonicalPatternSignature: signature,
+    canonicalDisplayName: displayName,
+    canonicalFamily: (diagnostic?.canonical_family ?? diagnostic?.family ?? report.canonicalPattern.canonicalFamily) as typeof report.canonicalPattern.canonicalFamily,
+    primaryFamily: (diagnostic?.primary_family ?? diagnostic?.canonical_family ?? diagnostic?.family ?? report.canonicalPattern.primaryFamily) as typeof report.canonicalPattern.primaryFamily,
+    secondaryFamily: (diagnostic?.secondary_family ?? report.canonicalPattern.secondaryFamily) as typeof report.canonicalPattern.secondaryFamily,
+    confidence: diagnostic?.confidence ?? report.canonicalPattern.confidence,
+    confidenceMargin: diagnostic?.confidence_margin ?? report.canonicalPattern.confidenceMargin,
+  };
   return {
     ...report,
     primaryPattern,
@@ -98,11 +142,12 @@ export function hydrateReportFromV2(
     domainResults,
     storyCandidates: hydrateStories(rows.reflections, report),
     presentation: report.presentation,
-    patternExpression: primaryRow?.pattern_expression_id ? {
-      id: primaryRow.pattern_expression_id,
-      title: primaryRow.pattern_expression_title ?? report.patternExpression.title,
-      summary: primaryRow.pattern_expression_summary ?? report.patternExpression.summary,
-      matchedSignals: primaryRow.evidence_provenance.filter((item): item is string => typeof item === "string"),
+    canonicalPattern,
+    patternExpression: primaryRow?.pattern_expression_id || diagnostic ? {
+      id: signature,
+      title: displayName,
+      summary: primaryRow?.pattern_expression_summary ?? report.patternExpression.summary,
+      matchedSignals: primaryRow?.evidence_provenance.filter((item): item is string => typeof item === "string") ?? report.patternExpression.matchedSignals,
     } : report.patternExpression,
   };
 }

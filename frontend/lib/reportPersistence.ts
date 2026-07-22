@@ -35,21 +35,30 @@ export async function persistCanonicalReport(
 ) {
   const result = await persistSoulScopeV2Result({ client, ...args });
   try {
+    const canonical = args.report.canonicalPattern;
     const diagnosticsResponse = await client.from("scan_interpretation_diagnostics").upsert(
       {
         scan_id: args.scanId,
         user_id: args.userId,
         subject_id: args.report.dynamicPattern.baseline.subjectId,
-        pattern_signature: args.report.dynamicPattern.patternSignature,
-        display_name: args.report.dynamicPattern.displayName,
-        family: args.report.dynamicPattern.family,
-        confidence: args.report.dynamicPattern.confidence,
-        state_vector: args.report.dynamicPattern.stateVector,
-        evidence_ledger: args.report.dynamicPattern.evidenceLedger,
-        dimension_ledger: args.report.dynamicPattern.dimensions,
-        decision_ledger: args.report.dynamicPattern.decisionLedger,
+        pattern_signature: canonical.canonicalPatternSignature,
+        display_name: canonical.canonicalDisplayName,
+        family: canonical.canonicalFamily,
+        canonical_pattern_signature: canonical.canonicalPatternSignature,
+        canonical_display_name: canonical.canonicalDisplayName,
+        canonical_family: canonical.canonicalFamily,
+        primary_family: canonical.primaryFamily,
+        secondary_family: canonical.secondaryFamily,
+        confidence: canonical.confidence,
+        confidence_margin: canonical.confidenceMargin,
+        state_vector: canonical.stateVector,
+        evidence_ledger: canonical.evidenceLedger,
+        dimension_ledger: canonical.dimensionLedger,
+        decision_ledger: canonical.decisionLedger,
         baseline: args.report.dynamicPattern.baseline,
-        interpretation_limits: args.report.dynamicPattern.interpretationLimits,
+        interpretation_limits: canonical.interpretationLimits,
+        reflection_source: canonical.reflectionSource,
+        engine_version: canonical.engineVersion,
       },
       { onConflict: "scan_id" },
     );

@@ -25,6 +25,12 @@ import { discriminatePatternMatches } from "./patternDiscrimination";
 import { buildAtlasPresentation, buildAtlasRuntime, topAtlasEvidence } from "./atlasRuntime";
 import { buildAtlasSignatureModel, type AtlasSignatureModel } from "./atlasSignature";
 import type { AtlasInput, AtlasResult } from "./patternAtlas";
+import {
+  canonicalPatternExpression,
+  canonicalPresentation,
+  resolveCanonicalPattern,
+  type CanonicalPatternResult,
+} from "./canonicalPattern";
 
 export type SoulScopeReport = BaseSoulScopeReport & {
   patternExpression: PatternExpression;
@@ -38,6 +44,7 @@ export type SoulScopeReport = BaseSoulScopeReport & {
     result: AtlasResult;
     signature: AtlasSignatureModel;
   };
+  canonicalPattern: CanonicalPatternResult;
 };
 
 export type BuildSoulScopeReportOptions = {
@@ -127,20 +134,24 @@ export function buildSoulScopeReport(
   const atlasRuntime = buildAtlasRuntime(scan, domainResults, baselineComparison);
   const atlasSignature = buildAtlasSignatureModel(atlasRuntime.input, atlasRuntime.result);
   const atlasEvidence = topAtlasEvidence(atlasRuntime.input, limited ? 2 : 4);
+  const atlasPresentation = buildAtlasPresentation(atlasRuntime.input, atlasRuntime.result, baselineComparison);
+  const canonicalPattern = resolveCanonicalPattern(
+    {
+      dynamicPattern: base.dynamicPattern,
+      atlasInput: atlasRuntime.input,
+      atlasResult: atlasRuntime.result,
+      primaryPattern,
+      supportingPattern,
+      emergingPattern,
+      completeness: scanWithCompleteness.scanCompleteness,
+    },
+    atlasPresentation,
+  );
 
-  const patternExpression: PatternExpression = limited
-    ? {
-        id: "signals-still-resolving",
-        title: "A Limited Reflection",
-        summary: "This reflection is intentionally broad because only the clearest captured voice data could be used.",
-        matchedSignals: [`${scanWithCompleteness.scanCompleteness?.validRecordings ?? 0} usable recordings`],
-      }
-    : {
-        id: `atlas:${atlasRuntime.result.profile.id}`,
-        title: atlasRuntime.result.profile.name,
-        summary: atlasRuntime.result.profile.theme,
-        matchedSignals: atlasEvidence.map((evidence) => `${evidence.label} · ${Math.round(evidence.score * 100)}%`),
-      };
+  const patternExpression: PatternExpression = canonicalPatternExpression(
+    canonicalPattern,
+    atlasEvidence.map((evidence) => `${evidence.label} · ${Math.round(evidence.score * 100)}%`),
+  );
 
   const legacyExpression = buildPatternExpression(primaryPattern.id, scan, domainResults);
   if (!limited && legacyExpression.matchedSignals.length) {
@@ -148,19 +159,32 @@ export function buildSoulScopeReport(
   }
 
   const modifiers = buildPatternModifiers(scan, domainResults).slice(0, limited ? 2 : 6);
-  const presentation = buildAtlasPresentation(atlasRuntime.input, atlasRuntime.result, baselineComparison);
+  const presentation = canonicalPresentation(canonicalPattern, atlasPresentation);
   const storyCandidates = base.storyCandidates.map((candidate) => personalizeStoryCandidate(
     candidate,
     presentation,
     modifiers,
-    atlasRuntime.result.supporting[0]?.profile.name,
+    canonicalPattern.secondaryFamily ? canonicalPattern.canonicalDisplayName : undefined,
     baselineComparison,
     scanWithCompleteness.scanCompleteness,
   ));
+  const canonicalPrimaryPattern: PatternMatch = {
+    ...primaryPattern,
+    name: canonicalPattern.canonicalDisplayName,
+    theme: canonicalPattern.summary,
+    explanation: canonicalPattern.explanation[0],
+    whatThisMayFeelLike: canonicalPattern.dailyLife,
+    supportiveFactors: canonicalPattern.supportLines,
+    whatIsWorkingHardest: canonicalPattern.decisionLedger.supportingEvidence.length
+      ? canonicalPattern.decisionLedger.supportingEvidence.map((item) => item.replaceAll("-", " "))
+      : primaryPattern.whatIsWorkingHardest,
+    whatNeedsAttention: canonicalPattern.reflectionQuestion,
+    confidence: canonicalPattern.confidence,
+  };
 
   return {
     ...base,
-    primaryPattern,
+    primaryPattern: canonicalPrimaryPattern,
     supportingPattern,
     emergingPattern,
     domainResults,
@@ -168,6 +192,7 @@ export function buildSoulScopeReport(
     modifiers,
     baselineComparison,
     presentation,
+    canonicalPattern,
     scanCompleteness: scanWithCompleteness.scanCompleteness,
     observationPipeline,
     storyCandidates,

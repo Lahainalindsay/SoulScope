@@ -126,12 +126,16 @@ test("pattern roles remain unique per scan", () => {
   assert.equal(new Set(rows.map((row) => row.role)).size, rows.length);
   assert.equal(rows[0].role, "primary");
   assert.ok(rows[0].pattern_expression_title);
+  assert.equal(rows[0].pattern_name, context().report.canonicalPattern.canonicalDisplayName);
+  assert.equal(rows[0].pattern_expression_title, context().report.canonicalPattern.canonicalDisplayName);
 });
 
 test("all three reflection variants are persisted", () => {
-  const rows = mapReflectionVariants(context());
+  const value = context();
+  const rows = mapReflectionVariants(value);
   assert.deepEqual(rows.map((row) => row.style).sort(), ["direct", "insight", "supportive"]);
   assert.equal(new Set(rows.map((row) => row.id)).size, 3);
+  assert.ok(rows.every((row) => row.content.canonicalDisplayName === value.report.canonicalPattern.canonicalDisplayName));
 });
 
 test("retry mapping produces the same child identifiers", () => {

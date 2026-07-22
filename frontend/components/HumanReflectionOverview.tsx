@@ -4,8 +4,7 @@ import styles from "./ResonanceResultsDashboard.module.css";
 
 export default function HumanReflectionOverview({ report }: { report: SoulScopeReport }) {
   const presentation = report.presentation;
-  const profile = report.atlas.result.profile;
-  const practices = profile.support;
+  const practices = report.canonicalPattern.supportLines;
   const [reflection, setReflection] = useState("");
 
   return (

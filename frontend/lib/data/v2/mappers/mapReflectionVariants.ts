@@ -20,6 +20,8 @@ export function mapReflectionVariants(context: V2MappingContext): ReflectionVari
       title: variant.title,
       summary: variant.summary,
       content: toJsonObject({
+        canonicalDisplayName: context.report.canonicalPattern.canonicalDisplayName,
+        canonicalPatternSignature: context.report.canonicalPattern.canonicalPatternSignature,
         strongestResources: variant.strongestResources,
         areasWorkingHard: variant.areasWorkingHard,
         areasAskingForSupport: variant.areasAskingForSupport,
