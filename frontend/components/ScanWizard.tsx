@@ -48,59 +48,59 @@ type VoicePrompt = {
 const steps: StepDefinition[] = [
   {
     id: "intro",
-    label: "Intro",
-    eyebrow: "Screen 1",
-    title: "New Scan",
+    label: "Prepare",
+    eyebrow: "Welcome to SoulScope",
+    title: "A clearer view begins with one moment.",
     summary:
-      "This scan uses voice as the first sensing lens to surface patterns that may be associated with clarity, expression, load, recovery, and adaptability.",
+      "You will respond to a short series of prompts while SoulScope listens for patterns in your voice and expression.",
   },
   {
     id: "sensors",
-    label: "Sensors",
-    eyebrow: "Screen 2",
-    title: "Sensor check",
+    label: "Permission",
+    eyebrow: "You remain in control",
+    title: "Microphone and optional camera.",
     summary:
-      "Verify that optional sensors are streaming clean signals before the scan begins.",
+      "Microphone access records your responses. Camera access is optional where supported and may add broad expression context.",
   },
   {
     id: "baseline",
-    label: "Baseline",
-    eyebrow: "Screen 3",
-    title: "Baseline phase",
+    label: "Settle",
+    eyebrow: "Prepare",
+    title: "Take a moment to settle.",
     summary:
-      "Sit comfortably, breathe normally, and allow SoulScope to capture your resting nervous system pattern for two minutes.",
+      "Sit comfortably and let your breathing return to its natural rhythm before the prompts begin.",
   },
   {
     id: "voice",
-    label: "Voice",
-    eyebrow: "Screen 4",
-    title: "Voice phase",
+    label: "Speak",
+    eyebrow: "Resonance Scan",
+    title: "Speak naturally.",
     summary:
-      "Capture a sustained vowel first, then short voice clips covering identity, current state, power statement, and vulnerability.",
+      "Begin with a comfortable voice sample, then answer the guided prompts in your own words.",
   },
   {
     id: "challenge",
-    label: "Challenge",
-    eyebrow: "Screen 5",
-    title: "Emotional challenge",
+    label: "Reflect",
+    eyebrow: "Another point of comparison",
+    title: "Bring one recent moment to mind.",
     summary:
-      "Guide a gentle emotional recall prompt to observe how the system responds under pressure.",
+      "Choose something meaningful but manageable. You can skip this part when supported.",
   },
   {
     id: "recovery",
-    label: "Recovery",
-    eyebrow: "Screen 6",
-    title: "Recovery phase",
+    label: "Return",
+    eyebrow: "Return to the present",
+    title: "Let your attention return to the room.",
     summary:
-      "Lead a patterned breath sequence (in 4, out 6) to observe how quickly physiology returns toward baseline.",
+      "This gives SoulScope a final comparison point before creating your Reflection.",
   },
   {
     id: "results",
-    label: "Insights",
-    eyebrow: "Screen 7",
-    title: "Pattern Insight",
+    label: "Complete",
+    eyebrow: "Scan complete",
+    title: "Your Reflection is ready.",
     summary:
-      "Combine available signals into a pattern insight focused on mental, emotional, physical, and behavioral state.",
+      "Receive one Resonance Signature, one Current Pattern, and one clear Reflection.",
   },
 ];
 
@@ -113,31 +113,31 @@ const DEFAULT_PHASE_DURATIONS: Record<PhaseId, number> = {
 const voicePromptsTemplate: Omit<VoicePrompt, "status">[] = [
   {
     label: "Sustained vowel",
-    prompt: "“Hold an ahhh or ohhh sound steadily for five seconds.”",
+    prompt: "“Hold a comfortable ah sound for about five seconds.”",
     duration: "5s",
     captureKind: "sustained_vowel",
   },
   {
-    label: "Neutral identity",
-    prompt: "“Please say your full name slowly and clearly.”",
+    label: "This moment",
+    prompt: "“Say your name, then describe where you are in this moment.”",
     duration: "≈ 8s",
     captureKind: "guided_speech",
   },
   {
-    label: "Current state",
-    prompt: "“In one sentence, say how you’re feeling right now.”",
+    label: "What matters",
+    prompt: "“What has been taking up the most space in your mind lately?”",
     duration: "≈ 8s",
     captureKind: "guided_speech",
   },
   {
-    label: "Power statement",
-    prompt: "“Say: ‘I trust myself to handle what comes next.’”",
+    label: "Looking inward",
+    prompt: "“Is there something you have been holding back or finding difficult to express?”",
     duration: "≈ 6s",
     captureKind: "guided_speech",
   },
   {
-    label: "Heart line",
-    prompt: "“Say: ‘I deserve to be loved and supported.’”",
+    label: "Looking ahead",
+    prompt: "“What would you like to move toward next?”",
     duration: "≈ 6s",
     captureKind: "guided_speech",
   },
@@ -168,29 +168,29 @@ function usePhaseTimer(
 }
 
 const sensorLabels: Record<SensorKey, string> = {
-  heart: "Heart sensor (HR/HRV)",
-  eda: "EDA sensor",
-  breath: "Breathing belt (optional)",
+  heart: "Microphone",
+  eda: "Camera — optional",
+  breath: "Additional context — optional",
 };
 
 const sensorDescriptions: Record<SensorKey, string> = {
-  heart: "Need: clean PPG waveform (10s stable)",
-  eda: "Need: micro-siemens drift within ±0.2",
-  breath: "Need: belt expansion signal (if used)",
+  heart: "Needed to record your responses.",
+  eda: "May add broad facial movement context when supported.",
+  breath: "Only included when the current experience supports it.",
 };
 
 const timelineCopy = [
   {
-    label: "30s Entry",
-    text: "Guide seeker into gentle recall.",
+    label: "Arrive",
+    text: "Choose a recent moment that feels meaningful and manageable.",
   },
   {
-    label: "60–90s Active",
-    text: "Hold the challenging scenario in mind.",
+    label: "Reflect",
+    text: "Describe what stood out without forcing the answer.",
   },
   {
-    label: "30s Inquiry",
-    text: "Ask: “I am safe to feel this.” Notice the response.",
+    label: "Return",
+    text: "Let your attention come back to the room.",
   },
 ];
 

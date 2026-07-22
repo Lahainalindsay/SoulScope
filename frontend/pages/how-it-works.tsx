@@ -8,15 +8,15 @@ import styles from "./HowItWorks.module.css";
 const steps = [
   {
     title: "Speak",
-    description: "Answer a few prompts out loud.",
+    description: "Respond naturally to a short series of guided prompts.",
   },
   {
     title: "Observe",
-    description: "SoulScope reads timing, steadiness, expression, and response patterns.",
+    description: "SoulScope organizes patterns in timing, steadiness, rhythm, energy, and expression.",
   },
   {
     title: "Reflect",
-    description: "Receive a current pattern, resonance map, and clear next step.",
+    description: "Receive a Resonance Signature, a clear Reflection, and something meaningful to notice.",
   },
 ];
 
@@ -24,7 +24,11 @@ export default function HowItWorks() {
   return (
     <>
       <Head>
-        <title>How SoulScope Works</title>
+        <title>How SoulScope Works — Voice, Reflection and Resonance</title>
+        <meta
+          name="description"
+          content="Learn how SoulScope organizes subtle patterns in your voice and expression into a Resonance Signature and Reflection without diagnosis."
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -34,9 +38,9 @@ export default function HowItWorks() {
           <section className={styles.hero}>
             <p className={styles.eyebrow}>How It Works</p>
             <h1 className={styles.title}>A clearer way to notice change.</h1>
-            <p className={styles.lead}>Your voice carries subtle shifts in load, recovery, clarity, and expression. SoulScope turns them into a current-state reflection.</p>
+            <p className={styles.lead}>SoulScope listens for subtle patterns in your voice and expression and organizes them into a personal Resonance Signature and Reflection.</p>
             <div className={styles.actions}>
-              <Link href="/scan" className={styles.primaryButton}>Start Scan</Link>
+              <Link href="/scan" className={styles.primaryButton}>Begin Your Resonance Scan</Link>
             </div>
           </section>
 
@@ -50,15 +54,30 @@ export default function HowItWorks() {
           </section>
 
           <section className={styles.frameCard}>
-            <p className={styles.sectionEyebrow}>Framing</p>
-            <h2 className={styles.sectionTitle}>Observation, not diagnosis.</h2>
-            <p className={styles.frameText}>SoulScope reflects patterns in a scan. It doesn&apos;t diagnose or define you.</p>
+            <p className={styles.sectionEyebrow}>What SoulScope listens for</p>
+            <h2 className={styles.sectionTitle}>The scan begins with patterns already present.</h2>
+            <p className={styles.frameText}>Your answers provide context. Your voice provides measurable rhythm, timing, steadiness, and expression signals.</p>
+          </section>
+
+          <section className={styles.frameCard}>
+            <p className={styles.sectionEyebrow}>Resonance Signature</p>
+            <h2 className={styles.sectionTitle}>How the Resonance Signature is formed.</h2>
+            <p className={styles.frameText}>SoulScope organizes the strongest supported relationships in a scan into one visual signature and one Reflection for this moment.</p>
+          </section>
+
+          <section className={styles.frameCard}>
+            <p className={styles.sectionEyebrow}>Observation, not diagnosis</p>
+            <h2 className={styles.sectionTitle}>SoulScope does not define you.</h2>
+            <p className={styles.frameText}>SoulScope reflects patterns in a scan. It does not diagnose, assess, or replace professional care.</p>
           </section>
 
           <section className={styles.researchCard}>
-            <p className={styles.sectionEyebrow}>Evidence</p>
-            <h2 className={styles.sectionTitle}>Careful by design.</h2>
+            <p className={styles.sectionEyebrow}>Privacy</p>
+            <h2 className={styles.sectionTitle}>Your inner world should remain yours.</h2>
             <p className={styles.validationNote}>{VALIDATION_NOTE}</p>
+            <div className={styles.actions}>
+              <Link href="/scan" className={styles.primaryButton}>Begin Scan</Link>
+            </div>
           </section>
         </main>
       </div>

@@ -110,7 +110,7 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
     const loadLocal = () => {
       const localSession = getLocalDevSession();
       if (!localSession) {
-        setError("Please sign in to view today’s reflection.");
+        setError("Please sign in to view your Resonance Timeline.");
         setLoading(false);
         return;
       }
@@ -128,7 +128,7 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
         }));
         setError(null);
       } catch {
-        setError("Could not load today’s reflection.");
+        setError("Could not load your SoulScope.");
       } finally {
         setLoading(false);
       }
@@ -153,7 +153,7 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
         ));
         setError(null);
       } catch (fetchError) {
-        setError(fetchError instanceof Error ? fetchError.message : "Could not load today’s reflection.");
+        setError(fetchError instanceof Error ? fetchError.message : "Could not load your SoulScope.");
       } finally {
         setLoading(false);
       }
@@ -173,42 +173,42 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
       <main className={styles.shell}>
         <section className={styles.instrumentHero}>
           <div className={styles.instrumentCopy}>
-            <p className={styles.eyebrow}>{isArchive ? "Your Timeline" : "Welcome back"}</p>
-            <h1 className={styles.instrumentTitle}>{isArchive ? "Pattern History" : latestEntry?.report.primaryPattern.name ?? "Start with a short scan."}</h1>
-            <p className={styles.instrumentLead}>{latestEntry?.conciseSummary ?? "A short scan begins your personal resonance history."}</p>
+            <p className={styles.eyebrow}>{isArchive ? "Your History" : "My SoulScope"}</p>
+            <h1 className={styles.instrumentTitle}>{isArchive ? "Notice what changes. Recognize what returns." : "Welcome back."}</h1>
+            <p className={styles.instrumentLead}>{latestEntry?.conciseSummary ?? "After your first Resonance Scan, your Signature and Reflection will appear here."}</p>
             <p className={styles.reflectionQuestion}>{latestEntry?.report.presentation.reflectionQuestion ?? "What would you like to understand more clearly today?"}</p>
             <div className={styles.instrumentMeta}>
-              <span>Last scan: {formatScanDate(latestEntry?.scan.created_at)}</span>
+              <span>{latestEntry ? `Last scan: ${formatScanDate(latestEntry.scan.created_at)}` : "No scan recorded yet"}</span>
               {latestEntry?.preferredStyle ? <span>Reflection: {latestEntry.preferredStyle}</span> : null}
             </div>
             <div className={styles.newScanActions}>
               {latestEntry?.scan.id ? <Link href={`/results/${latestEntry.scan.id}`} className={styles.primaryButton}>View Reflection</Link> : null}
-              <Link href="/scan" className={latestEntry?.scan.id ? styles.secondaryButton : styles.primaryButton}>Start New Scan</Link>
+              <Link href="/scan" className={latestEntry?.scan.id ? styles.secondaryButton : styles.primaryButton}>{latestEntry ? "Start New Scan" : "Begin My First Scan"}</Link>
             </div>
           </div>
           <div className={styles.instrumentMap}>
-            <ResonanceSignature data={data} label="Today’s Resonance Signature" />
+            <ResonanceSignature data={data} label="Latest Resonance Signature" />
           </div>
         </section>
 
         {!isArchive ? <HomeDailyCheckIn linkedScanId={latestEntry?.scan.id ?? null} /> : null}
-        {loading ? <div className={styles.stateCard}>Opening today’s reflection...</div> : null}
+        {loading ? <div className={styles.stateCard}>Opening your SoulScope...</div> : null}
         {error ? <div className={`${styles.stateCard} ${styles.stateError}`}>{error}</div> : null}
 
         {!loading && !error && latestEntry ? (
           <>
             <section className={styles.trendInsightGrid}>
               <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>What this may look like</p>
+                <p className={styles.insightLabel}>How this may show up</p>
                 <p className={styles.insightText}>{latestEntry.report.presentation.explanation[0]}</p>
               </article>
               <article className={styles.trendInsightCard}>
-                <p className={styles.insightLabel}>Worth noticing</p>
+                <p className={styles.insightLabel}>Something to notice</p>
                 <p className={styles.insightText}>{latestEntry.report.presentation.observedBullets[0]}</p>
               </article>
               {!isArchive ? (
                 <article className={styles.trendInsightCard}>
-                  <p className={styles.insightLabel}>Recent trend</p>
+                <p className={styles.insightLabel}>Compared with your recent scans</p>
                   <p className={styles.insightText}>{latestEntry.report.presentation.longitudinalMessage}</p>
                 </article>
               ) : null}
@@ -218,8 +218,8 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
               <article className={styles.chartCard}>
                 <div className={styles.chartHeader}>
                   <div>
-                    <p className={styles.sectionEyebrow}>Since your previous scan</p>
-                    <h2 className={styles.chartTitle}>What changed most.</h2>
+                    <p className={styles.sectionEyebrow}>What Changed</p>
+                    <h2 className={styles.chartTitle}>Compared with your recent scans</h2>
                   </div>
                 </div>
                 <div className={styles.trendInsightGrid}>
@@ -236,16 +236,16 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
             <section className={styles.historySection}>
               <div className={styles.historyHeader}>
                 <div>
-                  <p className={styles.sectionEyebrow}>{isArchive ? "Pattern History" : "Recent reflections"}</p>
-                  <h2 className={styles.historyTitle}>{isArchive ? "Your reflection history." : "Your latest scans."}</h2>
+                  <p className={styles.sectionEyebrow}>{isArchive ? "Your History" : "Recent Reflections"}</p>
+                  <h2 className={styles.historyTitle}>{isArchive ? "Your Resonance Timeline" : "Your latest scans"}</h2>
                 </div>
-                {!isArchive ? <Link href="/history" className={styles.secondaryButton}>View Scan History</Link> : null}
+                {!isArchive ? <Link href="/history" className={styles.secondaryButton}>View My History</Link> : null}
               </div>
               <div className={styles.historyList}>
                 {displayedHistoryEntries.map((entry) => (
                   <article key={entry.scan.id ?? entry.scan.created_at} className={styles.historyCard}>
                     <div className={styles.historyMain}>
-                      <h3 className={styles.historyBand}>{entry.report.primaryPattern.name}</h3>
+                      <h3 className={styles.historyBand}>{entry.report.canonicalPattern.canonicalDisplayName}</h3>
                       <p className={styles.historyTheme}>{entry.conciseSummary}</p>
                       <div className={styles.historyDate}>{formatScanTime(entry.scan.created_at)}</div>
                     </div>
@@ -259,7 +259,13 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
           </>
         ) : null}
 
-        {!loading && !error && !latestEntry ? <div className={styles.stateCard}>No scans saved yet. Start a scan to create your first Resonance Signature.</div> : null}
+        {!loading && !error && !latestEntry ? (
+          <div className={styles.stateCard}>
+            <h2>Your story begins with one scan.</h2>
+            <p>After your first Resonance Scan, your Signature and Reflection will appear here.</p>
+            <Link href="/scan" className={styles.primaryButton}>Begin My First Scan</Link>
+          </div>
+        ) : null}
       </main>
     </div>
   );

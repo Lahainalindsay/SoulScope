@@ -24,11 +24,11 @@ export default function ChallengeScreen({
   return (
     <div className="challenge-grid">
       <div>
-        <h4>Prompt script</h4>
+        <h4>Reflection prompt</h4>
         <ul>
-          <li>Invite a gentle emotional challenge (no trauma dump).</li>
-          <li>Guide: “Think of where you feel unsafe or unsupported.”</li>
-          <li>After 60s, whisper: “Say silently: I am safe to feel this.”</li>
+          <li>Bring one recent moment to mind.</li>
+          <li>Choose something meaningful but manageable.</li>
+          <li>Let your attention return to the room before continuing.</li>
         </ul>
         <div className="timeline">
           {timeline.map((step) => (
@@ -40,7 +40,7 @@ export default function ChallengeScreen({
         </div>
       </div>
       <TimerBlock
-        label="Challenge window"
+        label="Reflection window"
         phaseId="challenge"
         phase={phase}
         duration={duration}
@@ -50,4 +50,3 @@ export default function ChallengeScreen({
     </div>
   );
 }
-

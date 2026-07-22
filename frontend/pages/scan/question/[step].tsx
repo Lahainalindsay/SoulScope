@@ -25,9 +25,9 @@ function signalClass(dbfs: number) {
 }
 
 function signalText(dbfs: number) {
-  if (dbfs < -58) return "Speak a little louder";
-  if (dbfs > -6) return "Clipping risk";
-  return "Good signal";
+  if (dbfs < -58) return "Move closer or find quiet";
+  if (dbfs > -6) return "Speak a little softer";
+  return "Ready";
 }
 
 export default function GuidedScanQuestionPage() {
@@ -151,13 +151,13 @@ export default function GuidedScanQuestionPage() {
   if (!question) return null;
 
   const orbScale = 1 + Math.max(0.02, (liveSample?.rms ?? 0.08) * 0.18);
-  const stepLabel = `Question ${step} of ${GUIDED_SCAN_QUESTIONS.length}`;
+  const stepLabel = `${question.rangeLabel} · Prompt ${step} of ${GUIDED_SCAN_QUESTIONS.length}`;
   const progressPercent = Math.round((step / GUIDED_SCAN_QUESTIONS.length) * 100);
 
   return (
     <>
       <Head>
-        <title>{question.title} | SoulScope Scan</title>
+        <title>Resonance Scan | SoulScope</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -167,8 +167,8 @@ export default function GuidedScanQuestionPage() {
           <div className={styles.header}>
             <div>
               <p className={styles.eyebrow}>{stepLabel}</p>
-              <h1 className={styles.title}>Answer naturally.</h1>
-              <p className={styles.subtitle}>Read the prompt first, then keep your face comfortably in view while you respond.</p>
+              <h1 className={styles.title}>Speak naturally. There is no perfect answer.</h1>
+              <p className={styles.subtitle}>Pause if you need to. Answer in the way that feels most natural.</p>
             </div>
             <div className={`${styles.statusPill} ${signalClass(liveSample?.dbfs ?? -120)}`}>{signalText(liveSample?.dbfs ?? -120)}</div>
           </div>
@@ -184,7 +184,7 @@ export default function GuidedScanQuestionPage() {
                   <p className={styles.promptText}>{question.prompt}</p>
 
                   <div className={styles.scanStatusRow}>
-                    <div className={styles.liveBadge}><span className={isRecording ? styles.liveDot : styles.idleDot} />{isRecording ? "Recording" : isSaving ? "Saving response" : hasCompletedRecording ? "Response captured" : "Get ready"}</div>
+                    <div className={styles.liveBadge}><span className={isRecording ? styles.liveDot : styles.idleDot} />{isRecording ? "Recording" : isSaving ? "Saving response" : hasCompletedRecording ? "Response captured" : "Ready"}</div>
                     <div className={styles.timeBadge}>{elapsedSeconds}s</div>
                   </div>
 
@@ -192,8 +192,8 @@ export default function GuidedScanQuestionPage() {
                     <div className={styles.cameraPanel}>
                       <div className={styles.cameraHeader}>
                         <div>
-                          <p className={styles.sectionLabel}>Visual Signal</p>
-                          <p className={styles.cameraNote}>Keep your face comfortably in view while responding naturally.</p>
+                          <p className={styles.sectionLabel}>Camera — optional</p>
+                          <p className={styles.cameraNote}>When enabled, SoulScope may observe broad changes in facial movement during the scan.</p>
                         </div>
                       </div>
                       <FaceReader active={router.isReady} tracking={isRecording} calibrating={isCalibrating} onMetricsChange={setCameraMetrics} onSummaryChange={handleCameraSummaryChange} onCalibrationComplete={handleCalibrationComplete} />
@@ -214,7 +214,7 @@ export default function GuidedScanQuestionPage() {
                       ? "Saving your response before moving on."
                       : isAutoStarting
                         ? step === 1
-                          ? "Hold steady. Camera baseline and recording start in 3 seconds."
+                          ? "Take a moment to settle. Recording starts in a few seconds."
                           : "Get ready. Recording starts automatically."
                         : isRecording
                           ? question.captureKind === "sustained_vowel"
@@ -222,7 +222,7 @@ export default function GuidedScanQuestionPage() {
                             : `Speak naturally for ${Math.max(1, Math.round(recordingDurationMs / 1000))} seconds.`
                           : hasCompletedRecording
                             ? "Response captured. Loading the next prompt."
-                            : "Preparing your microphone."}
+                            : "Preparing your scan."}
                   </p>
 
                   {error ? <p className={styles.errorText}>{error}</p> : null}

@@ -80,7 +80,7 @@ export const RESONANCE_SYSTEMS: ResonanceSystem[] = [
     load: "Competing Priorities",
     underexpressed: "Unclear Direction",
     feltSense: "You may be sorting what you feel from what you think you should express.",
-    rebalancing: "Journal the difference between what is true, what is urgent, and what can wait.",
+    rebalancing: "Write down the difference between what feels true, what feels urgent, and what can wait.",
   },
   {
     note: "G",

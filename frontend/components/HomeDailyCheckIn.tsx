@@ -22,7 +22,7 @@ export default function HomeDailyCheckIn({ linkedScanId = null }: HomeDailyCheck
       setEmotions(today?.emotions ?? []);
       setNote(today?.note ?? "");
     }).catch(() => undefined);
-  }, [session?.user?.id]);
+  }, [session?.user]);
 
   const toggle = (emotion: CheckInEmotion) => {
     setStatus("");
@@ -47,13 +47,13 @@ export default function HomeDailyCheckIn({ linkedScanId = null }: HomeDailyCheck
   return (
     <section className={styles.card} aria-labelledby="daily-check-in-title">
       <div className={styles.header}>
-        <div><p className={styles.eyebrow}>Quick Daily Check-In</p><h2 id="daily-check-in-title">How are you arriving today?</h2></div>
+        <div><p className={styles.eyebrow}>Personal Check-In</p><h2 id="daily-check-in-title">Add context to this moment.</h2></div>
         <span>{emotions.length}/3 selected</span>
       </div>
       <div className={styles.chips}>
         {CHECK_IN_EMOTIONS.map((emotion) => <button key={emotion} type="button" aria-pressed={emotions.includes(emotion)} onClick={() => toggle(emotion)}>{emotion}</button>)}
       </div>
-      <textarea value={note} maxLength={2000} onChange={(event) => setNote(event.target.value)} placeholder="Optional note for today" aria-label="Optional journal note" />
+      <textarea value={note} maxLength={2000} onChange={(event) => setNote(event.target.value)} placeholder="Optional note about what was happening around this moment" aria-label="Optional check-in note" />
       <div className={styles.footer}><p aria-live="polite">{status}</p><button type="button" onClick={save}>Save Check-In</button></div>
     </section>
   );

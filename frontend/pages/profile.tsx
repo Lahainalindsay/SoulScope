@@ -47,7 +47,7 @@ export default function ProfilePage() {
         setLoading(false);
       }
     })();
-  }, [session?.user?.id]);
+  }, [session?.user]);
 
   const latest = scans[0] ?? null;
   const signatureData = useMemo(() => buildSignatureData(latest), [latest]);
@@ -71,13 +71,13 @@ export default function ProfilePage() {
         <div className={styles.shell}>
           <header className={styles.hero}>
             <div>
-              <p className={styles.eyebrow}>Welcome back</p>
-              <h1 className={styles.title}>{displayName || "Your personal SoulScope"}</h1>
-              <p className={styles.lead}>Your current Resonance Signature, baseline, and account essentials in one calm space.</p>
+              <p className={styles.eyebrow}>My SoulScope</p>
+              <h1 className={styles.title}>{displayName ? `Welcome back, ${displayName}.` : "Welcome back."}</h1>
+              <p className={styles.lead}>Your latest Reflection and the patterns taking shape over time.</p>
             </div>
             <div className={styles.actions}>
-              <Link href="/scan" className={styles.primary}>{latest ? "Start New Scan" : "Start Scan"}</Link>
-              <Link href="/dashboard" className={styles.secondary}>Today</Link>
+              <Link href="/scan" className={styles.primary}>{latest ? "Start New Scan" : "Begin My First Scan"}</Link>
+              <Link href="/history" className={styles.secondary}>View My History</Link>
             </div>
           </header>
 
@@ -87,30 +87,32 @@ export default function ProfilePage() {
           {!loading ? (
             <section className={styles.section}>
               <div className={styles.sectionHeader}>
-                <p className={styles.eyebrow}>Current Resonance Signature</p>
-                <h2 className={styles.sectionTitle}>{latest ? latest.patternName : "Your first signature begins with a scan."}</h2>
+                <p className={styles.eyebrow}>Latest Resonance Signature</p>
+                <h2 className={styles.sectionTitle}>{latest ? latest.patternName : "Your story begins with one scan."}</h2>
               </div>
               {latest ? (
                 <div className={styles.resonance}>
-                  <div className={styles.mapWrap}><ResonanceSignature data={signatureData} label="Your current Resonance Signature" /></div>
+                  <div className={styles.mapWrap}><ResonanceSignature data={signatureData} label="Latest Resonance Signature" /></div>
                   <div className={styles.reflection}>
                     <p className={styles.meta}>{formatDate(latest.createdAt)}</p>
-                    <h3>{latest.patternName}</h3>
                     <p>{latest.conciseSummary}</p>
-                    <div><p className={styles.meta}>Current baseline</p><p>{latest.report?.baselineComparison?.overallSummary ?? "Your baseline will become clearer as more scans are completed."}</p></div>
-                    <div><p className={styles.meta}>Member since</p><p>{session?.user?.created_at ? formatDate(session.user.created_at) : "—"}</p></div>
+                    <div><p className={styles.meta}>What changed</p><p>{latest.report?.baselineComparison?.overallSummary ?? "Your personal pattern will become clearer as you complete more scans."}</p></div>
+                    <div className={styles.actions}>
+                      <Link href={`/results/${latest.scanId}`} className={styles.secondary}>View Full Reflection</Link>
+                      <Link href="/dashboard#daily-check-in" className={styles.secondary}>Add Context</Link>
+                    </div>
                   </div>
                 </div>
-              ) : <div className={styles.empty}><p>Your first Resonance Signature will appear here after a scan.</p><Link href="/scan" className={styles.primary}>Start Scan</Link></div>}
+              ) : <div className={styles.empty}><p>After your first Resonance Scan, your Signature and Reflection will appear here.</p><Link href="/scan" className={styles.primary}>Begin My First Scan</Link></div>}
             </section>
           ) : null}
 
           <section className={styles.section}>
-            <div className={styles.sectionHeader}><p className={styles.eyebrow}>Your Space</p><h2 className={styles.sectionTitle}>Where would you like to go?</h2></div>
+            <div className={styles.sectionHeader}><p className={styles.eyebrow}>Personal Check-In</p><h2 className={styles.sectionTitle}>Add context to this moment.</h2><p className={styles.sectionLead}>Add a few words about what was happening around this moment. Your note remains separate from the measured scan and can help you understand the pattern later.</p></div>
             <div className={styles.notes}>
-              <Link href="/history" className={styles.noteCard}><h3>View Scan History →</h3><p>See previous signatures and pattern movement over time.</p></Link>
-              <Link href="/dashboard#daily-check-in" className={styles.noteCard}><h3>Journal →</h3><p>Open today’s check-in and add a private note.</p></Link>
-              <a href="#account-settings" className={styles.noteCard}><h3>Account Settings →</h3><p>Update how SoulScope addresses you and review account details.</p></a>
+              <Link href="/dashboard#daily-check-in" className={styles.noteCard}><h3>Add a Check-In</h3><p>Add private context for what was happening around this moment.</p></Link>
+              <Link href="/history" className={styles.noteCard}><h3>View My History</h3><p>See previous Signatures and pattern movement over time.</p></Link>
+              <a href="#account-settings" className={styles.noteCard}><h3>Account Settings</h3><p>Update how SoulScope addresses you and review account details.</p></a>
             </div>
           </section>
 

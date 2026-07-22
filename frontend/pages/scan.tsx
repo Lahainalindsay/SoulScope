@@ -47,7 +47,7 @@ export default function ScanIntroPage() {
   const [subjects, setSubjects] = useState<ScanSubjectRow[]>([]);
   const [selectedSubjectKey, setSelectedSubjectKey] = useState<string>("guest");
   const [subjectName, setSubjectName] = useState("");
-  const [subjectStatus, setSubjectStatus] = useState("Loading saved subjects...");
+  const [subjectStatus, setSubjectStatus] = useState("Opening your scan...");
   const [isCreatingSubject, setIsCreatingSubject] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
 
@@ -71,7 +71,7 @@ export default function ScanIntroPage() {
         setIsSignedIn(false);
         setSubjects([]);
         setSelectedSubjectKey("guest");
-        setSubjectStatus("Sign in to save named subjects. Guest scans will not shape Pattern History.");
+        setSubjectStatus("Sign in to save named subjects. Guest scans will not shape your Resonance Timeline.");
         return;
       }
 
@@ -97,7 +97,7 @@ export default function ScanIntroPage() {
       setSubjectStatus(
         rows.length
           ? "Choose the person being scanned so history only compares the same confirmed subject."
-          : "Add a named subject to unlock subject-specific Pattern History after future scans."
+          : "Add a named subject to build a subject-specific Resonance Timeline after future scans."
       );
     };
 
@@ -125,7 +125,7 @@ export default function ScanIntroPage() {
     try {
       const userResponse = await supabase.auth.getUser();
       if (userResponse.error || !userResponse.data.user) {
-        setSubjectStatus("Sign in before adding a saved subject. You can still continue as a guest scan.");
+        setSubjectStatus("Sign in before adding a saved subject. You can still continue with a guest scan.");
         return;
       }
 
@@ -164,7 +164,7 @@ export default function ScanIntroPage() {
   return (
     <>
       <Head>
-        <title>Start Scan | SoulScope</title>
+        <title>Resonance Scan | SoulScope</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -178,25 +178,25 @@ export default function ScanIntroPage() {
 
             <div className={styles.heroPanel}>
               <p className={styles.eyebrow}>Resonance Scan</p>
-              <h1 className={styles.title}>Before you begin your Resonance Scan.</h1>
-              <p className={styles.lead}>Find a quiet place. Face the camera and speak naturally.</p>
+              <h1 className={styles.title}>Let&apos;s create a quiet moment.</h1>
+              <p className={styles.lead}>The scan takes about one minute. Find a comfortable position, reduce background noise if possible, and speak in your natural voice.</p>
 
               <div className={styles.instructionsCard}>
-                <p className={styles.instructionsTitle}>For best results</p>
+                <p className={styles.instructionsTitle}>What to expect</p>
                 <div className={styles.protocolBody}>
-                  <p className={styles.protocolLine}>You will be guided through five short prompts, with up to 10 seconds to answer each one.</p>
-                  <p className={styles.protocolLine}>Do your best to give a spoken response to every prompt. Even “I don’t know” or “I don’t have an answer” gives SoulScope more usable vocal information than silence.</p>
-                  <p className={styles.protocolLine}>Your words are not being judged. SoulScope listens to how your voice and expression respond during the scan.</p>
+                  <p className={styles.protocolLine}>You will be guided through seven short prompts, with up to 10 seconds to answer each spoken prompt.</p>
+                  <p className={styles.protocolLine}>Pause when you need to. There are no right answers.</p>
+                  <p className={styles.protocolLine}>Your words provide context. Your voice provides the signal.</p>
                 </div>
               </div>
 
               <div className={styles.instructionsCard}>
-                <p className={styles.instructionsTitle}>Microphone and camera privacy</p>
+                <p className={styles.instructionsTitle}>Privacy and permission</p>
                 <div className={styles.protocolBody}>
-                  <p className={styles.protocolLine}>Microphone access is required to complete the scan.</p>
-                  <p className={styles.protocolLine}>For the most complete result, allow camera access as well. Camera input adds facial timing and movement context to the voice measurements.</p>
+                  <p className={styles.protocolLine}>Microphone access is needed to record your responses.</p>
+                  <p className={styles.protocolLine}>Camera access is optional where supported. When enabled, SoulScope may observe broad changes in facial movement during the scan.</p>
                   <p className={styles.protocolLine}>Your browser controls these permissions. You can cancel before recording begins or change access later in your device or browser settings.</p>
-                  <p className={styles.protocolLine}>Saved scan data can be deleted from Settings. The repository does not show advertising use, sale of information, or model-training use.</p>
+                  <p className={styles.protocolLine}>Saved scan records contain derived measurements, your Resonance Signature, Reflection, and history. Saved scan records can be deleted from Settings.</p>
                 </div>
               </div>
 
@@ -275,7 +275,7 @@ export default function ScanIntroPage() {
                   disabled={!introReady || !selectedSubject}
                   onClick={startScan}
                 >
-                  Start a Resonance Scan
+                  I&apos;m Ready
                 </button>
               </div>
             </div>

@@ -25,14 +25,14 @@ export default function CoreFrequencyCard({ status, onSimulate }: Props) {
       <div className="frequency-card__header">
         <div>
           <p className="hero__eyebrow">Core Signal</p>
-          <p className="frequency-card__value">Pattern Insight</p>
+          <p className="frequency-card__value">Current Pattern</p>
         </div>
         <span className={statusClasses[status]}>{statusCopy[status]}</span>
       </div>
 
       <p className="frequency-card__copy">
-        Observing tendencies across mental clarity, physical load, recovery, and behavioral momentum.
-        When the insight is ready, SoulScope surfaces practical guidance for the current state of your system.
+        Observing patterns in timing, steadiness, rhythm, energy, and expression.
+        When the Reflection is ready, SoulScope offers something meaningful to notice.
       </p>
 
       <div className="frequency-card__controls">
@@ -41,7 +41,7 @@ export default function CoreFrequencyCard({ status, onSimulate }: Props) {
           onClick={onSimulate}
           disabled={status === "loading"}
         >
-          {status === "loading" ? "Reading patterns..." : "Simulate insight"}
+          {status === "loading" ? "Organizing patterns..." : "Create Reflection"}
         </button>
         <div className="frequency-card__signal">
           {signalPills.map((pill) => (

@@ -463,7 +463,7 @@ export const SOULSCOPE_NOTE_SYSTEM: SoulScopeNoteProfile[] = [
     note: "B",
     opposite: "F",
     adjacentNotes: ["A#", "C"],
-    color: "#34d399",
+    color: "#34c6b3",
     activatingOrCalming: "calming",
     emotionBalanced: "Healthy release, completion, and letting go.",
     emotionUnderactive: "May correlate with holding on, unresolved residue, blocked completion, and feeling emotionally isolated or unloved.",

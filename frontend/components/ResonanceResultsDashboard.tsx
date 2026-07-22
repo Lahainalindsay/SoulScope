@@ -54,96 +54,33 @@ export default function ResonanceResultsDashboard({
 
   return (
     <section className={styles.section}>
-      <section className={styles.patternCopy}>
-        <h1 className={styles.patternName}>{canonical.canonicalDisplayName}</h1>
-        <p className={styles.patternTheme}>{canonical.summary}</p>
-      </section>
-
-      <section className={styles.notesSection} aria-labelledby="beta-reflection-heading">
-        <div className={styles.notesHeader}>
-          <p className={styles.eyebrow}>Prelaunch reflection test</p>
-          <h2 id="beta-reflection-heading">Help us make SoulScope as clear and useful as possible.</h2>
-          <p>SoulScope is testing three different ways of interpreting and presenting your result. Choose the response that describes your pattern most accurately.</p>
-        </div>
-
-        <div className={styles.topNotesGrid}>
-          {orderedCandidates.map((candidate) => {
-            const isSelected = candidate.style === selectedStoryStyle;
-            return (
-              <article key={candidate.style} className={styles.noteCard}>
-                <div className={styles.noteTop}>
-                  <p className={styles.noteStatus}>{candidate.style}</p>
-                  <button
-                    type="button"
-                    className={styles.selectButton}
-                    onClick={() => onSelectStory?.(candidate.style)}
-                    aria-pressed={isSelected}
-                  >
-                    {isSelected ? "My preferred response" : "Choose this response"}
-                  </button>
-                </div>
-                <h3>{candidate.title}</h3>
-                <p>{candidate.summary}</p>
-              </article>
-            );
-          })}
-        </div>
-
-        {selectedStoryStyle ? (
-          <div className={styles.technicalGrid}>
-            <fieldset className={styles.noteCard}>
-              <legend>How accurate is the response you selected?</legend>
-              {ACCURACY_OPTIONS.map((option) => (
-                <label key={option}>
-                  <input type="radio" name="accuracy" value={option} checked={accuracy === option} onChange={() => setAccuracy(option)} /> {option}
-                </label>
-              ))}
-            </fieldset>
-
-            <fieldset className={styles.noteCard}>
-              <legend>How does the response length feel?</legend>
-              {LENGTH_OPTIONS.map((option) => (
-                <label key={option}>
-                  <input type="radio" name="length" value={option} checked={lengthPreference === option} onChange={() => setLengthPreference(option)} /> {option}
-                </label>
-              ))}
-            </fieldset>
-
-            {orderedCandidates.filter((candidate) => candidate.style !== selectedStoryStyle).map((candidate) => (
-              <fieldset key={candidate.style} className={styles.noteCard}>
-                <legend>Why didn’t you prefer the {candidate.style} response?</legend>
-                <p className={styles.noteStatus}>Select as many as apply.</p>
-                {REJECTION_REASONS.map((reason) => (
-                  <label key={reason}>
-                    <input
-                      type="checkbox"
-                      checked={(rejectionReasons[candidate.style] ?? []).includes(reason)}
-                      onChange={() => toggleReason(candidate.style, reason)}
-                    /> {reason}
-                  </label>
-                ))}
-              </fieldset>
-            ))}
-          </div>
-        ) : null}
-      </section>
-
       <section className={styles.signatureHero} aria-label="Your Resonance Signature">
+        <div className={styles.signatureCopy}>
+          <p className={styles.eyebrow}>Your Resonance Signature</p>
+          <h1 className={styles.signatureTitle}>This is how this moment took shape.</h1>
+          <p>Created from the patterns present across this scan.</p>
+        </div>
         <div className={styles.signatureFrame}>
           <ResonanceSignature
             data={atlas.signature.data}
             visualState={atlas.signature.visualState}
-            label={`Resonance Signature for ${canonical.canonicalDisplayName}`}
+            label={`Visual Resonance Signature representing the pattern relationships in this scan: ${canonical.canonicalDisplayName}`}
           />
         </div>
       </section>
 
-      <p className={styles.reflection}>{report.presentation.summary}</p>
+      <section className={styles.reflectionPanel}>
+        <p className={styles.eyebrow}>Your Reflection</p>
+        <h2 className={styles.patternName}>{canonical.canonicalDisplayName}</h2>
+        <p className={styles.reflection}>{report.presentation.summary}</p>
+        <p className={styles.patternTheme}>{canonical.summary}</p>
+      </section>
 
       <HumanReflectionOverview report={report} />
 
       <details className={styles.technicalDetails}>
-        <summary>Supporting signals and technical details</summary>
+        <summary>See the supporting signals</summary>
+        <p className={styles.detailIntro}>These are the observations that contributed to your Reflection.</p>
         <div className={styles.technicalGrid}>
           <article>
             <h3>Atlas evidence</h3>
@@ -168,6 +105,78 @@ export default function ResonanceResultsDashboard({
             <h3>Domain signals</h3>
             <ul>{report.domainResults.map((domain) => <li key={domain.title}>{domain.title}: {domain.functionalState}</li>)}</ul>
           </article>
+        </div>
+      </details>
+
+      <details className={styles.technicalDetails}>
+        <summary>Help refine this Reflection</summary>
+        <div className={styles.notesSection} aria-labelledby="beta-reflection-heading">
+          <div className={styles.notesHeader}>
+            <p className={styles.eyebrow}>Reflection feedback</p>
+            <h2 id="beta-reflection-heading">Help us make SoulScope clearer.</h2>
+            <p>Choose the response style that feels most useful for this Reflection.</p>
+          </div>
+
+          <div className={styles.topNotesGrid}>
+            {orderedCandidates.map((candidate) => {
+              const isSelected = candidate.style === selectedStoryStyle;
+              return (
+                <article key={candidate.style} className={styles.noteCard}>
+                  <div className={styles.noteTop}>
+                    <p className={styles.noteStatus}>{candidate.style}</p>
+                    <button
+                      type="button"
+                      className={styles.selectButton}
+                      onClick={() => onSelectStory?.(candidate.style)}
+                      aria-pressed={isSelected}
+                    >
+                      {isSelected ? "Selected" : "Choose this response"}
+                    </button>
+                  </div>
+                  <h3>{candidate.title}</h3>
+                  <p>{candidate.summary}</p>
+                </article>
+              );
+            })}
+          </div>
+
+          {selectedStoryStyle ? (
+            <div className={styles.technicalGrid}>
+              <fieldset className={styles.noteCard}>
+                <legend>How accurate is the response you selected?</legend>
+                {ACCURACY_OPTIONS.map((option) => (
+                  <label key={option}>
+                    <input type="radio" name="accuracy" value={option} checked={accuracy === option} onChange={() => setAccuracy(option)} /> {option}
+                  </label>
+                ))}
+              </fieldset>
+
+              <fieldset className={styles.noteCard}>
+                <legend>How does the response length feel?</legend>
+                {LENGTH_OPTIONS.map((option) => (
+                  <label key={option}>
+                    <input type="radio" name="length" value={option} checked={lengthPreference === option} onChange={() => setLengthPreference(option)} /> {option}
+                  </label>
+                ))}
+              </fieldset>
+
+              {orderedCandidates.filter((candidate) => candidate.style !== selectedStoryStyle).map((candidate) => (
+                <fieldset key={candidate.style} className={styles.noteCard}>
+                  <legend>Why didn&apos;t you prefer the {candidate.style} response?</legend>
+                  <p className={styles.noteStatus}>Select as many as apply.</p>
+                  {REJECTION_REASONS.map((reason) => (
+                    <label key={reason}>
+                      <input
+                        type="checkbox"
+                        checked={(rejectionReasons[candidate.style] ?? []).includes(reason)}
+                        onChange={() => toggleReason(candidate.style, reason)}
+                      /> {reason}
+                    </label>
+                  ))}
+                </fieldset>
+              ))}
+            </div>
+          ) : null}
         </div>
       </details>
     </section>

@@ -74,7 +74,7 @@ export default function ScanAnalyzingPage() {
   const router = useRouter();
   const startedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  const [progressMessage, setProgressMessage] = useState("Listening for usable signal");
+  const [progressMessage, setProgressMessage] = useState("Organizing patterns across your responses");
   const [completeness, setCompleteness] = useState<ScanCompleteness | null>(null);
 
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function ScanAnalyzingPage() {
       }
 
       try {
-        setProgressMessage("Listening for usable signal");
+        setProgressMessage("Organizing patterns across your responses");
         const settled = await Promise.allSettled(
           answers.map((answer) =>
             withTimeout(
@@ -135,7 +135,7 @@ export default function ScanAnalyzingPage() {
           return;
         }
 
-        setProgressMessage("Organizing the patterns");
+        setProgressMessage("Comparing rhythm, timing, steadiness, and expression");
         const merged = validAnalyses.length === 1 ? validAnalyses[0] : mergeVoiceAnalyses(validAnalyses);
         if (!merged) {
           setError(hardRetryMessage().body);
@@ -206,7 +206,7 @@ export default function ScanAnalyzingPage() {
         const parsed = existing ? (JSON.parse(existing) as SavedScanResult[]) : [];
         window.localStorage.setItem(LOCAL_SCAN_LIST_KEY, JSON.stringify([result, ...parsed.filter((scan) => scan.id !== scanId)].slice(0, 10)));
 
-        setProgressMessage("Preparing your reflection");
+        setProgressMessage("Preparing your Reflection");
         const authResponse = await withTimeout(supabase.auth.getUser(), CLOUD_REQUEST_TIMEOUT_MS, "Supabase auth");
         const userData = authResponse.data;
         if (authResponse.error || !userData?.user) {
@@ -249,13 +249,13 @@ export default function ScanAnalyzingPage() {
   }, [router]);
 
   const failed = Boolean(error);
-  const heading = failed ? hardRetryMessage().heading : "Reading your current pattern...";
+  const heading = failed ? hardRetryMessage().heading : "Creating your Resonance Signature.";
   const lead = failed ? error : progressMessage;
 
   return (
     <>
       <Head>
-        <title>Preparing Your Insight | SoulScope</title>
+        <title>Creating Your Resonance Signature | SoulScope</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <div className={styles.page}>
@@ -263,7 +263,7 @@ export default function ScanAnalyzingPage() {
         <main className={styles.shell}>
           <section className={styles.panel}>
             <article className={styles.heroCard}>
-              <p className={styles.eyebrow}>{failed ? "Clearer Sample Needed" : "Preparing Insight"}</p>
+              <p className={styles.eyebrow}>{failed ? "Clearer Sample Needed" : "Resonance Scan"}</p>
               <h1 className={styles.title}>{heading}</h1>
               <p className={styles.lead}>{lead}</p>
               {!failed ? <div className={styles.mapVisual}><span /><span /><span /></div> : null}
@@ -273,9 +273,10 @@ export default function ScanAnalyzingPage() {
                 </div>
               ) : (
                 <ul className={styles.statusList}>
-                  <li>Listening for usable signal</li>
-                  <li>Organizing the patterns</li>
-                  <li>Preparing your reflection</li>
+                  <li>Organizing patterns across your responses</li>
+                  <li>Comparing rhythm, timing, steadiness, and expression</li>
+                  <li>Preparing your Reflection</li>
+                  <li>Shaping this scan into a visual signature</li>
                 </ul>
               )}
               {completeness?.status === "partial" ? <p className={styles.lead}>{completeness.userMessage}</p> : null}

@@ -36,7 +36,7 @@ export default function LoginPage() {
       }
 
       clearLocalDevSession();
-      setStatus("Signed in. Opening today.");
+      setStatus("Signed in. Opening your SoulScope.");
       await router.push(DEFAULT_AUTH_HOME);
     } catch (error) {
       console.error("Login request failed", error);
@@ -51,8 +51,8 @@ export default function LoginPage() {
     <main className={styles.page}>
       <section className={styles.card}>
         <p className={styles.brand}>SoulScope</p>
-        <h1 className={styles.title}>Sign in</h1>
-        <p className={styles.lead}>Return to your private pattern space.</p>
+        <h1 className={styles.title}>Your inner world, kept private.</h1>
+        <p className={styles.lead}>Sign in to revisit your Reflections and see how your patterns change over time.</p>
 
         <form className={styles.form} onSubmit={handleLogin}>
           <label className={styles.field}>
@@ -66,12 +66,12 @@ export default function LoginPage() {
           {status ? <p className={styles.message}>{status}</p> : null}
           {error ? <p className={styles.error}>{error}</p> : null}
           <button type="submit" disabled={isSubmitting} className={styles.button}>
-            {isSubmitting ? "Signing in..." : "Open Today"}
+            {isSubmitting ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
         <p className={styles.secondary}>
-          New to SoulScope? <Link href="/auth/signup" className={styles.link}>Create an account</Link>
+          New to SoulScope? <Link href="/auth/signup" className={styles.link}>Create your private SoulScope</Link>
         </p>
       </section>
     </main>

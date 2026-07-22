@@ -75,7 +75,7 @@ export default function ResultDetailPage() {
       } catch (fetchError) {
         if (cancelled || sequence !== requestSequence.current) return;
         console.error("Failed to load V2 scan result", fetchError);
-        setError(fetchError instanceof Error ? fetchError.message : "Could not load this insight.");
+        setError(fetchError instanceof Error ? fetchError.message : "Could not load this Reflection.");
         setViewModel(null);
       } finally {
         if (!cancelled && sequence === requestSequence.current) setLoading(false);
@@ -183,9 +183,12 @@ export default function ResultDetailPage() {
               selectedSummaryStyle={selectedStory?.style ?? null}
             />
             <section className={styles.footerNote}>
-              <p>SoulScope uses voice as the first sensing lens and translates observed tendencies into a private current-state pattern insight.</p>
+              <p>SoulScope organizes observed patterns into a private Resonance Signature and Reflection for this moment.</p>
               <p>{scan.caution}</p>
-              <div className={styles.footerAction}><Link href="/scan" className={styles.primaryButton}>Start New Scan</Link></div>
+              <div className={styles.footerAction}>
+                <Link href="/history" className={styles.primaryButton}>View My History</Link>
+                <Link href="/scan" className={styles.secondaryButton}>Start New Scan</Link>
+              </div>
             </section>
           </>
         ) : null}

@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabaseClient";
 import { clearLocalDevSession, setLocalDevSession } from "../../lib/localSession";
 import { normalizeProfileName, upsertOwnProfileName } from "../../lib/data/v2/profileRepository";
+import styles from "../Auth.module.css";
 
 const DEFAULT_SIGNUP_HOME = "/profile";
 
@@ -63,17 +64,54 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black to-violet-950 flex items-center justify-center text-white px-4">
-      <form className="bg-zinc-900 p-8 rounded-xl shadow-xl w-full max-w-md" onSubmit={handleSignup}>
-        <h2 className="text-2xl font-bold mb-2 text-yellow-300">Create your account</h2>
-        <p className="text-sm text-zinc-300 mb-6">{destination === "/scan" ? "Create your account to begin your Resonance Scan." : "What should SoulScope call you?"}</p>
-        <input type="text" placeholder="Preferred name" aria-label="Preferred name" maxLength={50} className="w-full px-4 py-2 mb-4 bg-black border border-zinc-700 rounded" value={preferredName} onChange={(event) => setPreferredName(event.target.value)} required />
-        <input type="email" placeholder="Email" className="w-full px-4 py-2 mb-4 bg-black border border-zinc-700 rounded" value={email} onChange={(event) => setEmail(event.target.value)} required />
-        <input type="password" placeholder="Password" className="w-full px-4 py-2 mb-6 bg-black border border-zinc-700 rounded" value={password} onChange={(event) => setPassword(event.target.value)} required />
-        {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
-        <button type="submit" className="w-full bg-yellow-300 text-black py-2 rounded font-semibold shadow">Create Account</button>
-        <p className="mt-4 text-sm text-center">Already have an account?{" "}<Link href={loginHref} className="text-yellow-300 underline">Log in</Link></p>
-      </form>
-    </div>
+    <main className={styles.page}>
+      <section className={styles.card}>
+        <p className={styles.brand}>SoulScope</p>
+        <h1 className={styles.title}>Create your private SoulScope.</h1>
+        <p className={styles.lead}>
+          Your account keeps your Resonance Signatures, Reflections, and history connected over time.
+        </p>
+
+        <form className={styles.form} onSubmit={handleSignup}>
+          <label className={styles.field}>
+            <span className={styles.label}>Preferred name</span>
+            <input
+              type="text"
+              className={styles.input}
+              value={preferredName}
+              maxLength={50}
+              onChange={(event) => setPreferredName(event.target.value)}
+              required
+            />
+          </label>
+          <label className={styles.field}>
+            <span className={styles.label}>Email</span>
+            <input
+              type="email"
+              className={styles.input}
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+          </label>
+          <label className={styles.field}>
+            <span className={styles.label}>Password</span>
+            <input
+              type="password"
+              className={styles.input}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+          </label>
+          {error ? <p className={styles.error}>{error}</p> : null}
+          <button type="submit" className={styles.button}>Create Account</button>
+        </form>
+
+        <p className={styles.secondary}>
+          Already have an account? <Link href={loginHref} className={styles.link}>Sign In</Link>
+        </p>
+      </section>
+    </main>
   );
 }

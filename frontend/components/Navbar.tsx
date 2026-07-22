@@ -8,12 +8,19 @@ import { supabase } from "../lib/supabaseClient";
 import { clearLocalDevSession, getLocalDevSession } from "../lib/localSession";
 import styles from "./Navbar.module.css";
 
-const BASE_NAV_ITEMS = [
-  { href: "/dashboard", label: "Today" },
-  { href: "/history", label: "Pattern History" },
-  { href: "/settings", label: "Settings" },
+const PUBLIC_NAV_ITEMS = [
   { href: "/how-it-works", label: "How It Works" },
+  { href: "/#privacy", label: "Privacy" },
 ];
+
+const PRIVATE_NAV_ITEMS = [
+  { href: "/dashboard", label: "Home" },
+  { href: "/scan", label: "Scan" },
+  { href: "/history", label: "History" },
+  { href: "/profile", label: "Profile" },
+];
+
+const START_SCAN_LOGIN = { pathname: "/auth/login", query: { next: "/scan" } };
 
 export default function Navbar() {
   const user = useUser();
@@ -67,22 +74,24 @@ export default function Navbar() {
   };
 
   const isActive = (href: string) => {
+    if (href.includes("#")) return router.asPath === href;
     if (href === "/dashboard") return router.pathname === "/dashboard";
     if (href === "/history") return router.pathname === "/history";
+    if (href === "/profile") return router.pathname === "/profile";
     if (href === "/settings") return router.pathname === "/settings";
     return router.pathname === href || router.pathname.startsWith(`${href}/`);
   };
 
-  const scanLabel = email ? "Start New Scan" : "Start Scan";
-  const desktopItems = [BASE_NAV_ITEMS[0], { href: "/scan", label: scanLabel }, ...BASE_NAV_ITEMS.slice(1)];
-  const mobileItems = [...desktopItems, { href: "/profile", label: "Profile" }];
+  const scanLabel = email ? "Start New Scan" : "Begin Scan";
+  const desktopItems = email ? PRIVATE_NAV_ITEMS : PUBLIC_NAV_ITEMS;
+  const mobileItems = email ? [...PRIVATE_NAV_ITEMS, { href: "/settings", label: "Settings" }] : PUBLIC_NAV_ITEMS;
 
   return (
     <nav className={styles.nav} aria-label="Main navigation">
       <div className={styles.inner}>
         <Link href="/" className={styles.brand} aria-label="SoulScope home">
           <div className={styles.mark} aria-hidden="true">S</div>
-          <p className={styles.brandTitle}>SoulScope™</p>
+          <p className={styles.brandTitle}>SOULSCOPE</p>
         </Link>
 
         <div className={styles.links}>
@@ -94,11 +103,17 @@ export default function Navbar() {
         </div>
 
         <div className={styles.actions}>
-          {email ? <div className={styles.email}>{email}</div> : null}
           {email ? (
-            <button onClick={handleSignOut} className={styles.button}>Sign out</button>
+            <>
+              <Link href="/scan" className={styles.buttonPrimary}>{scanLabel}</Link>
+              <Link href="/settings" className={styles.button}>Settings</Link>
+              <button onClick={handleSignOut} className={styles.button}>Sign Out</button>
+            </>
           ) : (
-            <Link href="/auth/login" className={styles.button}>Sign in</Link>
+            <>
+              <Link href="/auth/login" className={styles.button}>Sign In</Link>
+              <Link href={START_SCAN_LOGIN} className={styles.buttonPrimary}>Begin Scan</Link>
+            </>
           )}
         </div>
 
@@ -133,7 +148,10 @@ export default function Navbar() {
               {email ? (
                 <button type="button" onClick={handleSignOut} className={styles.mobileSignOut}>Sign Out</button>
               ) : (
-                <Link href="/auth/login" className={styles.mobileLink}>Sign In</Link>
+                <>
+                  <Link href="/auth/login" className={styles.mobileLink}>Sign In</Link>
+                  <Link href={START_SCAN_LOGIN} className={styles.mobilePrimary}>Begin Scan</Link>
+                </>
               )}
             </div>
           </div>

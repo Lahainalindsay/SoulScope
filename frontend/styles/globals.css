@@ -155,7 +155,7 @@ select {
   width: 52px;
   height: 52px;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(248, 239, 255, 0.16), transparent 70%);
+  background: radial-gradient(circle, rgba(89, 225, 230, 0.14), transparent 70%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -165,7 +165,7 @@ select {
   width: 40px;
   height: 40px;
   border-radius: 999px;
-  border: 1px solid rgba(232, 211, 140, 0.7);
+  border: 1px solid rgba(89, 225, 230, 0.36);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -175,8 +175,8 @@ select {
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: radial-gradient(circle, #f4c2c2, #7a5ccb);
-  box-shadow: 0 0 18px rgba(244, 194, 194, 0.8);
+  background: var(--gradient-signature);
+  box-shadow: 0 0 18px rgba(89, 225, 230, 0.32);
 }
 
 .ss-brand-title {
@@ -233,18 +233,14 @@ select {
 .ss-progress-bar {
   height: 6px;
   border-radius: 999px;
-  background: rgba(82, 68, 122, 0.7);
+  background: rgba(8, 19, 33, 0.86);
   overflow: hidden;
 }
 
 .ss-progress-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    rgba(244, 194, 194, 0.3),
-    rgba(244, 194, 194, 0.9)
-  );
+  background: var(--gradient-signature);
   transition: width 0.25s ease-out;
 }
 
@@ -364,7 +360,7 @@ select {
   appearance: none;
   height: 6px;
   border-radius: 999px;
-  background: rgba(82, 68, 122, 0.7);
+  background: rgba(8, 19, 33, 0.86);
   outline: none;
 }
 
@@ -373,12 +369,8 @@ select {
   width: 16px;
   height: 16px;
   border-radius: 999px;
-  background: linear-gradient(
-    135deg,
-    rgba(244, 194, 194, 0.95),
-    rgba(232, 211, 140, 0.95)
-  );
-  box-shadow: 0 0 0 4px rgba(244, 194, 194, 0.25);
+  background: var(--gradient-signature);
+  box-shadow: 0 0 0 4px rgba(89, 225, 230, 0.16);
   cursor: pointer;
 }
 
@@ -386,12 +378,8 @@ select {
   width: 16px;
   height: 16px;
   border-radius: 999px;
-  background: linear-gradient(
-    135deg,
-    rgba(244, 194, 194, 0.95),
-    rgba(232, 211, 140, 0.95)
-  );
-  box-shadow: 0 0 0 4px rgba(244, 194, 194, 0.25);
+  background: var(--gradient-signature);
+  box-shadow: 0 0 0 4px rgba(89, 225, 230, 0.16);
   cursor: pointer;
 }
 
@@ -410,8 +398,8 @@ select {
 
 .ss-choice-chip {
   border-radius: 999px;
-  border: 1px solid rgba(167, 160, 199, 0.55);
-  background: rgba(12, 10, 15, 0.6);
+  border: 1px solid rgba(129, 192, 220, 0.22);
+  background: rgba(8, 19, 33, 0.62);
   padding: 8px 12px;
   font-size: 0.88rem;
   color: var(--ss-text-soft);
@@ -425,19 +413,15 @@ select {
 }
 
 .ss-choice-chip:hover {
-  background: rgba(167, 160, 199, 0.14);
-  border-color: rgba(244, 194, 194, 0.75);
+  background: rgba(89, 225, 230, 0.08);
+  border-color: rgba(89, 225, 230, 0.3);
   color: var(--ss-text-main);
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6);
 }
 
 .ss-choice-chip-active {
-  background: linear-gradient(
-    135deg,
-    rgba(244, 194, 194, 0.18),
-    rgba(232, 211, 140, 0.24)
-  );
-  border-color: rgba(244, 194, 194, 0.9);
+  background: linear-gradient(135deg, rgba(89, 225, 230, 0.12), rgba(79, 168, 232, 0.08));
+  border-color: rgba(89, 225, 230, 0.56);
   color: var(--ss-text-main);
 }
 
@@ -490,12 +474,8 @@ select {
 .ss-result-pill {
   border-radius: 18px;
   padding: 10px 12px;
-  background: linear-gradient(
-    120deg,
-    rgba(244, 194, 194, 0.18),
-    rgba(232, 211, 140, 0.12)
-  );
-  border: 1px solid rgba(244, 194, 194, 0.45);
+  background: linear-gradient(120deg, rgba(89, 225, 230, 0.1), rgba(79, 168, 232, 0.07));
+  border: 1px solid rgba(129, 192, 220, 0.18);
   display: flex;
   flex-direction: column;
   gap: 2px;
