@@ -12,7 +12,8 @@ import {
   resetGuidedScanSession,
   type GuidedScanSubject,
 } from "../../lib/guidedScanSession";
-import { analyzeVoiceSpectrum, mergeVoiceAnalyses, type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
+import { mergeVoiceAnalyses, type VoiceAnalysisResult } from "../../lib/voiceSpectrum";
+import { createDefaultVoiceAnalysisProvider, type ConsentRecord } from "../../lib/voiceAnalysisProvider";
 import { buildSoulScopeReport } from "../../lib/buildSoulScopeReport";
 import { persistCanonicalReport } from "../../lib/reportPersistence";
 import { buildScanCompleteness, isUsableAnalysis, type ScanCompleteness, type ScanWithCompleteness } from "../../lib/partialScan";
@@ -96,13 +97,22 @@ export default function ScanAnalyzingPage() {
 
       try {
         setProgressMessage("Organizing patterns across your responses");
+        const provider = createDefaultVoiceAnalysisProvider();
+        const consent: ConsentRecord = {
+          consentId: `${scanSubject.subjectId ?? "unconfirmed"}:${scanStartedAt ?? Date.now()}:voice-analysis-consent`,
+          obtainedFromDataSubject: true,
+          obtainedAt: scanStartedAt ?? new Date().toISOString(),
+          method: "scan_preparation",
+        };
         const settled = await Promise.allSettled(
-          answers.map((answer) =>
+          answers.map((answer, index) =>
             withTimeout(
-              analyzeVoiceSpectrum(answer.blob, {
+              provider.analyzeFile({
+                blob: answer.blob,
                 captureKind: GUIDED_SCAN_QUESTIONS.find((question) => question.id === answer.questionId)?.captureKind,
                 captureDurationMs: answer.durationMs,
-              }),
+                captureId: `${answer.questionId}:voice:${index + 1}`,
+              }, consent).then((providerResult) => providerResult.result),
               ANALYSIS_REQUEST_TIMEOUT_MS,
               `Voice analysis for ${answer.questionId}`,
             ),

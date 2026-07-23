@@ -49,25 +49,27 @@ function fingerprint(id: PatternMatch["id"], pipeline: ObservationPipelineResult
   const reducedEnergy = signal(pipeline, "vocal_energy", "reduced");
   const reducedStability = signal(pipeline, "vocal_stability", "reduced");
   const reducedVariability = signal(pipeline, "expressive_variability", "reduced");
-  const concentratedBalance = signal(pipeline, "note_balance", "elevated");
-  const broadDistribution = signal(pipeline, "resonance_distribution", "elevated");
+  const elevatedVariability = signal(pipeline, "expressive_variability", "elevated");
+  const elevatedDynamics = signal(pipeline, "speech_dynamics", "elevated");
+  const organizedSpectrum = signal(pipeline, "spectral_organization", "elevated");
+  const harmonicClarity = signal(pipeline, "harmonic_clarity", "elevated");
   const stableSignals = pipeline.evidenceSignals.filter((item) => item.direction === "stable").length / Math.max(pipeline.evidenceSignals.length, 1);
   const loads = pipeline.domains.filter((item) => item.state === "working_hard" || item.state === "asking_for_support").length / Math.max(pipeline.domains.length, 1);
   const spread = clamp(domainSpread(pipeline));
 
   switch (id) {
     case "overextended-achiever":
-      return clamp(recoveryLoad * 0.28 + mentalLoad * 0.2 + elevatedActivation * 0.16 + energyResource * 0.13 + adaptabilityResource * 0.1 + elevatedPauses * 0.08 + spread * 0.05);
+      return clamp(recoveryLoad * 0.24 + mentalLoad * 0.17 + elevatedActivation * 0.17 + elevatedDynamics * 0.12 + elevatedVariability * 0.1 + energyResource * 0.08 + adaptabilityResource * 0.07 + spread * 0.05);
     case "deep-processor":
-      return clamp(mentalLoad * 0.3 + elevatedPauses * 0.25 + reducedConsistency * 0.14 + reducedDynamics * 0.12 + concentratedBalance * 0.08 + expressionLoad * 0.07 + reducedEnergy * 0.04);
+      return clamp(mentalLoad * 0.31 + elevatedPauses * 0.28 + reducedConsistency * 0.15 + reducedDynamics * 0.14 + expressionLoad * 0.08 + reducedEnergy * 0.04);
     case "guarded-but-responsive":
-      return clamp(expressionLoad * 0.27 + reducedVariability * 0.23 + reducedStability * 0.16 + concentratedBalance * 0.12 + elevatedActivation * 0.1 + regulationLoad * 0.08 + reducedDynamics * 0.04);
+      return clamp(expressionLoad * 0.28 + reducedVariability * 0.25 + reducedStability * 0.18 + reducedDynamics * 0.13 + elevatedActivation * 0.08 + regulationLoad * 0.08);
     case "recovering-adapter":
-      return clamp(recoveryResource * 0.28 + regulationResource * 0.24 + adaptabilityResource * 0.2 + energyResource * 0.12 + broadDistribution * 0.08 + (1 - loads) * 0.08);
+      return clamp(recoveryResource * 0.26 + regulationResource * 0.22 + adaptabilityResource * 0.18 + energyResource * 0.11 + harmonicClarity * 0.09 + organizedSpectrum * 0.06 + (1 - loads) * 0.08);
     case "quietly-overloaded":
-      return clamp(loads * 0.3 + (1 - spread) * 0.2 + recoveryLoad * 0.15 + regulationLoad * 0.12 + reducedEnergy * 0.1 + reducedConsistency * 0.08 + concentratedBalance * 0.05);
+      return clamp(loads * 0.18 + (1 - spread) * 0.1 + recoveryLoad * 0.17 + regulationLoad * 0.12 + reducedEnergy * 0.17 + reducedConsistency * 0.12 + elevatedPauses * 0.14);
     case "balanced-regulator":
-      return clamp(regulationResource * 0.25 + recoveryResource * 0.23 + energyResource * 0.15 + adaptabilityResource * 0.15 + stableSignals * 0.14 + broadDistribution * 0.08);
+      return clamp(regulationResource * 0.24 + recoveryResource * 0.22 + energyResource * 0.14 + adaptabilityResource * 0.14 + stableSignals * 0.12 + harmonicClarity * 0.08 + organizedSpectrum * 0.06);
   }
 }
 

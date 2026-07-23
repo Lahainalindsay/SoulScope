@@ -85,13 +85,21 @@ export function buildRawFeatures(
   push("voice.formant_stability", dynamics?.formantStability);
   push("voice.formant_dynamics", dynamics?.formantDynamics);
   push("voice.clipping_ratio", dynamics?.clippingFrameRatio);
-  push("voice.resonance_score", scan.resonanceScore);
-  push("voice.core_frequency", scan.coreFrequencyHz, "Hz");
+  push("voice.resonance_score", scan.resonanceScore, undefined, {
+    evidenceUse: "visualization_only",
+    claimsBoundary: "Aggregate resonance scoring is retained for SoulScope visual rendering and is not used as evidence for health, emotion, or personality conclusions.",
+  });
+  push("voice.core_frequency", scan.coreFrequencyHz, "Hz", {
+    evidenceUse: "visualization_only",
+    claimsBoundary: "Core frequency is retained for note/cymatic visualization and is not used as evidence for health, emotion, or personality conclusions.",
+  });
 
   for (const note of scan.noteEnergies ?? []) {
     push(`voice.note_energy.${note.note.toLowerCase().replace("#", "_sharp")}`, note.relativeEnergy, undefined, {
       score: note.score,
       status: note.status,
+      evidenceUse: "visualization_only",
+      claimsBoundary: "Note-energy features are experiential visualization inputs only and cannot contribute to observation evidence.",
     });
   }
 

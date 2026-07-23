@@ -150,6 +150,37 @@ export type VoiceAnalysisResult = {
   chakraScores?: Record<string, number>;
   dominant?: string;
   voiceDynamics?: VoiceDynamics;
+  provider?: {
+    namespace: "soulscope" | "vendor";
+    providerId: string;
+    engineVersion: string;
+    consentId?: string;
+    rawResponseStored: boolean;
+    claimsBoundary: string;
+  };
+  analysisLedger?: {
+    records: Array<{
+      recordType:
+        | "analysis_session"
+        | "capture"
+        | "audio_quality"
+        | "speaker_baseline"
+        | "feature_definition"
+        | "segment_feature"
+        | "evidence_signal"
+        | "decision_ledger"
+        | "provider_raw_response";
+      namespace: "soulscope" | "vendor";
+      id: string;
+      timeRangeMs?: [number, number];
+      inputFeatureIds?: string[];
+      formulaVersion?: string;
+      confidence?: number;
+      qualityGate?: string;
+      modality?: "audio" | "transcript" | "camera" | "history" | "visualization";
+      alternatives?: string[];
+    }>;
+  };
   captureKind?: "sustained_vowel" | "guided_speech";
   captureDurationMs?: number;
   analysisDebug?: {

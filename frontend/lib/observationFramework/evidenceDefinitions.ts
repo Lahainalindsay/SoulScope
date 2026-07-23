@@ -38,38 +38,22 @@ function weighted(values: Array<WeightedValue | undefined>, minimum = 2) {
   };
 }
 
-function noteFeatures(features: Map<string, RawFeatureMeasurement>) {
-  return Array.from(features.values()).filter((feature) => feature.featureId.startsWith("voice.note_energy."));
-}
-
-function normalizedEntropy(values: number[]) {
-  const positive = values.map((value) => Math.max(0, value));
-  const total = positive.reduce((sum, value) => sum + value, 0);
-  if (total <= 0 || positive.length < 2) return 0;
-  const entropy = positive.reduce((sum, value) => {
-    const probability = value / total;
-    return probability > 0 ? sum - probability * Math.log(probability) : sum;
-  }, 0);
-  return clamp(entropy / Math.log(positive.length));
-}
-
 export const EVIDENCE_DEFINITIONS: EvidenceDefinition[] = [
   {
     id: "vocal_activation",
     label: "Vocal activation",
     version: EVIDENCE_RULE_VERSION,
     requiredFeatures: [],
-    optionalFeatures: ["voice.f0.median", "voice.spectral_centroid", "voice.active_frame_ratio", "voice.speech_rate_proxy", "voice.resonance_score"],
+    optionalFeatures: ["voice.f0.median", "voice.spectral_centroid", "voice.active_frame_ratio", "voice.speech_rate_proxy"],
     minimumCaptureQuality: "limited",
     validityLevel: "emerging",
-    developerDescription: "Describes relative vocal activation from pitch, spectral brightness, active output, pacing, and resonance measures.",
+    developerDescription: "Describes relative vocal activation from pitch, spectral brightness, active output, and pacing measures.",
     calculate(features) {
       const result = weighted([
         normalized(features, "voice.f0.median", (value) => (value - 80) / 240, 0.16),
         normalized(features, "voice.spectral_centroid", (value) => value / 2600, 0.2),
         normalized(features, "voice.active_frame_ratio", (value) => value, 0.25),
         normalized(features, "voice.speech_rate_proxy", (value) => value / 180, 0.2),
-        normalized(features, "voice.resonance_score", (value) => value, 0.19),
       ], 3);
       if (!result) return null;
       return { direction: directionFrom(result.score), strength: result.strength, contributingFeatureIds: result.ids };
@@ -165,16 +149,15 @@ export const EVIDENCE_DEFINITIONS: EvidenceDefinition[] = [
     label: "Vocal energy",
     version: EVIDENCE_RULE_VERSION,
     requiredFeatures: [],
-    optionalFeatures: ["voice.active_frame_ratio", "voice.voiced_frame_ratio", "voice.voiced_duration", "voice.resonance_score", "voice.speech_rate_proxy"],
+    optionalFeatures: ["voice.active_frame_ratio", "voice.voiced_frame_ratio", "voice.voiced_duration", "voice.speech_rate_proxy"],
     minimumCaptureQuality: "limited",
     validityLevel: "emerging",
-    developerDescription: "Describes available vocal output using active proportion, voiced proportion, duration, resonance, and pacing.",
+    developerDescription: "Describes available vocal output using active proportion, voiced proportion, duration, and pacing.",
     calculate(features) {
       const result = weighted([
         normalized(features, "voice.active_frame_ratio", (value) => value, 0.26),
         normalized(features, "voice.voiced_frame_ratio", (value) => value, 0.25),
         normalized(features, "voice.voiced_duration", (value) => value / 45000, 0.16),
-        normalized(features, "voice.resonance_score", (value) => value, 0.21),
         normalized(features, "voice.speech_rate_proxy", (value) => value / 180, 0.12),
       ], 3);
       if (!result) return null;
@@ -243,56 +226,6 @@ export const EVIDENCE_DEFINITIONS: EvidenceDefinition[] = [
       ], 3);
       if (!result) return null;
       return { direction: directionFrom(result.score), strength: result.strength, contributingFeatureIds: result.ids };
-    },
-  },
-  {
-    id: "note_balance",
-    label: "Signal balance",
-    version: EVIDENCE_RULE_VERSION,
-    requiredFeatures: [],
-    optionalFeatures: [],
-    minimumCaptureQuality: "limited",
-    validityLevel: "exploratory",
-    developerDescription: "Describes concentration versus distribution across the existing note-energy representation.",
-    calculate(features) {
-      const notes = noteFeatures(features);
-      if (notes.length < 4) return null;
-      const sorted = notes.map((item) => item.value).sort((a, b) => b - a);
-      const concentration = (sorted[0] ?? 0) + (sorted[1] ?? 0);
-      const entropy = normalizedEntropy(notes.map((item) => item.value));
-      const concentrationScore = clamp((concentration - 0.2) / 0.35);
-      const score = clamp(concentrationScore * 0.65 + (1 - entropy) * 0.35);
-      const direction = directionFrom(score, 0.36, 0.64);
-      return {
-        direction,
-        strength: clamp(Math.abs(score - 0.5) * 2),
-        contributingFeatureIds: notes.map((item) => item.featureId),
-        notes: [direction === "elevated" ? "Energy is more concentrated across the existing note representation." : direction === "reduced" ? "Energy is more broadly distributed across the existing note representation." : "Energy is moderately distributed across the existing note representation."],
-      };
-    },
-  },
-  {
-    id: "resonance_distribution",
-    label: "Resonance distribution",
-    version: EVIDENCE_RULE_VERSION,
-    requiredFeatures: ["voice.resonance_score"],
-    optionalFeatures: [],
-    minimumCaptureQuality: "limited",
-    validityLevel: "exploratory",
-    developerDescription: "Describes how broadly the existing note-energy representation is distributed while retaining the aggregate resonance score.",
-    calculate(features) {
-      const notes = noteFeatures(features);
-      const resonance = featureValue(features, "voice.resonance_score");
-      if (notes.length < 4 || resonance === undefined) return null;
-      const entropy = normalizedEntropy(notes.map((item) => item.value));
-      const spread = Math.max(...notes.map((item) => item.value)) - Math.min(...notes.map((item) => item.value));
-      const score = clamp(entropy * 0.55 + clamp(resonance) * 0.25 + (1 - clamp(spread / 0.2)) * 0.2);
-      return {
-        direction: directionFrom(score),
-        strength: clamp(Math.abs(score - 0.5) * 2),
-        contributingFeatureIds: ["voice.resonance_score", ...notes.map((item) => item.featureId)],
-        notes: [score >= 0.6 ? "The current resonance distribution is broad and comparatively even." : score <= 0.4 ? "The current resonance distribution is narrower and more concentrated." : "The current resonance distribution is moderately spread."],
-      };
     },
   },
 ];

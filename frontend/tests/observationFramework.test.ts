@@ -78,7 +78,7 @@ test("raw adapter emits only present features with units and versions", () => {
   const features = buildRawFeatures(scan({ spectralCentroidHz: Number.NaN }), { scanId: "scan-1" });
   assert.ok(features.some((feature) => feature.featureId === "voice.f0.median" && feature.unit === "Hz"));
   assert.ok(!features.some((feature) => feature.featureId === "voice.spectral_centroid"));
-  assert.ok(features.every((feature) => feature.extractionVersion === "1.0.0"));
+  assert.ok(features.every((feature) => feature.extractionVersion === "1.1.0"));
 });
 
 test("evidence remains signal language and preserves traceability", () => {
@@ -87,6 +87,20 @@ test("evidence remains signal language and preserves traceability", () => {
   assert.ok(result.evidenceSignals.every((signal) => signal.sourceCaptureIds.length > 0));
   const labels = result.evidenceSignals.map((signal) => signal.label.toLowerCase()).join(" ");
   assert.doesNotMatch(labels, /anxiety|depression|trauma|disease|personality|biomarker/);
+});
+
+test("note and cymatic visualization features never contribute evidence", () => {
+  const result = buildObservationPipeline(scan(), { scanId: "scan-1", captureIds: ["capture-1"] });
+  const visualizationFeatures = result.rawFeatures
+    .filter((feature) => feature.metadata?.evidenceUse === "visualization_only")
+    .map((feature) => feature.featureId);
+  const contributing = result.evidenceSignals.flatMap((signal) => signal.contributingFeatureIds);
+
+  assert.ok(visualizationFeatures.some((featureId) => featureId.startsWith("voice.note_energy.")));
+  assert.ok(visualizationFeatures.includes("voice.resonance_score"));
+  assert.ok(visualizationFeatures.includes("voice.core_frequency"));
+  assert.ok(visualizationFeatures.every((featureId) => !contributing.includes(featureId)));
+  assert.ok(!result.evidenceSignals.some((signal) => /note|chakra|resonance distribution|signal balance/i.test(`${signal.evidenceId} ${signal.label}`)));
 });
 
 test("poor capture prevents high confidence", () => {
@@ -138,5 +152,5 @@ test("canonical report preserves patterns and three summary choices", () => {
   assert.ok(report.primaryPattern.name);
   assert.equal(report.storyCandidates.length, 3);
   assert.deepEqual(report.storyCandidates.map((candidate) => candidate.style).sort(), ["Direct", "Insight", "Supportive"]);
-  assert.ok(report.observationPipeline?.engineVersion === "1.0.0");
+  assert.ok(report.observationPipeline?.engineVersion === "1.1.0");
 });

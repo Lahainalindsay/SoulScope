@@ -12,8 +12,9 @@ function confidence(featureCount: number, expectedCount: number, quality: Captur
 }
 
 export function buildEvidenceSignals(rawFeatures: RawFeatureMeasurement[]): EvidenceSignal[] {
-  const byId = new Map(rawFeatures.map((feature) => [feature.featureId, feature]));
-  const quality = rawFeatures.reduce<CaptureQuality>((lowest, feature) => QUALITY_RANK[feature.quality] < QUALITY_RANK[lowest] ? feature.quality : lowest, "high");
+  const evidenceFeatures = rawFeatures.filter((feature) => feature.metadata?.evidenceUse !== "visualization_only");
+  const byId = new Map(evidenceFeatures.map((feature) => [feature.featureId, feature]));
+  const quality = evidenceFeatures.reduce<CaptureQuality>((lowest, feature) => QUALITY_RANK[feature.quality] < QUALITY_RANK[lowest] ? feature.quality : lowest, "high");
 
   return EVIDENCE_DEFINITIONS.flatMap((definition) => {
     if (QUALITY_RANK[quality] < QUALITY_RANK[definition.minimumCaptureQuality]) return [];

@@ -108,7 +108,7 @@ test("raw feature mapping preserves versions and finite values", () => {
   const rows = mapRawFeatures(context());
   assert.ok(rows.length > 10);
   assert.ok(rows.every((row) => Number.isFinite(row.value)));
-  assert.ok(rows.every((row) => row.extraction_version === "1.0.0"));
+  assert.ok(rows.every((row) => row.extraction_version === "1.1.0"));
 });
 
 test("evidence, observation, and domain mappings preserve traceability", () => {
