@@ -102,6 +102,9 @@ export interface ScanInterpretationDiagnosticRow {
   canonical_family?: string | null;
   primary_family?: string | null;
   secondary_family?: string | null;
+  organizing_quality?: string | null;
+  result_type?: string | null;
+  naming_matrix_version?: string | null;
   confidence: number | null;
   confidence_margin?: number | null;
   state_vector: JsonObject | null;
@@ -111,6 +114,7 @@ export interface ScanInterpretationDiagnosticRow {
   baseline: JsonObject | null;
   interpretation_limits: JsonValue;
   reflection_source?: JsonObject | null;
+  subpattern_scores?: JsonValue;
   engine_version: string | null;
   created_at: string;
   updated_at: string;

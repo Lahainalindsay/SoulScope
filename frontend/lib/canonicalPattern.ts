@@ -4,6 +4,14 @@ import type { PatternMatch } from "./resonancePatterns";
 import type { DynamicPatternResult, EvidenceEntry, PatternFamily, StateVector } from "./patternInterpretation";
 import type { AtlasInput, AtlasResult, AtlasSubpatternId } from "./patternAtlas";
 import type { ScanCompleteness } from "./partialScan";
+import {
+  CANONICAL_NAMING_MATRIX_VERSION,
+  fallbackDisplayName,
+  familyDisplayName,
+  resolveNamingMatrixEntry,
+  type CanonicalContent,
+  type OrganizingQuality,
+} from "./canonicalNamingMatrix";
 
 export const CANONICAL_PATTERN_ENGINE_VERSION = "canonical-pattern-v1";
 
@@ -38,6 +46,9 @@ export type CanonicalDecisionLedger = {
     secondaryFamily: PatternFamily | null;
     confidence: number;
     confidenceMargin: number;
+    organizingQuality: OrganizingQuality;
+    namingMatrixVersion: string;
+    nameSource: "naming-matrix" | "limited-evidence" | "fallback";
   };
   thresholds: {
     clearWinMargin: number;
@@ -69,6 +80,9 @@ export type CanonicalPatternResult = {
   dimensions: DynamicPatternResult["dimensions"];
   confidence: number;
   confidenceMargin: number;
+  organizingQuality: OrganizingQuality;
+  resultType: CanonicalSelectionMode;
+  namingMatrixVersion: string;
   evidenceLedger: DynamicPatternResult["evidenceLedger"];
   dimensionLedger: DynamicPatternResult["dimensions"];
   decisionLedger: CanonicalDecisionLedger;
@@ -113,130 +127,6 @@ const FAMILY_ORDER: PatternFamily[] = [
   "adaptive",
 ];
 
-const SINGLE_NAMES: Record<PatternFamily, string> = {
-  overextended: "The Overextended Steward",
-  activated: "The Coherent Accelerator",
-  protective: "The Contained Communicator",
-  adaptive: "The Adaptive Builder",
-  recovering: "The Emerging Restorer",
-  grounded: "The Grounded Navigator",
-  expressive: "The Open Integrator",
-  purposeful: "The Focused Creator",
-  reflective: "The Quiet Processor",
-  reorganizing: "The Reorganizing Explorer",
-};
-
-const COMPOSITE_NAMES: Partial<Record<string, string>> = {
-  "overextended+protective": "The Guarded Steward",
-  "overextended+reflective": "The Quietly Overloaded",
-  "activated+protective": "The Pressurized Defender",
-  "activated+reorganizing": "The Pressurized Reorganizer",
-  "grounded+protective": "The Selective Navigator",
-  "grounded+expressive": "The Steady Supporter",
-  "grounded+adaptive": "The Steady Supporter",
-  "reorganizing+protective": "The Contained Explorer",
-  "recovering+reflective": "The Emerging Restorer",
-  "reflective+protective": "The Reflective Protector",
-};
-
-const CONTENT: Record<string, Pick<CanonicalPatternResult, "summary" | "explanation" | "dailyLife" | "supportLines" | "reflectionQuestion">> = {
-  "The Overextended Steward": {
-    summary: "Your scan suggests capacity and regulation are carrying more demand than they can easily restore right now.",
-    explanation: [
-      "The strongest pattern is not grounded steadiness; it is continued functioning while available recovery appears low.",
-      "This does not define you. It describes a present pattern where effort may be moving ahead of restoration.",
-    ],
-    dailyLife: [
-      "Continuing to handle what matters while privately feeling the cost.",
-      "Finding it easier to keep going than to fully stop.",
-      "Appearing capable while needing more room than others can see.",
-      "Using direction to keep moving even when capacity is asking for care.",
-    ],
-    supportLines: [
-      "A smaller demand surface.",
-      "Recovery that is protected rather than postponed.",
-      "Permission to receive support before reaching depletion.",
-    ],
-    reflectionQuestion: "What could become lighter before your system has to ask more loudly?",
-  },
-  "The Guarded Steward": {
-    summary: "You may still be functioning with composure while keeping more of the strain contained than others can see.",
-    explanation: [
-      "The primary signal is overextension, with a protective style shaping how much of that demand becomes visible.",
-      "The reflection should preserve both parts: capacity appears taxed, and expression may be managing exposure carefully.",
-    ],
-    dailyLife: [
-      "Handling what is necessary while keeping the fuller strain private.",
-      "Choosing careful words even when the internal load feels high.",
-      "Showing reliability while needing more room to recover.",
-      "Protecting others from the full weight of what you are carrying.",
-    ],
-    supportLines: [
-      "Reducing the load before it has to become obvious.",
-      "A private place to name what is being carried.",
-      "Support that does not require overexplaining.",
-    ],
-    reflectionQuestion: "What have you been carrying quietly that could be named more plainly?",
-  },
-  "The Quietly Overloaded": {
-    summary: "You may be steadily maintaining while quietly carrying more than your current recovery can comfortably support.",
-    explanation: [
-      "The scan points toward strain distributed beneath a composed surface, rather than a simple grounded state.",
-      "Reflection and effort both appear present, so the useful question is what has been requiring ongoing internal management.",
-    ],
-    dailyLife: [
-      "Getting through the day and only noticing the depletion afterward.",
-      "Feeling mentally busy even during downtime.",
-      "Becoming more selective with conversation or stimulation.",
-      "Managing many small demands that collectively feel heavy.",
-    ],
-    supportLines: [
-      "Fewer simultaneous responsibilities.",
-      "Quiet that actually reduces input.",
-      "Naming the total load instead of minimizing each piece.",
-    ],
-    reflectionQuestion: "What has become so familiar that you have stopped noticing its cost?",
-  },
-  "The Selective Navigator": {
-    summary: "Steadiness appears present, but expression is more selective than fully open.",
-    explanation: [
-      "The grounded signal is meaningful, but the protective component changes the final pattern from plain navigation to selective navigation.",
-      "This suggests presence and direction alongside careful control over what becomes visible or shared.",
-    ],
-    dailyLife: [
-      "Moving with clarity while choosing what belongs in conversation.",
-      "Staying present without making every internal detail available.",
-      "Knowing the next step while protecting private context.",
-      "Offering enough, while holding some expression in reserve.",
-    ],
-    supportLines: [
-      "Trustworthy pacing.",
-      "Boundaries that preserve steadiness.",
-      "Conditions where honesty does not require overexposure.",
-    ],
-    reflectionQuestion: "Where does selectivity feel protective, and where might it be costing connection?",
-  },
-  "The Pressurized Reorganizer": {
-    summary: "Activation appears present while organization is still finding a workable arrangement.",
-    explanation: [
-      "The scan suggests movement and pressure together, rather than settled groundedness.",
-      "The useful signal is not simply intensity; it is how the pattern is reorganizing under that intensity.",
-    ],
-    dailyLife: [
-      "Trying to respond while several parts are still sorting themselves.",
-      "Feeling urgency before the structure is fully clear.",
-      "Revising what you mean as you say it.",
-      "Needing room for the pattern to settle before acting on it.",
-    ],
-    supportLines: [
-      "A pause before commitment.",
-      "Fewer simultaneous inputs.",
-      "A way to capture the next clear step without forcing the whole answer.",
-    ],
-    reflectionQuestion: "What needs to settle before the next step becomes clear?",
-  },
-};
-
 function clamp(value: number, min = 0, max = 1) {
   if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(max, value));
@@ -263,6 +153,33 @@ function atlasFamilyScore(result: AtlasResult, family: PatternFamily) {
 
 function entriesByIds(entries: EvidenceEntry[], ids: string[]) {
   return entries.filter((entry) => ids.includes(entry.id)).map((entry) => entry.id);
+}
+
+function hasMaterialSecondarySupport(candidate: CanonicalFamilyCandidate | undefined, atlasResult: AtlasResult, dynamic: DynamicPatternResult) {
+  if (!candidate || candidate.disqualified || candidate.score < MIN_SECONDARY_SCORE) return false;
+  const supporting = dynamic.evidenceLedger.supporting;
+  if (candidate.family === "protective") {
+    return atlasSubpattern(atlasResult, "protective-expression") >= 0.72 || evidenceValue(supporting, "vocal-facial-divergence") >= 0.45;
+  }
+  if (candidate.family === "purposeful") {
+    return atlasSubpattern(atlasResult, "focused-direction") >= 0.74 && dynamic.stateVector.capacity <= 0.52;
+  }
+  if (candidate.family === "overextended") {
+    return atlasSubpattern(atlasResult, "recovery-gap") >= 0.58 || atlasSubpattern(atlasResult, "quiet-overload") >= 0.58;
+  }
+  if (candidate.family === "reorganizing") {
+    return atlasSubpattern(atlasResult, "reorganizing-capacity") >= 0.65 || evidenceValue(supporting, "activation-with-fragmentation") >= 0.6;
+  }
+  if (candidate.family === "reflective") {
+    return atlasSubpattern(atlasResult, "internal-processing") >= 0.58;
+  }
+  if (candidate.family === "adaptive") {
+    return atlasSubpattern(atlasResult, "adaptive-regulation") >= 0.7;
+  }
+  if (candidate.family === "expressive") {
+    return atlasSubpattern(atlasResult, "emotional-fluidity") >= 0.74;
+  }
+  return false;
 }
 
 function buildCandidate(
@@ -314,7 +231,7 @@ function buildCandidate(
     supportIds.push("vocal-facial-divergence", "slow-recovery");
     if (lowCapture && protectiveExpression < 0.5 && divergence < 0.24) gates.push("Protective expression cannot be inferred from limited capture alone.");
   } else if (family === "activated") {
-    score = vector.activation * 0.32 + highActivation * 0.2 + escalation * 0.18 + fragmentation * 0.12 + (1 - vector.capacity) * 0.1 + atlasContribution;
+    score = vector.activation * 0.32 + highActivation * 0.2 + escalation * 0.18 + fragmentation * 0.12 + coherence * 0.16 + (1 - vector.capacity) * 0.1 + atlasContribution;
     supportIds.push("high-activation", "cross-prompt-escalation");
   } else if (family === "reorganizing") {
     score = (1 - vector.organization) * 0.28 + fragmentation * 0.26 + escalation * 0.12 + atlasSubpattern(atlasResult, "reorganizing-capacity") * 0.2 + atlasContribution;
@@ -355,20 +272,7 @@ function buildCandidate(
   };
 }
 
-function compositeKey(primary: PatternFamily, secondary: PatternFamily | null) {
-  if (!secondary) return primary;
-  return `${primary}+${secondary}`;
-}
-
-function displayName(primary: PatternFamily, secondary: PatternFamily | null, vector: StateVector) {
-  if (primary === "activated" && !secondary && vector.organization < 0.5) return "The Pressurized Reorganizer";
-  const key = compositeKey(primary, secondary);
-  return COMPOSITE_NAMES[key] ?? COMPOSITE_NAMES[`${secondary}+${primary}`] ?? SINGLE_NAMES[primary];
-}
-
-function defaultContent(name: string, primary: PatternFamily, atlasPresentation: PatternPresentation): Pick<CanonicalPatternResult, "summary" | "explanation" | "dailyLife" | "supportLines" | "reflectionQuestion"> {
-  const controlled = CONTENT[name];
-  if (controlled) return controlled;
+function defaultContent(_name: string, _primary: PatternFamily, atlasPresentation: PatternPresentation): CanonicalContent {
   return {
     summary: atlasPresentation.summary,
     explanation: atlasPresentation.explanation,
@@ -398,9 +302,18 @@ export function resolveCanonicalPattern(
     .map((family) => buildCandidate(family, args.dynamicPattern, args.atlasInput, args.atlasResult, args.completeness))
     .sort((left, right) => right.score - left.score || FAMILY_ORDER.indexOf(left.family) - FAMILY_ORDER.indexOf(right.family));
   const top = candidates[0];
-  const second = candidates.find((candidate) => candidate.family !== top.family && !candidate.disqualified) ?? candidates[1];
+  const viableSecondaries = candidates.filter((candidate) => candidate.family !== top.family && !candidate.disqualified);
+  const second = viableSecondaries.find((candidate) =>
+    candidate.score >= MIN_SECONDARY_SCORE &&
+    (round(top.score - candidate.score) <= COMPOSITE_MARGIN || hasMaterialSecondarySupport(candidate, args.atlasResult, args.dynamicPattern)),
+  ) ?? viableSecondaries[0] ?? candidates[1];
   const margin = round(top.score - (second?.score ?? 0));
-  const sufficientSecondary = Boolean(second && second.score >= MIN_SECONDARY_SCORE && margin <= COMPOSITE_MARGIN && !second.disqualified);
+  const sufficientSecondary = Boolean(
+    second &&
+    second.score >= MIN_SECONDARY_SCORE &&
+    !second.disqualified &&
+    (margin <= COMPOSITE_MARGIN || hasMaterialSecondarySupport(second, args.atlasResult, args.dynamicPattern)),
+  );
   const poorEvidence =
     !args.dynamicPattern.evidenceLedger.quality.usable ||
     args.completeness?.status === "failed" ||
@@ -423,8 +336,32 @@ export function resolveCanonicalPattern(
     primaryFamily = "grounded";
     secondaryFamily = "protective";
   }
-  const name = poorEvidence ? "A Limited Reflection" : displayName(primaryFamily, secondaryFamily, args.dynamicPattern.stateVector);
-  const signature = poorEvidence ? "limited:evidence" : buildSignature(primaryFamily, secondaryFamily, args.dynamicPattern);
+  const confidence = round(
+    poorEvidence
+      ? Math.min(args.dynamicPattern.confidence, 0.42)
+      : args.dynamicPattern.confidence * 0.52 + top.score * 0.32 + Math.min(margin, CLEAR_WIN_MARGIN) * 0.9,
+  );
+  const matrixResolution = resolveNamingMatrixEntry({
+    primaryFamily,
+    secondaryFamily,
+    mode,
+    vector: args.dynamicPattern.stateVector,
+    dynamicPattern: args.dynamicPattern,
+    atlasInput: args.atlasInput,
+    atlasResult: args.atlasResult,
+    confidence,
+    margin,
+    secondaryScore: second?.score ?? null,
+    poorEvidence,
+  });
+  const organizingQuality = matrixResolution.organizingQuality;
+  const nameSource = poorEvidence ? "limited-evidence" : matrixResolution.entry ? "naming-matrix" : "fallback";
+  const name = poorEvidence
+    ? "A Limited Reflection"
+    : matrixResolution.entry?.displayName ?? fallbackDisplayName(primaryFamily, secondaryFamily, args.dynamicPattern);
+  const signature = poorEvidence
+    ? "limited:evidence"
+    : matrixResolution.entry?.signature ?? buildSignature(primaryFamily, secondaryFamily, args.dynamicPattern);
   const content = poorEvidence
     ? {
         summary: "This reflection is intentionally broad because the captured signals were not strong enough for a precise pattern name.",
@@ -445,18 +382,13 @@ export function resolveCanonicalPattern(
         ] as [string, string, string],
         reflectionQuestion: "What feels most worth noticing before you scan again?",
       }
-    : defaultContent(name, primaryFamily, atlasPresentation);
-  const confidence = round(
-    poorEvidence
-      ? Math.min(args.dynamicPattern.confidence, 0.42)
-      : args.dynamicPattern.confidence * 0.52 + top.score * 0.32 + Math.min(margin, CLEAR_WIN_MARGIN) * 0.9,
-  );
+    : matrixResolution.entry?.content ?? defaultContent(name, primaryFamily, atlasPresentation);
   const rejected = candidates
     .filter((candidate) => candidate.family !== primaryFamily && candidate.family !== secondaryFamily)
     .slice(0, 6)
     .map((candidate) => ({
       id: `family:${candidate.family}`,
-      name: SINGLE_NAMES[candidate.family],
+      name: familyDisplayName(candidate.family),
       reasons: [
         ...candidate.gates,
         candidate.contradictoryEvidence.length ? `Contradicted by ${candidate.contradictoryEvidence.join(", ")}.` : "",
@@ -467,7 +399,7 @@ export function resolveCanonicalPattern(
   if (grounded && grounded.family !== primaryFamily && grounded.family !== secondaryFamily && !rejected.some((item) => item.id === "family:grounded")) {
     rejected.push({
       id: "family:grounded",
-      name: SINGLE_NAMES.grounded,
+      name: familyDisplayName("grounded"),
       reasons: [
         ...grounded.gates,
         grounded.contradictoryEvidence.length ? `Contradicted by ${grounded.contradictoryEvidence.join(", ")}.` : "",
@@ -489,6 +421,9 @@ export function resolveCanonicalPattern(
     dimensions: args.dynamicPattern.dimensions,
     confidence,
     confidenceMargin: margin,
+    organizingQuality,
+    resultType: mode,
+    namingMatrixVersion: CANONICAL_NAMING_MATRIX_VERSION,
     evidenceLedger: args.dynamicPattern.evidenceLedger,
     dimensionLedger: args.dynamicPattern.dimensions,
     decisionLedger: {
@@ -500,6 +435,9 @@ export function resolveCanonicalPattern(
         secondaryFamily,
         confidence,
         confidenceMargin: margin,
+        organizingQuality,
+        namingMatrixVersion: CANONICAL_NAMING_MATRIX_VERSION,
+        nameSource,
       },
       thresholds: {
         clearWinMargin: CLEAR_WIN_MARGIN,
@@ -530,6 +468,9 @@ export function resolveCanonicalPattern(
         mode === "composite"
           ? `Secondary family ${secondaryFamily} was incorporated because the margin ${margin.toFixed(3)} was within ${COMPOSITE_MARGIN}.`
           : `A single-family result was used because the winning margin ${margin.toFixed(3)} exceeded composite conditions or the secondary candidate was not sufficiently supported.`,
+        matrixResolution.entry
+          ? `Naming matrix entry ${matrixResolution.entry.signature} selected the display name.`
+          : `No approved naming matrix entry matched; ${nameSource} naming was used.`,
       ],
     },
     interpretationLimits: [

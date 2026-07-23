@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ATLAS_PROFILES, type AtlasResult } from "../lib/patternAtlas";
 import { canonicalPatternExpression, canonicalPresentation, resolveCanonicalPattern } from "../lib/canonicalPattern";
+import { CANONICAL_NAMING_MATRIX_VERSION } from "../lib/canonicalNamingMatrix";
 import { hydrateReportFromV2 } from "../lib/data/v2/hydrateReportFromV2";
 import { mapPatternMatches } from "../lib/data/v2/mappers/mapPatternMatches";
 import { mapReflectionVariants } from "../lib/data/v2/mappers/mapReflectionVariants";
+import { analyzePatternDistribution, diagnosticRecordFromCanonical } from "../lib/patternDiagnostics";
+import { createPatternReviewContext } from "../lib/patternReview";
 import type { SoulScopeReport } from "../lib/buildSoulScopeReport";
 import type { DynamicPatternResult, EvidenceEntry, PatternFamily, StateVector } from "../lib/patternInterpretation";
 import type { PatternMatch } from "../lib/resonancePatterns";
@@ -425,4 +428,246 @@ test("composite logic only activates when secondary support and margin qualify",
   assert.equal(result.secondaryFamily, null);
   assert.equal(result.decisionLedger.selected.mode, "single");
   assert.equal(result.canonicalDisplayName, "The Overextended Steward");
+});
+
+test("high activation with coherence resolves to Coherent Accelerator", () => {
+  const activated = dynamic({
+    activation: 0.78,
+    organization: 0.72,
+    regulation: 0.58,
+    expression: 0.62,
+    relationalOrientation: 0.6,
+    direction: 0.62,
+    capacity: 0.5,
+  }, "activated");
+  activated.evidenceLedger.supporting = [
+    entry("high-activation", 0.82),
+    entry("activation-with-coherence", 0.72),
+    entry("cross-prompt-escalation", 0.64),
+  ];
+  const result = resolveCanonicalPattern({
+    dynamicPattern: activated,
+    atlasInput: { "adaptive-momentum": 0.7, "returning-capacity": 0 },
+    atlasResult: {
+      ...atlas("focused-creator", 0.7),
+      subpatterns: [
+        { id: "focused-direction", score: 0.62 },
+        { id: "adaptive-regulation", score: 0.58 },
+        { id: "settled-presence", score: 0.42 },
+        { id: "quiet-overload", score: 0.18 },
+      ],
+    },
+    primaryPattern,
+  }, presentation);
+
+  assert.equal(result.canonicalDisplayName, "The Coherent Accelerator");
+  assert.equal(result.primaryFamily, "activated");
+  assert.equal(result.organizingQuality, "coherent");
+  assert.equal(result.decisionLedger.selected.nameSource, "naming-matrix");
+});
+
+test("high activation with fragmentation resolves to Pressurized Reorganizer", () => {
+  const activated = dynamic({
+    activation: 0.82,
+    organization: 0.35,
+    regulation: 0.42,
+    expression: 0.58,
+    relationalOrientation: 0.52,
+    direction: 0.48,
+    capacity: 0.38,
+  }, "activated");
+  activated.evidenceLedger.supporting = [
+    entry("high-activation", 0.84),
+    entry("activation-with-fragmentation", 0.76),
+    entry("cross-prompt-escalation", 0.72),
+  ];
+  const result = resolveCanonicalPattern({
+    dynamicPattern: activated,
+    atlasInput: { "cognitive-searching": 0.72, "returning-capacity": 0 },
+    atlasResult: {
+      ...atlas("reorganizing-explorer", 0.74),
+      subpatterns: [
+        { id: "reorganizing-capacity", score: 0.8 },
+        { id: "internal-processing", score: 0.62 },
+        { id: "quiet-overload", score: 0.32 },
+        { id: "settled-presence", score: 0.12 },
+      ],
+    },
+    primaryPattern,
+  }, presentation);
+
+  assert.equal(result.canonicalDisplayName, "The Pressurized Reorganizer");
+  assert.equal(result.secondaryFamily, "reorganizing");
+  assert.equal(result.organizingQuality, "fragmented");
+});
+
+test("low capacity with preserved direction resolves to Directed Depletion instead of plain Focused Creator", () => {
+  const directed = dynamic({
+    activation: 0.36,
+    organization: 0.62,
+    regulation: 0.45,
+    expression: 0.5,
+    relationalOrientation: 0.56,
+    direction: 0.78,
+    capacity: 0.38,
+  }, "overextended");
+  directed.evidenceLedger.supporting = [entry("slow-recovery", 0.62), entry("activation-with-coherence", 0.52)];
+  const result = resolveCanonicalPattern({
+    dynamicPattern: directed,
+    atlasInput: { "reduced-recovery": 0.72, "directional-clarity": 0.88, "returning-capacity": 0 },
+    atlasResult: {
+      ...atlas("overextended-steward", 0.74),
+      subpatterns: [
+        { id: "recovery-gap", score: 0.78 },
+        { id: "quiet-overload", score: 0.62 },
+        { id: "focused-direction", score: 0.86 },
+        { id: "settled-presence", score: 0.24 },
+      ],
+    },
+    primaryPattern,
+  }, presentation);
+
+  assert.equal(result.canonicalDisplayName, "The Directed Depletion");
+  assert.equal(result.primaryFamily, "overextended");
+  assert.equal(result.secondaryFamily, "purposeful");
+  assert.notEqual(result.canonicalDisplayName, "The Focused Creator");
+});
+
+test("expressive with low capacity acknowledges strain", () => {
+  const expressive = dynamic({
+    activation: 0.4,
+    organization: 0.66,
+    regulation: 0.55,
+    expression: 0.82,
+    relationalOrientation: 0.75,
+    direction: 0.52,
+    capacity: 0.42,
+  }, "expressive");
+  expressive.evidenceLedger.supporting = [entry("activation-with-coherence", 0.64), entry("high-activation", 0.48)];
+  const result = resolveCanonicalPattern({
+    dynamicPattern: expressive,
+    atlasInput: { "expressive-flexibility": 0.86, "reduced-recovery": 0.62, "returning-capacity": 0 },
+    atlasResult: {
+      ...atlas("open-integrator", 0.76),
+      subpatterns: [
+        { id: "emotional-fluidity", score: 0.84 },
+        { id: "relational-openness", score: 0.74 },
+        { id: "recovery-gap", score: 0.62 },
+        { id: "quiet-overload", score: 0.42 },
+      ],
+    },
+    primaryPattern,
+  }, presentation);
+
+  assert.equal(result.canonicalDisplayName, "The Expressive Strain");
+  assert.equal(result.primaryFamily, "expressive");
+  assert.equal(result.secondaryFamily, "overextended");
+});
+
+test("adaptive under load preserves adaptation and strain", () => {
+  const adaptive = dynamic({
+    activation: 0.3,
+    organization: 0.62,
+    regulation: 0.56,
+    expression: 0.52,
+    relationalOrientation: 0.55,
+    direction: 0.58,
+    capacity: 0.44,
+  }, "adaptive");
+  adaptive.evidenceLedger.supporting = [entry("activation-with-coherence", 0.5), entry("slow-recovery", 0.5)];
+  const result = resolveCanonicalPattern({
+    dynamicPattern: adaptive,
+    atlasInput: { "adaptive-momentum": 0.82, "steady-regulation": 0.62, "reduced-recovery": 0.58, "returning-capacity": 0 },
+    atlasResult: {
+      ...atlas("adaptive-builder", 0.74),
+      supporting: [{ profile: profile("overextended-steward"), score: 0.68 }],
+      subpatterns: [
+        { id: "adaptive-regulation", score: 0.82 },
+        { id: "recovery-gap", score: 0.58 },
+        { id: "quiet-overload", score: 0.5 },
+        { id: "settled-presence", score: 0.4 },
+      ],
+    },
+    primaryPattern,
+  }, presentation);
+
+  assert.equal(result.canonicalDisplayName, "The Adaptive Under Load");
+  assert.equal(result.primaryFamily, "adaptive");
+  assert.equal(result.secondaryFamily, "overextended");
+});
+
+test("naming matrix metadata is persisted and hydration preserves it", () => {
+  const canonical = resolveCanonicalPattern({
+    dynamicPattern: dynamic({ relationalOrientation: 0.28, expression: 0.3, capacity: 0.2, regulation: 0.22 }),
+    atlasInput: { "protective-restraint": 0.92, "reduced-recovery": 0.84, "returning-capacity": 0 },
+    atlasResult: {
+      ...atlas("overextended-steward", 0.8),
+      subpatterns: [
+        { id: "recovery-gap", score: 0.74 },
+        { id: "quiet-overload", score: 0.7 },
+        { id: "protective-expression", score: 0.9 },
+        { id: "settled-presence", score: 0.2 },
+      ],
+    },
+    primaryPattern,
+  }, presentation);
+
+  assert.equal(canonical.namingMatrixVersion, CANONICAL_NAMING_MATRIX_VERSION);
+  assert.equal(canonical.resultType, "composite");
+  assert.equal(canonical.decisionLedger.selected.nameSource, "naming-matrix");
+  assert.equal(canonical.organizingQuality, "strained");
+});
+
+test("distribution diagnostics summarize canonical pattern records", () => {
+  const first = resolveCanonicalPattern({
+    dynamicPattern: dynamic(),
+    atlasInput: { "returning-capacity": 0 },
+    atlasResult: atlas("grounded-navigator", 0.9),
+    primaryPattern,
+  }, presentation);
+  const second = resolveCanonicalPattern({
+    dynamicPattern: dynamic({ relationalOrientation: 0.28, expression: 0.3, capacity: 0.2, regulation: 0.22 }),
+    atlasInput: { "protective-restraint": 0.92, "reduced-recovery": 0.84, "returning-capacity": 0 },
+    atlasResult: {
+      ...atlas("overextended-steward", 0.8),
+      subpatterns: [
+        { id: "recovery-gap", score: 0.74 },
+        { id: "quiet-overload", score: 0.7 },
+        { id: "protective-expression", score: 0.9 },
+        { id: "settled-presence", score: 0.2 },
+      ],
+    },
+    primaryPattern,
+  }, presentation);
+  const diagnostics = analyzePatternDistribution([
+    diagnosticRecordFromCanonical(first, "scan-1", "user-1"),
+    diagnosticRecordFromCanonical(second, "scan-2", "user-1"),
+  ]);
+
+  assert.equal(diagnostics.totalScans, 2);
+  assert.ok(diagnostics.canonicalDisplayNameFrequency.some((bucket) => bucket.id === second.canonicalDisplayName));
+  assert.ok(diagnostics.candidateDiagnostics.every((item) => typeof item.nameSource === "string"));
+});
+
+test("review context captures diagnostic shape without changing classification", () => {
+  const canonical = resolveCanonicalPattern({
+    dynamicPattern: dynamic(),
+    atlasInput: { "returning-capacity": 0 },
+    atlasResult: atlas("grounded-navigator", 0.9),
+    primaryPattern,
+  }, presentation);
+  const report = {
+    canonicalPattern: canonical,
+    atlas: { result: atlas("grounded-navigator", 0.9) },
+  } as unknown as SoulScopeReport;
+  const context = createPatternReviewContext(report, "scan-1", {
+    overallAccuracy: "partially_accurate",
+    identityIssue: "too_generic",
+    expectedDirection: "more_protective",
+    notes: "Founder review fixture.",
+  });
+
+  assert.equal(context.scanId, "scan-1");
+  assert.equal(context.canonicalDisplayName, canonical.canonicalDisplayName);
+  assert.equal(context.founderReview?.identityIssue, "too_generic");
 });

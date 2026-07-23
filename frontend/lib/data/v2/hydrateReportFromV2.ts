@@ -131,6 +131,9 @@ export function hydrateReportFromV2(
     canonicalFamily: (diagnostic?.canonical_family ?? diagnostic?.family ?? report.canonicalPattern.canonicalFamily) as typeof report.canonicalPattern.canonicalFamily,
     primaryFamily: (diagnostic?.primary_family ?? diagnostic?.canonical_family ?? diagnostic?.family ?? report.canonicalPattern.primaryFamily) as typeof report.canonicalPattern.primaryFamily,
     secondaryFamily: (diagnostic?.secondary_family ?? report.canonicalPattern.secondaryFamily) as typeof report.canonicalPattern.secondaryFamily,
+    organizingQuality: (diagnostic?.organizing_quality ?? report.canonicalPattern.organizingQuality) as typeof report.canonicalPattern.organizingQuality,
+    resultType: (diagnostic?.result_type ?? report.canonicalPattern.resultType) as typeof report.canonicalPattern.resultType,
+    namingMatrixVersion: diagnostic?.naming_matrix_version ?? report.canonicalPattern.namingMatrixVersion,
     confidence: diagnostic?.confidence ?? report.canonicalPattern.confidence,
     confidenceMargin: diagnostic?.confidence_margin ?? report.canonicalPattern.confidenceMargin,
   };
