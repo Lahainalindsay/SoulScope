@@ -9,7 +9,6 @@
 }
 
 .productIntro,
-.definitionSection,
 .section,
 .finalSection {
   width: 100%;
@@ -23,7 +22,6 @@
 }
 
 .productIntroInner,
-.definitionInner,
 .sectionInner,
 .sectionInnerNarrow,
 .receiveLayout,
@@ -35,7 +33,7 @@
   width: min(100%, 1080px);
   margin: 0 auto;
   position: relative;
-  padding: clamp(32px, 5vw, 56px) 0;
+  padding: clamp(96px, 12vw, 156px) 0 clamp(64px, 9vw, 112px);
 }
 
 .productIntroInner::before {
@@ -66,7 +64,7 @@
 .heroHeadline {
   position: relative;
   margin: 0;
-  max-width: 12ch;
+  max-width: 13ch;
   font-family: var(--font-serif);
   font-size: clamp(4.5rem, 8vw, 7.5rem);
   font-weight: 500;
@@ -148,21 +146,33 @@
 }
 
 .definitionSection {
-  padding-top: clamp(72px, 10vw, 128px);
-  padding-bottom: clamp(64px, 9vw, 112px);
+  position: relative;
+  margin-top: clamp(40px, 7vw, 72px);
+  padding-top: clamp(28px, 4vw, 44px);
+  border-top: 1px solid rgba(177, 207, 224, 0.09);
 }
 
-.definitionInner,
 .sectionInner {
   width: min(100%, 1080px);
   margin: 0 auto;
 }
 
+.definitionIntro {
+  margin: 0 0 var(--space-5);
+  font-family: var(--font-serif);
+  font-size: clamp(1.45rem, 2.5vw, 2.05rem);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.018em;
+  color: var(--color-text-primary);
+}
+
 .definitionPair {
+  max-width: 520px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(96px, 0.25fr) minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(24px, 5vw, 64px);
+  grid-template-columns: minmax(0, 1fr) minmax(40px, 0.2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(16px, 3vw, 32px);
 }
 
 .dictionaryEntry {
@@ -170,7 +180,6 @@
 }
 
 .dictionaryEntry h2,
-.dictionaryCombined h1,
 .sectionTitle,
 .finalTitle {
   font-family: var(--font-serif);
@@ -180,24 +189,23 @@
 
 .dictionaryEntry h2 {
   margin: 0;
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid rgba(177, 207, 224, 0.09);
-  font-size: clamp(2.75rem, 5vw, 4.75rem);
-  line-height: 1;
-  letter-spacing: -0.025em;
+  font-size: clamp(1.7rem, 3vw, 2.35rem);
+  line-height: 1.03;
+  letter-spacing: -0.018em;
 }
 
 .dictionaryEntry p {
-  margin: var(--space-5) 0 0;
-  max-width: 31rem;
-  font-size: 1rem;
-  line-height: 1.65;
-  color: var(--color-text-secondary);
+  margin: var(--space-2) 0 0;
+  max-width: 12rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
 }
 
 .dictionaryLight {
   width: 100%;
   height: 1px;
+  margin-top: 1rem;
   background: linear-gradient(
     90deg,
     transparent,
@@ -209,34 +217,6 @@
     transparent
   );
   box-shadow: 0 0 14px rgba(89, 225, 230, 0.18), 0 0 26px rgba(79, 168, 232, 0.12);
-}
-
-.dictionaryCombined {
-  width: min(100%, 760px);
-  margin: clamp(48px, 8vw, 96px) auto 0;
-  text-align: center;
-}
-
-.dictionaryCombined h1 {
-  margin: 0;
-  font-size: clamp(2.75rem, 5vw, 4.75rem);
-  line-height: 1;
-  letter-spacing: -0.025em;
-}
-
-.dictionaryStatement {
-  margin: var(--space-5) auto 0;
-  font-size: 1.125rem;
-  line-height: 1.7;
-  color: var(--color-text-bright);
-}
-
-.dictionarySupport {
-  margin: var(--space-5) auto 0;
-  max-width: 48rem;
-  font-size: 1rem;
-  line-height: 1.65;
-  color: var(--color-text-secondary);
 }
 
 .section {
@@ -488,8 +468,8 @@
   }
 
   .definitionPair {
-    grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr);
-    gap: var(--space-3);
+    grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr);
+    gap: var(--space-2);
     align-items: start;
   }
 
@@ -507,8 +487,7 @@
     );
   }
 
-  .section,
-  .definitionSection {
+  .section {
     padding-top: 72px;
     padding-bottom: 72px;
   }
@@ -520,16 +499,23 @@
 
   .heroBody,
   .editorialBlock p,
-  .dictionaryStatement,
   .finalLine {
     font-size: 1rem;
     line-height: 1.65;
+  }
+
+  .definitionSection {
+    margin-top: var(--space-7);
+    padding-top: var(--space-6);
+  }
+
+  .dictionaryEntry p {
+    font-size: 0.875rem;
   }
 }
 
 @media (max-width: 360px) {
   .productIntro,
-  .definitionSection,
   .section,
   .finalSection {
     padding-left: 16px;

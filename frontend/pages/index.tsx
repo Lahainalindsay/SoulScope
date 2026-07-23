@@ -16,37 +16,10 @@ export default function HomePage() {
       </Head>
 
       <main className={styles.page}>
-        <section className={styles.definitionSection} aria-labelledby="soulscope-definition-title">
-          <div className={styles.definitionInner}>
-            <div className={styles.definitionPair}>
-              <article className={styles.dictionaryEntry}>
-                <h2>SOUL</h2>
-                <p>The inner world of a person — their feelings, awareness, identity, and lived experience.</p>
-              </article>
-
-              <div className={styles.dictionaryLight} aria-hidden="true" />
-
-              <article className={styles.dictionaryEntry}>
-                <h2>SCOPE</h2>
-                <p>An instrument used to observe, examine, and bring what is difficult to see into clearer view.</p>
-              </article>
-            </div>
-
-            <div className={styles.dictionaryCombined}>
-              <h1 id="soulscope-definition-title">SOULSCOPE</h1>
-              <p className={styles.dictionaryStatement}>A private instrument for seeing more clearly within.</p>
-              <p className={styles.dictionarySupport}>
-                SoulScope observes patterns in your voice and expression and transforms them into a personal Resonance
-                Signature and Reflection — helping you recognize what may be present beneath the surface.
-              </p>
-            </div>
-          </div>
-        </section>
-
         <section className={styles.productIntro}>
           <div className={styles.productIntroInner}>
             <p className={styles.heroEyebrow}>A private instrument for self-awareness</p>
-            <h2 className={styles.heroHeadline}>Clarity comes from within.</h2>
+            <h1 className={styles.heroHeadline}>Clarity comes from within.</h1>
             <p className={styles.heroBody}>
               Your voice carries subtle patterns shaped by the way you are responding to life. SoulScope organizes those
               patterns into a personal Resonance Signature and Reflection, helping you see what may be difficult to
@@ -57,6 +30,23 @@ export default function HomePage() {
               <Link href="/how-it-works" className={styles.secondaryCta}>How SoulScope Works</Link>
             </div>
             <p className={styles.heroMeta}>Private by design · Guided voice scan · No diagnosis</p>
+
+            <section className={styles.definitionSection} aria-labelledby="soulscope-definition-title">
+              <p id="soulscope-definition-title" className={styles.definitionIntro}>Observe your inner world.</p>
+              <div className={styles.definitionPair}>
+                <article className={styles.dictionaryEntry}>
+                  <h2>Soul</h2>
+                  <p>Your inner experience.</p>
+                </article>
+
+                <div className={styles.dictionaryLight} aria-hidden="true" />
+
+                <article className={styles.dictionaryEntry}>
+                  <h2>Scope</h2>
+                  <p>A way of seeing.</p>
+                </article>
+              </div>
+            </section>
           </div>
         </section>
 
