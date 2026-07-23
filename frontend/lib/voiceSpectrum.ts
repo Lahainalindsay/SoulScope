@@ -1195,13 +1195,17 @@ export function mergeVoiceAnalyses(results: VoiceAnalysisResult[]): VoiceAnalysi
       | "formantDynamics"
       | "clippingFrameRatio"
   ) => {
-    if (!analyzedDurationMs) return 0;
+    const denominator = results.reduce((sum, result) => {
+      const weight = result.voiceDynamics?.analyzedDurationMs ?? 0;
+      return sum + weight * metricWeight(result, key);
+    }, 0);
+    if (!denominator) return 0;
     return (
       results.reduce((sum, result) => {
         const weight = result.voiceDynamics?.analyzedDurationMs ?? 0;
         const value = result.voiceDynamics?.[key] ?? 0;
         return sum + value * weight * metricWeight(result, key);
-      }, 0) / analyzedDurationMs
+      }, 0) / denominator
     );
   };
   const weightedPitchValue = (
@@ -1217,20 +1221,24 @@ export function mergeVoiceAnalyses(results: VoiceAnalysisResult[]): VoiceAnalysi
       | "jitterLocalPct"
       | "harmonicToNoiseRatioDb"
   ) => {
-    if (!pitchFrameCount) return 0;
+    const denominator = results.reduce((sum, result) => {
+      const weight = result.voiceDynamics?.pitchFrameCount ?? 0;
+      return sum + weight * metricWeight(result, key);
+    }, 0);
+    if (!denominator) return 0;
     return (
       results.reduce((sum, result) => {
         const weight = result.voiceDynamics?.pitchFrameCount ?? 0;
         const value = result.voiceDynamics?.[key] ?? 0;
         return sum + value * weight * metricWeight(result, key);
-      }, 0) / pitchFrameCount
+      }, 0) / denominator
     );
   };
   const voiceDynamics: VoiceDynamics = {
     analyzedDurationMs: round(analyzedDurationMs),
     voicedDurationMs: round(voicedDurationMs),
     silenceDurationMs: round(silenceDurationMs),
-    activeFrameRatio: round(weightedDurationValue("activeFrameRatio"), 3),
+    activeFrameRatio: round(clamp01(weightedDurationValue("activeFrameRatio")), 3),
     voicedFrameRatio: clamp01(voicedDurationMs / Math.max(analyzedDurationMs, 1)),
     voicedFrameCount,
     pitchFrameCount,
@@ -1254,19 +1262,19 @@ export function mergeVoiceAnalyses(results: VoiceAnalysisResult[]): VoiceAnalysi
     dominantOctave: pitchFrameCount ? midiToOctave(weightedPitchValue("medianMidi")) : null,
     pitchRangeHz: round(weightedPitchValue("pitchRangeHz"), 1),
     pitchRangeSemitones: round(weightedPitchValue("pitchRangeSemitones"), 1),
-    pitchStability: round(weightedPitchValue("pitchStability"), 3),
-    pitchClarity: round(weightedPitchValue("pitchClarity"), 3),
+    pitchStability: round(clamp01(weightedPitchValue("pitchStability")), 3),
+    pitchClarity: round(clamp01(weightedPitchValue("pitchClarity")), 3),
     jitterLocalPct: round(weightedPitchValue("jitterLocalPct"), 2),
     shimmerLocalPct: round(weightedDurationValue("shimmerLocalPct"), 2),
     harmonicToNoiseRatioDb: round(weightedPitchValue("harmonicToNoiseRatioDb"), 1),
-    harmonicRichness: round(weightedDurationValue("harmonicRichness"), 3),
-    spectralFlatness: round(weightedDurationValue("spectralFlatness"), 3),
-    zeroCrossingRate: round(weightedDurationValue("zeroCrossingRate"), 3),
+    harmonicRichness: round(clamp01(weightedDurationValue("harmonicRichness")), 3),
+    spectralFlatness: round(clamp01(weightedDurationValue("spectralFlatness")), 3),
+    zeroCrossingRate: round(clamp01(weightedDurationValue("zeroCrossingRate")), 3),
     pauseDensityPerMin: round(weightedDurationValue("pauseDensityPerMin"), 1),
     speechRateProxyPerMin: round(weightedDurationValue("speechRateProxyPerMin"), 1),
-    formantStability: round(weightedDurationValue("formantStability"), 3),
-    formantDynamics: round(weightedDurationValue("formantDynamics"), 3),
-    clippingFrameRatio: round(weightedDurationValue("clippingFrameRatio"), 3),
+    formantStability: round(clamp01(weightedDurationValue("formantStability")), 3),
+    formantDynamics: round(clamp01(weightedDurationValue("formantDynamics")), 3),
+    clippingFrameRatio: round(clamp01(weightedDurationValue("clippingFrameRatio")), 3),
     captureQuality:
       weightedDurationValue("activeFrameRatio") >= 0.72 && weightedPitchValue("pitchClarity") >= 0.7
         ? "good"

@@ -48,7 +48,7 @@ function average(values: number[]) {
 
 function cameraPromptChange(scan: VoiceAnalysisResult) {
   const prompts = (scan.protocolNotes?.prompts ?? []).map((prompt) => prompt.camera).filter(Boolean);
-  if (prompts.length < 2) return { restraint: 0.5, flexibility: 0.5 };
+  if (prompts.length < 2) return null;
   const first = prompts[0]!;
   const last = prompts[prompts.length - 1]!;
   const tensionRise = clamp((last.facialTension - first.facialTension + 0.25) / 0.5);
@@ -102,13 +102,19 @@ export function buildAtlasEvidenceInput(
   ]);
   const quality = dynamics?.captureQuality === "good" ? 1 : dynamics?.captureQuality === "fair" ? 0.72 : 0.42;
   const camera = cameraPromptChange(scan);
+  const vocalContainment = 1 - vocalVariation * 0.35;
 
   const effort = average([demand(energy), demand(focus), demand(direction), 1 - timingContinuity * 0.45]);
   const recoveryGap = average([demand(recovery), effort * 0.72, 1 - availability(recovery)]);
   const searching = average([demand(focus), pauseLoad, 1 - availability(communication) * 0.45]);
   const steadiness = average([availability(regulation), vocalCoherence, timingContinuity]);
-  const protective = average([demand(expression), demand(connection), camera.restraint, 1 - vocalVariation * 0.35]);
-  const expressive = average([availability(expression), availability(communication), vocalVariation, camera.flexibility]);
+  const expressive = average([availability(expression), availability(communication), vocalVariation, ...(camera ? [camera.flexibility] : [])]);
+  const protectiveDemand = average([demand(expression), demand(connection)]);
+  const protective = clamp(
+    protectiveDemand * 0.66
+      + vocalContainment * 0.18
+      + (camera ? camera.restraint * 0.16 : 0)
+  );
   const adaptive = average([availability(direction), availability(regulation), timingContinuity, expressive * 0.45]);
   const fragmentation = average([demand(focus), 1 - vocalCoherence, 1 - timingContinuity, pauseLoad * 0.55]);
   const grounded = average([steadiness, availability(recovery), availability(energy), 1 - Math.abs(effort - availability(recovery))]);

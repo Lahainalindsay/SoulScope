@@ -4,7 +4,7 @@ import { buildAtlasRuntime } from "../lib/atlasRuntime";
 import { buildAtlasSignatureModel } from "../lib/atlasSignature";
 import type { BaselineComparison } from "../lib/patternPersonalization";
 import type { UserResultDomain } from "../lib/systemDimensions";
-import type { VoiceAnalysisResult, VoiceDynamics } from "../lib/voiceSpectrum";
+import { mergeVoiceAnalyses, type VoiceAnalysisResult, type VoiceDynamics } from "../lib/voiceSpectrum";
 
 const noBaseline: BaselineComparison = { available: false, scansUsed: 0, changes: [] };
 
@@ -135,6 +135,62 @@ test("protective and expressive states resolve differently", () => {
   assert.notEqual(protective.result.profile.id, expressive.result.profile.id);
   assert.ok(protective.input["protective-restraint"]! > expressive.input["protective-restraint"]!);
   assert.ok(expressive.input["expressive-flexibility"]! > protective.input["expressive-flexibility"]!);
+});
+
+test("calm low-variation speech is not treated as protective without demand or camera evidence", () => {
+  const calmMale = buildAtlasRuntime(
+    scan(dynamics({
+      medianPitchHz: 112,
+      lowPitchHz: 104,
+      highPitchHz: 126,
+      pitchRangeHz: 22,
+      pitchRangeSemitones: 2.1,
+      pitchStability: 0.9,
+      pitchClarity: 0.86,
+      formantStability: 0.86,
+      formantDynamics: 0.18,
+      pauseDensityPerMin: 2.4,
+      averagePauseMs: 240,
+      speechRateProxyPerMin: 104,
+    })),
+    domains({}),
+    noBaseline,
+  );
+
+  assert.ok(
+    calmMale.input["protective-restraint"]! < 0.5,
+    `Expected calm vocal containment alone to stay below protective threshold, received ${calmMale.input["protective-restraint"]}`,
+  );
+  assert.notEqual(calmMale.result.profile.family, "protective");
+});
+
+test("merged voice dynamics keep weighted ratios within valid bounds", () => {
+  const sustained = scan(dynamics({
+    activeFrameRatio: 0.78,
+    voicedFrameRatio: 0.74,
+    pitchClarity: 0.9,
+    pitchStability: 0.88,
+    harmonicRichness: 0.82,
+    formantStability: 0.84,
+    formantDynamics: 0.32,
+  }));
+  sustained.captureKind = "sustained_vowel";
+  const guided = scan(dynamics({
+    activeFrameRatio: 0.62,
+    voicedFrameRatio: 0.58,
+    pitchClarity: 0.68,
+    pitchStability: 0.72,
+    harmonicRichness: 0.64,
+    formantStability: 0.7,
+    formantDynamics: 0.58,
+  }));
+  guided.captureKind = "guided_speech";
+
+  const merged = mergeVoiceAnalyses([sustained, guided]);
+  assert.ok((merged.voiceDynamics?.activeFrameRatio ?? 0) <= 1);
+  assert.ok((merged.voiceDynamics?.pitchClarity ?? 0) <= 1);
+  assert.ok((merged.voiceDynamics?.pitchStability ?? 0) <= 1);
+  assert.ok((merged.voiceDynamics?.harmonicRichness ?? 0) <= 1);
 });
 
 test("the same atlas result deterministically configures signature geometry", () => {
