@@ -141,6 +141,9 @@ SoulScope currently includes:
 - a **backend** analysis service
 - **Supabase** for persistence
 - **Vercel** deployment support
+- a governed **Growth Studio agent foundation** for approval-gated campaign planning, brand review, community triage, referrals, ads, and analytics
+
+The Growth Studio is isolated from the analysis engine. Its agents create structured proposals only; live publishing, messaging, advertising, and reward issuance remain disabled until server-side integrations and approvals are configured. See [`docs/growth-studio-agents.md`](docs/growth-studio-agents.md).
 
 ### Result Model
 One scan should map to:
