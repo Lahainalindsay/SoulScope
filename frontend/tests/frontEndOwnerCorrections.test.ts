@@ -130,6 +130,10 @@ test("scan intro numbered preparation layout keeps a real text column on narrow 
   const styles = read("pages/scan/ScanIntro.module.css");
 
   assert.match(styles, /\.preparationList > li\s*\{[^}]*grid-template-columns:\s*42px minmax\(0,\s*1fr\)/s);
+  assert.match(styles, /\.preparationList > li::before\s*\{[^}]*grid-column:\s*1/s);
+  assert.match(styles, /\.preparationList > li > strong\s*\{[^}]*grid-column:\s*2/s);
+  assert.match(styles, /\.preparationList > li > span\s*\{[^}]*grid-column:\s*2/s);
+  assert.match(styles, /\.promptList\s*\{[^}]*grid-column:\s*2/s);
   assert.match(styles, /\.promptList li\s*\{[^}]*display:\s*list-item/s);
   assert.match(styles, /grid-template-columns:\s*32px minmax\(0,\s*1fr\)/);
   assert.doesNotMatch(styles, /grid-template-columns:\s*1fr;\n\s*}\n}\s*$/);

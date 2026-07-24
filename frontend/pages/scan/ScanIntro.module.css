@@ -146,6 +146,8 @@
 
 .preparationList > li::before {
   content: counter(preparation);
+  grid-column: 1;
+  grid-row: 1 / span 3;
   width: 42px;
   height: 42px;
   display: inline-grid;
@@ -159,6 +161,7 @@
 }
 
 .preparationList > li > strong {
+  grid-column: 2;
   min-width: 0;
   display: block;
   color: var(--color-text-bright);
@@ -168,6 +171,7 @@
 }
 
 .preparationList > li > span {
+  grid-column: 2;
   min-width: 0;
   display: block;
   margin-top: var(--space-2);
@@ -177,6 +181,7 @@
 }
 
 .promptList {
+  grid-column: 2;
   margin: var(--space-4) 0 0;
   padding-left: 1.2rem;
   color: var(--color-text-secondary);
