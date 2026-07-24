@@ -13,7 +13,7 @@ const consent: ConsentRecord = {
 test("default voice provider is the clean-room SoulScope acoustic provider", () => {
   const provider = createDefaultVoiceAnalysisProvider();
   assert.equal(provider.namespace, "soulscope");
-  assert.equal(provider.providerId, "soulscope-acoustic");
+  assert.equal(provider.providerId, "soulscope-canonical-acoustic");
 });
 
 test("voice provider refuses analysis without explicit subject consent", async () => {

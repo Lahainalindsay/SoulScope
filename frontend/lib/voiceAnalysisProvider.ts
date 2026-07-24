@@ -1,4 +1,5 @@
 import { analyzeVoiceSpectrum, type VoiceAnalysisResult } from "./voiceSpectrum";
+import type { CanonicalCaptureKind } from "./acousticContract";
 
 export type VoiceProviderNamespace = "soulscope" | "vendor";
 
@@ -11,9 +12,10 @@ export type ConsentRecord = {
 
 export type AudioInput = {
   blob: Blob;
-  captureKind?: "sustained_vowel" | "guided_speech";
+  captureKind?: CanonicalCaptureKind;
   captureDurationMs?: number;
   captureId?: string;
+  scanId?: string;
 };
 
 export type ProviderResult = {
@@ -41,19 +43,31 @@ export interface VoiceAnalysisProvider {
 
 export class SoulScopeAcousticProvider implements VoiceAnalysisProvider {
   readonly namespace = "soulscope" as const;
-  readonly providerId = "soulscope-acoustic";
-  readonly engineVersion = "soulscope-acoustic-v1";
+  readonly providerId = "soulscope-canonical-acoustic";
+  readonly engineVersion = "soulscope-canonical-acoustic-v1";
 
   async analyzeFile(input: AudioInput, consent: ConsentRecord): Promise<ProviderResult> {
     if (!consent.obtainedFromDataSubject) {
       throw new Error("Voice analysis requires explicit consent from the data subject.");
     }
 
+    const captureId = input.captureId ?? "voice-capture";
+    if (!input.scanId) {
+      throw new Error("Server acoustic analysis requires a scan id.");
+    }
+    const { analyzeAudioOnServer } = await import("./serverAcousticAnalysis");
+    const canonicalAcoustic = await analyzeAudioOnServer({
+      blob: input.blob,
+      scanId: input.scanId,
+      captureId,
+      captureKind: input.captureKind ?? "guided_speech",
+      durationMs: input.captureDurationMs,
+    });
+
     const result = await analyzeVoiceSpectrum(input.blob, {
       captureKind: input.captureKind,
       captureDurationMs: input.captureDurationMs,
     });
-    const captureId = input.captureId ?? "voice-capture";
 
     return {
       namespace: this.namespace,
@@ -68,8 +82,9 @@ export class SoulScopeAcousticProvider implements VoiceAnalysisProvider {
           consentId: consent.consentId,
           rawResponseStored: false,
           claimsBoundary:
-            "SoulScope acoustic analysis uses open, deterministic voice features for reflective state evidence. It does not infer deception, authenticity, diagnosis, or fixed personality.",
+            "SoulScope acoustic analysis uses deterministic server-side acoustic measurements for reflective state evidence. It does not infer deception, authenticity, diagnosis, medical state, or fixed personality.",
         },
+        canonicalAcoustic,
         analysisLedger: {
           records: [
             {
@@ -77,7 +92,7 @@ export class SoulScopeAcousticProvider implements VoiceAnalysisProvider {
               namespace: this.namespace,
               id: `${captureId}:session`,
               formulaVersion: this.engineVersion,
-              qualityGate: result.voiceDynamics?.captureQuality ?? "limited",
+              qualityGate: canonicalAcoustic.quality,
               modality: "audio",
             },
             {
@@ -91,11 +106,21 @@ export class SoulScopeAcousticProvider implements VoiceAnalysisProvider {
               recordType: "audio_quality",
               namespace: this.namespace,
               id: `${captureId}:quality`,
-              confidence: result.voiceDynamics?.captureQuality === "good" ? 0.86 : result.voiceDynamics?.captureQuality === "fair" ? 0.64 : 0.32,
-              qualityGate: result.voiceDynamics?.captureRecommendation ?? "Quality could not be fully determined.",
+              confidence: canonicalAcoustic.confidence,
+              qualityGate: canonicalAcoustic.quality,
               modality: "audio",
               alternatives: ["Microphone distance, room noise, clipping, and recording duration may affect quality."],
             },
+            ...canonicalAcoustic.measurements.slice(0, 12).map((measurement) => ({
+              recordType: "segment_feature" as const,
+              namespace: this.namespace,
+              id: `${captureId}:${measurement.feature_id}`,
+              timeRangeMs: [measurement.segment_start_ms, measurement.segment_end_ms] as [number, number],
+              formulaVersion: measurement.extractor_version,
+              confidence: measurement.confidence,
+              qualityGate: measurement.rejection_reason ?? measurement.quality,
+              modality: "audio" as const,
+            })),
           ],
         },
       },

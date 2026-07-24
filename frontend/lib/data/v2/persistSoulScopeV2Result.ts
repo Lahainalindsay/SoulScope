@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SoulScopeReport } from "../../buildSoulScopeReport";
 import type { ScanCompleteness } from "../../partialScan";
+import type { VoiceAnalysisResult } from "../../voiceSpectrum";
 import { createScanSession, updateScanSession } from "./scanRepository";
 import { insertSensorCaptures } from "./captureRepository";
 import { insertRawFeatureMeasurements } from "./featureRepository";
@@ -10,6 +11,7 @@ import { insertDomainResults } from "./domainRepository";
 import { insertPatternMatches } from "./patternRepository";
 import { insertReflectionVariants } from "./reflectionRepository";
 import { refreshPersonalBaselines } from "./refreshPersonalBaselines";
+import { persistCanonicalAcoustics, refreshPersonalAcousticBaselines } from "./acousticRepository";
 import { mapScanSession } from "./mappers/mapScanSession";
 import { mapSensorCaptures } from "./mappers/mapSensorCaptures";
 import { mapRawFeatures } from "./mappers/mapRawFeatures";
@@ -174,6 +176,11 @@ export async function persistSoulScopeV2Result(args: PersistSoulScopeV2ResultArg
   await createScanSession(args.client, mapScanSession(context, "processing"));
   try {
     await insertSensorCaptures(args.client, mapSensorCaptures(context));
+    await persistCanonicalAcoustics(args.client, {
+      userId: args.userId,
+      scanId: args.scanId,
+      result: args.rawResult as VoiceAnalysisResult,
+    });
     await insertRawFeatureMeasurements(args.client, mapRawFeatures(context));
     await insertEvidenceSignals(args.client, mapEvidenceSignals(context));
     await insertObservations(args.client, mapObservations(context));
@@ -189,6 +196,7 @@ export async function persistSoulScopeV2Result(args: PersistSoulScopeV2ResultArg
     );
     try {
       await refreshPersonalBaselines(args.client, args.userId);
+      await refreshPersonalAcousticBaselines(args.client, args.userId);
     } catch (baselineError) {
       console.warn("The scan was saved, but personal baselines were not refreshed.", baselineError);
     }

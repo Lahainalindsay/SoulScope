@@ -24,7 +24,7 @@ import styles from "./Analyzing.module.css";
 type SavedScanResult = ScanWithCompleteness & { id?: string; created_at?: string };
 
 const CLOUD_REQUEST_TIMEOUT_MS = 4500;
-const ANALYSIS_REQUEST_TIMEOUT_MS = 15000;
+const ANALYSIS_REQUEST_TIMEOUT_MS = 45000;
 const UNCONFIRMED_SUBJECT: GuidedScanSubject = {
   subjectId: null,
   subjectLabel: "Unconfirmed subject",
@@ -100,6 +100,7 @@ export default function ScanAnalyzingPage() {
       try {
         setProgressMessage("Organizing patterns across your responses");
         const provider = createDefaultVoiceAnalysisProvider();
+        const scanId = crypto.randomUUID();
         const consent: ConsentRecord = {
           consentId: `${scanSubject.subjectId ?? "unconfirmed"}:${scanStartedAt ?? Date.now()}:voice-analysis-consent`,
           obtainedFromDataSubject: true,
@@ -114,6 +115,7 @@ export default function ScanAnalyzingPage() {
                 captureKind: GUIDED_SCAN_QUESTIONS.find((question) => question.id === answer.questionId)?.captureKind,
                 captureDurationMs: answer.durationMs,
                 captureId: `${answer.questionId}:voice:${index + 1}`,
+                scanId,
               }, consent).then((providerResult) => providerResult.result),
               ANALYSIS_REQUEST_TIMEOUT_MS,
               `Voice analysis for ${answer.questionId}`,
@@ -157,7 +159,6 @@ export default function ScanAnalyzingPage() {
         }
 
         const completedAt = new Date().toISOString();
-        const scanId = crypto.randomUUID();
         const result: SavedScanResult = {
           ...merged,
           scanCompleteness: nextCompleteness,
@@ -201,6 +202,7 @@ export default function ScanAnalyzingPage() {
               spectralCentroidHz: analysis.spectralCentroidHz,
               resonanceScore: analysis.resonanceScore,
               voiceDynamics: analysis.voiceDynamics,
+              canonicalAcoustic: analysis.canonicalAcoustic,
               topNotes: (analysis.noteEnergies ?? []).slice(0, 5).map((note) => ({ note: note.note, score: note.score, relativeEnergy: note.relativeEnergy })),
             })),
           },

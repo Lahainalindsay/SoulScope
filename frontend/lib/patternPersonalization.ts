@@ -108,20 +108,13 @@ const BASELINE_SEMANTICS: Record<UserResultDomain["title"], BaselineSemantic> = 
 const domain = (domains: UserResultDomain[], title: UserResultDomain["title"]) =>
   domains.find((item) => item.title === title);
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
-const overactiveCount = (scan: VoiceAnalysisResult) =>
-  (scan.noteEnergies ?? []).filter((note) => note.status === "overactive").length;
-const balancedCount = (scan: VoiceAnalysisResult) =>
-  (scan.noteEnergies ?? []).filter((note) => note.status === "balanced").length;
+const overactiveCount = (scan: VoiceAnalysisResult) => { void scan; return 0; };
+const balancedCount = (scan: VoiceAnalysisResult) => { void scan; return 0; };
 const noteSpread = (scan: VoiceAnalysisResult) => {
-  const values = (scan.noteEnergies ?? []).map((note) => note.relativeEnergy);
-  return values.length ? Math.max(...values) - Math.min(...values) : 0;
+  void scan;
+  return 1;
 };
-const strongestTwoShare = (scan: VoiceAnalysisResult) =>
-  (scan.noteEnergies ?? [])
-    .slice()
-    .sort((a, b) => b.relativeEnergy - a.relativeEnergy)
-    .slice(0, 2)
-    .reduce((sum, note) => sum + note.relativeEnergy, 0);
+const strongestTwoShare = (scan: VoiceAnalysisResult) => { void scan; return 0; };
 
 const expressionLibrary: Record<PatternId, ExpressionDefinition[]> = {
   "overextended-achiever": [
@@ -326,7 +319,6 @@ export function hasValidDomainData(domains: UserResultDomain[]): boolean {
 export function isValidBaselineScan(scan: VoiceAnalysisResult, domains: UserResultDomain[]): boolean {
   const rejectionReason = (scan.analysisDebug as { rejectionReason?: string } | undefined)?.rejectionReason;
   const analyzedDuration = scan.voiceDynamics?.analyzedDurationMs ?? scan.captureDurationMs ?? 0;
-  const notes = scan.noteEnergies ?? [];
 
   if (scan.voiceDynamics?.captureQuality === "poor") return false;
   if (rejectionReason) return false;
@@ -334,7 +326,6 @@ export function isValidBaselineScan(scan: VoiceAnalysisResult, domains: UserResu
   if (!Number.isFinite(scan.spectralCentroidHz) || scan.spectralCentroidHz <= 0) return false;
   if (!Number.isFinite(scan.resonanceScore)) return false;
   if (analyzedDuration <= 0) return false;
-  if (notes.length < 3 || notes.some((note) => !Number.isFinite(note.score) || !Number.isFinite(note.relativeEnergy))) return false;
   if (!hasValidDomainData(domains)) return false;
   return true;
 }

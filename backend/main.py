@@ -1,24 +1,30 @@
 # backend/main.py
+import json
+import os
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Literal, Optional
 from uuid import uuid4
 
 import numpy as np
-from fastapi import FastAPI, HTTPException
+import httpx
+from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from corescope.core_frequency.core_frequency import fuse_core_frequency
+from corescope.audio.acoustic_contract import AcousticAnalysisResponse, CaptureKind
+from corescope.audio.acoustic_extractor import analyze_upload_file
 from corescope.core_frequency.models import (
     PhysioTimeSeries,
-    VoiceFeatures,
     ReactivityMetrics,
 )
 
 app = FastAPI()
 
-# Allow local dev + production frontends
-origins = [
+# Allow local dev + explicitly configured production frontends. Never use a
+# wildcard with credentials.
+configured_origins = [origin.strip() for origin in os.getenv("SOULSCOPE_ALLOWED_ORIGINS", "").split(",") if origin.strip()]
+origins = configured_origins or [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://soul-scope-lime.vercel.app",
@@ -32,6 +38,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+PRIVATE_AUDIO_ROOT = Path(os.getenv("SOULSCOPE_PRIVATE_AUDIO_ROOT", "backend/.private_audio"))
+REQUIRE_SUPABASE_AUTH = os.getenv("SOULSCOPE_REQUIRE_SUPABASE_AUTH", "true").lower() != "false"
+SUPABASE_URL = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY") or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+
 
 class CoreFrequencyResponse(BaseModel):
     core_index: float
@@ -39,6 +50,57 @@ class CoreFrequencyResponse(BaseModel):
     soul_resonance: float
     heart_mind_resonance: float
     qualitative_label: str
+
+
+async def _authenticate_user(authorization: Optional[str]) -> str:
+    if not authorization or not authorization.lower().startswith("bearer "):
+        if REQUIRE_SUPABASE_AUTH:
+            raise HTTPException(status_code=401, detail="Missing bearer token")
+        return "local-dev-user"
+    token = authorization.split(" ", 1)[1].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        if REQUIRE_SUPABASE_AUTH:
+            raise HTTPException(status_code=500, detail="Supabase auth is not configured")
+        return "local-dev-user"
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.get(
+                f"{SUPABASE_URL.rstrip('/')}/auth/v1/user",
+                headers={"apikey": SUPABASE_ANON_KEY, "Authorization": f"Bearer {token}"},
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=503, detail="Could not verify Supabase session") from exc
+    if response.status_code != 200:
+        raise HTTPException(status_code=401, detail="Invalid Supabase session")
+    payload = response.json()
+    user_id = payload.get("id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid Supabase user")
+    return user_id
+
+
+async def _verify_scan_ownership(scan_id: str, user_id: str, authorization: Optional[str]) -> None:
+    """Use the caller's bearer token and RLS-backed REST query to enforce ownership."""
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY or not authorization:
+        if REQUIRE_SUPABASE_AUTH:
+            raise HTTPException(status_code=500, detail="Scan ownership verification is not configured")
+        return
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.get(
+                f"{SUPABASE_URL.rstrip('/')}/rest/v1/scan_sessions",
+                params={"id": f"eq.{scan_id}", "select": "id,user_id"},
+                headers={"apikey": SUPABASE_ANON_KEY, "Authorization": authorization},
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=503, detail="Could not verify scan ownership") from exc
+    if response.status_code != 200:
+        raise HTTPException(status_code=503, detail="Could not verify scan ownership")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows or rows[0].get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Scan is not owned by the authenticated user")
 
 
 # ---------------------------------------------------------------------------
@@ -179,6 +241,49 @@ def save_voice_clip(payload: VoiceClipRequest):
     return VoiceClipResponse(clip_id=clip_id)
 
 
+@app.post("/api/acoustic/analyze", response_model=AcousticAnalysisResponse)
+async def analyze_voice_audio(
+    file: UploadFile = File(...),
+    scan_id: str = Form(...),
+    source_capture_id: str = Form(...),
+    capture_kind: CaptureKind = Form(...),
+    device_metadata: str = Form("{}"),
+    authorization: Optional[str] = Header(default=None),
+):
+    user_id = await _authenticate_user(authorization)
+    await _verify_scan_ownership(scan_id, user_id, authorization)
+    content_type = file.content_type or "application/octet-stream"
+    if content_type not in {
+        "audio/wav",
+        "audio/wave",
+        "audio/x-wav",
+    }:
+        raise HTTPException(status_code=415, detail="Unsupported audio content type; submit canonical PCM WAV")
+    try:
+        metadata = json.loads(device_metadata) if device_metadata else {}
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Invalid device metadata") from exc
+    if not isinstance(metadata, dict):
+        raise HTTPException(status_code=400, detail="Device metadata must be an object")
+    upload_bytes = await file.read()
+    try:
+        return analyze_upload_file(
+            upload_bytes,
+            filename=file.filename or "capture",
+            content_type=content_type,
+            private_root=PRIVATE_AUDIO_ROOT,
+            user_id=user_id,
+            scan_id=scan_id,
+            source_capture_id=source_capture_id,
+            capture_kind=capture_kind,
+            device_metadata=metadata,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Canonical acoustic analysis failed") from exc
+
+
 class PhysioSample(BaseModel):
     timestamp: float
     rr_interval_ms: float
@@ -225,24 +330,12 @@ def update_reactivity(payload: ReactivityUpdate):
 def finalize_scan(session_id: str):
     if session_id not in SESSIONS:
         raise HTTPException(status_code=404, detail="Unknown session")
-    session = SESSIONS[session_id]
-
-    physio_ts = _build_physio(session.get("physio"))
-    voice_features = _mock_voice_features()
-    reactivity = _build_reactivity(session.get("reactivity"))
-
-    result = fuse_core_frequency(
-        physio_ts=physio_ts,
-        voice_features=voice_features,
-        reactivity=reactivity,
-    )
-
-    return CoreFrequencyResponse(
-        core_index=round(result.core_index, 4),
-        body_resonance=round(result.body_resonance.score, 4),
-        soul_resonance=round(result.soul_resonance.score, 4),
-        heart_mind_resonance=round(result.heart_mind_resonance.score, 4),
-        qualitative_label=result.qualitative_label or "Pending interpretation",
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            "Legacy scan finalization is disabled because it used mocked voice features. "
+            "Use /api/acoustic/analyze and the canonical SoulScope report pipeline."
+        ),
     )
 
 
@@ -281,17 +374,6 @@ def _build_physio(samples: Optional[List[PhysioSample]]) -> PhysioTimeSeries:
         rr_intervals=rr_intervals,
         eda=eda,
         breath_rate=breath_rate,
-    )
-
-
-def _mock_voice_features() -> VoiceFeatures:
-    return VoiceFeatures(
-        mean_f0=205.0,
-        f0_std=18.0,
-        spectral_centroid=3200.0,
-        jitter_local=0.35,
-        shimmer_local=3.1,
-        hnr=19.5,
     )
 
 

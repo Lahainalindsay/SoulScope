@@ -18,6 +18,16 @@ node_modules/
 frontend/node_modules/
 frontend/.next/
 backend/.venv/
+backend/.private_audio/
+
+# Local secrets and generated recordings
+*.env
+*.env.local
+*.wav
+*.webm
+*.ogg
+!.env.example
+!*.env.example
 
 # User-specific
 .idea/

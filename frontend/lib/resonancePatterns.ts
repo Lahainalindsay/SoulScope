@@ -105,15 +105,13 @@ function topSignals(scan: VoiceAnalysisResult) {
 }
 
 function hasOveractive(scan: VoiceAnalysisResult, notes: string[]) {
-  return (scan.noteEnergies ?? []).some(
-    (entry) => notes.includes(entry.note) && entry.status === "overactive",
-  );
+  void scan; void notes;
+  return false;
 }
 
 function hasUnderactive(scan: VoiceAnalysisResult, notes: string[]) {
-  return (scan.noteEnergies ?? []).some(
-    (entry) => notes.includes(entry.note) && entry.status === "underactive",
-  );
+  void scan; void notes;
+  return false;
 }
 
 function mean(values: number[]) {
@@ -167,22 +165,18 @@ function summarizeDomainRoles(domainResults: UserResultDomain[]) {
 }
 
 function noteIntensity(noteEnergies: NoteEnergyResult[], notes: string[]) {
-  const relevant = noteEnergies.filter((entry) => notes.includes(entry.note));
-  if (!relevant.length) return 0;
-  return mean(relevant.map((entry) => entry.score));
+  void noteEnergies; void notes;
+  return 0;
 }
 
 function noteBalance(noteEnergies: NoteEnergyResult[], notes: string[]) {
-  const relevant = noteEnergies.filter((entry) => notes.includes(entry.note));
-  if (!relevant.length) return 0;
-  const overactive = relevant.filter((entry) => entry.status === "overactive").length;
-  const underactive = relevant.filter((entry) => entry.status === "underactive").length;
-  return (overactive - underactive) / relevant.length;
+  void noteEnergies; void notes;
+  return 0;
 }
 
 function tonalSpread(noteEnergies: NoteEnergyResult[]) {
-  const values = noteEnergies.map((entry) => entry.score);
-  return standardDeviation(values);
+  void noteEnergies;
+  return 0;
 }
 
 const PATTERN_LIBRARY: PatternDefinition[] = [

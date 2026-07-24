@@ -103,6 +103,23 @@ test("note and cymatic visualization features never contribute evidence", () => 
   assert.ok(!result.evidenceSignals.some((signal) => /note|chakra|resonance distribution|signal balance/i.test(`${signal.evidenceId} ${signal.label}`)));
 });
 
+test("changing musical-note classification alone cannot change evidence or domains", () => {
+  const original = scan();
+  const altered = scan({
+    noteEnergies: original.noteEnergies?.map((note) => ({
+      ...note,
+      score: 100 - note.score,
+      relativeEnergy: 1 / 12,
+      status: note.status === "overactive" ? "underactive" : note.status === "underactive" ? "overactive" : "balanced",
+    })),
+  });
+  const first = buildObservationPipeline(original);
+  const second = buildObservationPipeline(altered);
+  assert.deepEqual(first.evidenceSignals, second.evidenceSignals);
+  assert.deepEqual(first.observations, second.observations);
+  assert.deepEqual(first.domains, second.domains);
+});
+
 test("poor capture prevents high confidence", () => {
   const poor = scan({ voiceDynamics: { ...scan().voiceDynamics!, captureQuality: "poor" } });
   const result = buildObservationPipeline(poor);

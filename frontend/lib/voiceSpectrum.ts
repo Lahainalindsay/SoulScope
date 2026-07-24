@@ -1,6 +1,7 @@
 import { type CymaticReference } from "./cymatics";
 import { NOTE_ORDER, getSoulScopeNoteProfile } from "./noteSystem";
 import { NOTE_BAND_CONFIG, getNoteBandInterpretiveSummary } from "./noteBands";
+import type { CanonicalAcousticAnalysis, CanonicalCaptureKind } from "./acousticContract";
 
 export type SpectrumStatus = "dominant" | "balanced" | "underrepresented" | "overrepresented";
 
@@ -107,7 +108,7 @@ export type VoiceAnalysisResult = {
       prompt: string;
       rationale: string;
       durationMs?: number;
-      captureKind?: "sustained_vowel" | "guided_speech";
+      captureKind?: CanonicalCaptureKind;
       camera?: {
         blinkRatePerMin: number;
         facialTension: number;
@@ -158,6 +159,7 @@ export type VoiceAnalysisResult = {
     rawResponseStored: boolean;
     claimsBoundary: string;
   };
+  canonicalAcoustic?: CanonicalAcousticAnalysis;
   analysisLedger?: {
     records: Array<{
       recordType:
@@ -181,7 +183,7 @@ export type VoiceAnalysisResult = {
       alternatives?: string[];
     }>;
   };
-  captureKind?: "sustained_vowel" | "guided_speech";
+  captureKind?: CanonicalCaptureKind;
   captureDurationMs?: number;
   analysisDebug?: {
     blobSize?: number;
@@ -197,12 +199,13 @@ export type VoiceAnalysisResult = {
     topNotes?: Array<{ note: string; score: number; relativeEnergy: number }>;
     promptAnalyses?: Array<{
       index: number;
-      captureKind?: "sustained_vowel" | "guided_speech";
+      captureKind?: CanonicalCaptureKind;
       dominantBandLabel: string;
       coreFrequencyHz: number;
       spectralCentroidHz: number;
       resonanceScore: number;
       voiceDynamics?: VoiceDynamics;
+      canonicalAcoustic?: CanonicalAcousticAnalysis;
       topNotes: Array<{ note: string; score: number; relativeEnergy: number }>;
     }>;
   };
@@ -675,7 +678,7 @@ function buildSupportPlan(
 export async function analyzeVoiceSpectrum(
   blob: Blob,
   options: {
-    captureKind?: "sustained_vowel" | "guided_speech";
+    captureKind?: CanonicalCaptureKind;
     captureDurationMs?: number;
   } = {}
 ): Promise<VoiceAnalysisResult> {

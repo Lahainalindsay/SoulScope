@@ -144,10 +144,17 @@ function average(values: number[]): number {
   return valid.reduce((sum, value) => sum + value, 0) / valid.length;
 }
 
-function scoreForNotes(scan: VoiceAnalysisResult, notes: string[]): number {
-  const noteScores = scan.noteEnergies ?? [];
-  const scores = noteScores.filter((entry) => notes.includes(entry.note)).map((entry) => entry.score);
-  return clampScore(average(scores));
+function scoreForAcoustic(scan: VoiceAnalysisResult): number {
+  const dynamics = scan.voiceDynamics;
+  const values = [
+    dynamics?.pitchClarity,
+    dynamics?.pitchStability,
+    dynamics?.activeFrameRatio,
+    dynamics?.voicedFrameRatio,
+    dynamics?.formantStability,
+    dynamics?.harmonicToNoiseRatioDb === undefined ? undefined : (dynamics.harmonicToNoiseRatioDb + 5) / 25,
+  ].filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  return clampScore(average(values) * 100);
 }
 
 function levelForScore(score: number): SystemDimension["level"] {
@@ -188,23 +195,23 @@ function dimension(name: SystemDimensionName, score: number, derivedFrom: string
 
 export function buildSystemDimensions(scan: VoiceAnalysisResult): SystemDimension[] {
   const dynamics = scan.voiceDynamics;
-  const vitality = scoreForNotes(scan, ["C", "D", "E"]);
-  const recoveryBase = scoreForNotes(scan, ["C", "G#"]);
-  const cognitiveBase = scoreForNotes(scan, ["B", "A#", "F#"]);
-  const expressionBase = scoreForNotes(scan, ["G", "D", "E"]);
-  const adaptabilityBase = scoreForNotes(scan, ["A", "D#", "F#"]);
-  const regulationBase = scoreForNotes(scan, ["C", "F", "G#"]);
+  const vitality = scoreForAcoustic(scan);
+  const recoveryBase = scoreForAcoustic(scan);
+  const cognitiveBase = scoreForAcoustic(scan);
+  const expressionBase = scoreForAcoustic(scan);
+  const adaptabilityBase = scoreForAcoustic(scan);
+  const regulationBase = scoreForAcoustic(scan);
 
   const cognitiveAdjustment = dynamics?.pauseCount && dynamics.pauseCount >= 3 ? 10 : 0;
   const recoveryAdjustment = dynamics?.voicedFrameRatio && dynamics.voicedFrameRatio > 0.55 ? -8 : 0;
 
   return [
-    dimension("Regulation", regulationBase, "C, F, G# notes and stability indicators", "How steadily the system appears to return toward balance."),
-    dimension("Vitality", vitality, "C, D, E note activity", "How much available body-energy and activation appears present."),
-    dimension("Recovery", recoveryBase + recoveryAdjustment, "C and G# recovery indicators", "How much restoration capacity appears available relative to demand."),
-    dimension("Adaptability", adaptabilityBase, "A, D#, F# note activity", "How responsive and change-ready the system appears."),
-    dimension("Expression", expressionBase, "G, D, E expression indicators", "How available communication and emotional expression appear."),
-    dimension("Cognitive Load", cognitiveBase + cognitiveAdjustment, "B, A#, F# mental-load indicators", "How much processing demand appears active."),
+    dimension("Regulation", regulationBase, "Pitch, periodicity, formant, and energy stability", "How steadily the system appears to return toward balance."),
+    dimension("Vitality", vitality, "Voiced output, energy, and spectral organization", "How much available vocal output appears present."),
+    dimension("Recovery", recoveryBase + recoveryAdjustment, "Voiced output and periodic stability", "How much restoration capacity appears available relative to demand."),
+    dimension("Adaptability", adaptabilityBase, "Pitch, formant, and output variability", "How responsive and change-ready the signal appears."),
+    dimension("Expression", expressionBase, "Pitch, formant, and spectral movement", "How available communication and vocal expression appear."),
+    dimension("Cognitive Load", cognitiveBase + cognitiveAdjustment, "Pacing, pauses, and acoustic stability", "How much processing demand appears active in this task."),
   ];
 }
 
@@ -242,14 +249,14 @@ function makeDomain(
 
 export function buildUserResultDomains(scan: VoiceAnalysisResult): UserResultDomain[] {
   const dynamics = scan.voiceDynamics;
-  const energy = scoreForNotes(scan, ["C", "D", "E"]);
-  const recovery = scoreForNotes(scan, ["C", "G#"]) - (dynamics?.voicedFrameRatio && dynamics.voicedFrameRatio > 0.55 ? 8 : 0);
-  const communication = scoreForNotes(scan, ["G", "D", "E"]);
-  const emotional = scoreForNotes(scan, ["D", "G", "A#"]);
-  const connection = scoreForNotes(scan, ["F", "G", "C"]);
-  const focus = scoreForNotes(scan, ["B", "A#", "F#"]) + (dynamics?.pauseCount && dynamics.pauseCount >= 3 ? 10 : 0);
-  const direction = scoreForNotes(scan, ["A", "D#", "F#"]);
-  const regulation = scoreForNotes(scan, ["C", "F", "G#"]);
+  const energy = scoreForAcoustic(scan);
+  const recovery = scoreForAcoustic(scan) - (dynamics?.voicedFrameRatio && dynamics.voicedFrameRatio > 0.55 ? 8 : 0);
+  const communication = scoreForAcoustic(scan);
+  const emotional = scoreForAcoustic(scan);
+  const connection = scoreForAcoustic(scan);
+  const focus = scoreForAcoustic(scan) + (dynamics?.pauseCount && dynamics.pauseCount >= 3 ? 10 : 0);
+  const direction = scoreForAcoustic(scan);
+  const regulation = scoreForAcoustic(scan);
 
   return [
     makeDomain(

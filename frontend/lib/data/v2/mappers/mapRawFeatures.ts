@@ -6,8 +6,11 @@ import type { V2MappingContext } from "./context";
 export function mapRawFeatures(context: V2MappingContext): RawFeatureMeasurementInsert[] {
   return context.pipeline.rawFeatures.map((feature) => {
     const sourceCaptureIds = feature.captureIds.map((captureId) => stableUuid(context.scanId, "capture", captureId));
+    const scope = feature.metadata?.source === "canonical_server" && feature.captureIds[0]
+      ? feature.captureIds[0]
+      : feature.taskId ?? "aggregate";
     return {
-      id: stableUuid(context.scanId, "feature", feature.featureId, feature.taskId ?? "aggregate"),
+      id: stableUuid(context.scanId, "feature", feature.featureId, scope),
       scan_id: context.scanId,
       user_id: context.userId,
       capture_id: sourceCaptureIds[0] ?? null,

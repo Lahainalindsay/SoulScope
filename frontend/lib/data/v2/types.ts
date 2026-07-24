@@ -144,3 +144,75 @@ export interface PersonalBaselineRow {
   summary: string | null; metadata: JsonObject; calculated_at: string; created_at: string; updated_at: string;
 }
 export type PersonalBaselineInsert = Omit<PersonalBaselineRow, "created_at" | "updated_at">;
+
+export interface VoiceAudioCaptureInsert {
+  id?: string;
+  scan_id: string;
+  user_id: string;
+  sensor_capture_id: string | null;
+  source_capture_id: string;
+  capture_kind: string;
+  prompt_id: string;
+  storage_provider: string;
+  storage_bucket: string | null;
+  storage_path: string | null;
+  original_content_type: string | null;
+  canonical_format: string;
+  duration_ms: number | null;
+  sample_rate_hz: number | null;
+  channel_count: number | null;
+  retention_policy: string;
+  retention_delete_after: string | null;
+  status: "uploaded" | "processing" | "processed" | "failed" | "deleted";
+  failure_reason: string | null;
+  metadata: JsonObject;
+}
+
+export interface AcousticFeatureMeasurementInsert {
+  id?: string;
+  scan_id: string;
+  user_id: string;
+  voice_audio_capture_id: string | null;
+  source_capture_id: string;
+  capture_kind: string;
+  feature_id: string;
+  feature_version: string;
+  value: number | null;
+  unit: string | null;
+  method: string;
+  segment_start_ms: number;
+  segment_end_ms: number;
+  quality: QualityLevel;
+  confidence: number;
+  rejection_reason: string | null;
+  extractor: string;
+  extractor_version: string;
+  parameters: JsonObject;
+  device_metadata: JsonObject;
+}
+
+export interface PersonalAcousticBaselineInsert {
+  id?: string;
+  user_id: string;
+  feature_id: string;
+  feature_version: string;
+  capture_kind: string;
+  prompt_id: string;
+  baseline_window: "7_day" | "30_day" | "stable";
+  calculation_version: string;
+  status: "not_established" | "provisional" | "established";
+  scans_used: number;
+  measurements_used: number;
+  measurements_rejected: number;
+  source_scan_ids: string[];
+  center_value: number | null;
+  dispersion_value: number | null;
+  iqr: number | null;
+  current_value: number | null;
+  current_deviation: number | null;
+  current_robust_z: number | null;
+  confidence: number;
+  unit: string | null;
+  metadata: JsonObject;
+  calculated_at: string;
+}

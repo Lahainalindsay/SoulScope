@@ -1,4 +1,6 @@
 import type { VoiceAnalysisResult } from "../voiceSpectrum";
+import type { AcousticFeatureMeasurement } from "../acousticContract";
+import { isQualityApprovedMeasurement } from "../acousticContract";
 import type {
   CaptureQuality,
   ObservationPipelineContext,
@@ -19,6 +21,24 @@ function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function qualityFromCanonical(quality: AcousticFeatureMeasurement["quality"]): CaptureQuality {
+  return quality === "high" ? "high" : quality === "good" ? "good" : quality === "limited" ? "limited" : "poor";
+}
+
+function canonicalCompatibility(feature: AcousticFeatureMeasurement): Array<{ featureId: string; value: number; unit: string | undefined }> {
+  if (!isQualityApprovedMeasurement(feature) || feature.value === null) return [];
+  const unit = feature.unit ?? undefined;
+  const passthrough = [{ featureId: feature.feature_id, value: feature.value, unit }];
+  const aliases: Array<{ featureId: string; value: number; unit: string | undefined }> = [];
+  if (feature.feature_id === "voice.jitter.local") aliases.push({ featureId: "voice.jitter", value: feature.value * 100, unit: "%" });
+  if (feature.feature_id === "voice.shimmer.local") aliases.push({ featureId: "voice.shimmer", value: feature.value * 100, unit: "%" });
+  if (feature.feature_id === "voice.hnr.mean") aliases.push({ featureId: "voice.hnr", value: feature.value, unit: "dB" });
+  if (feature.feature_id === "voice.syllable_nuclei_rate") aliases.push({ featureId: "voice.speech_rate_proxy", value: feature.value, unit: "per_min" });
+  if (feature.feature_id === "voice.phonation_time_ratio") aliases.push({ featureId: "voice.active_frame_ratio", value: feature.value, unit: "ratio" });
+  if (feature.feature_id === "voice.voiced_duration_ms") aliases.push({ featureId: "voice.voiced_duration", value: feature.value, unit: "ms" });
+  return [...passthrough, ...aliases];
+}
+
 export function buildCaptureReferences(
   scan: VoiceAnalysisResult,
   context: ObservationPipelineContext = {},
@@ -27,10 +47,10 @@ export function buildCaptureReferences(
   const promptAnalyses = scan.analysisDebug?.promptAnalyses ?? [];
   if (promptAnalyses.length) {
     return promptAnalyses.map((prompt, index) => ({
-      captureId: context.captureIds?.[index] ?? `${context.scanId ?? "scan"}:voice:${index + 1}`,
+      captureId: context.captureIds?.[index] ?? prompt.canonicalAcoustic?.captureId ?? `${context.scanId ?? "scan"}:voice:${index + 1}`,
       sensorType: "voice",
       taskId: context.taskIds?.[index] ?? `prompt-${prompt.index + 1}`,
-      quality: prompt.voiceDynamics?.captureQuality === "good" ? "good" : prompt.voiceDynamics?.captureQuality === "poor" ? "poor" : "limited",
+      quality: prompt.canonicalAcoustic ? qualityFromCanonical(prompt.canonicalAcoustic.quality) : prompt.voiceDynamics?.captureQuality === "good" ? "good" : prompt.voiceDynamics?.captureQuality === "poor" ? "poor" : "limited",
     }));
   }
   return [{ captureId: context.captureIds?.[0] ?? `${context.scanId ?? "scan"}:voice:aggregate`, sensorType: "voice", quality }];
@@ -45,9 +65,11 @@ export function buildRawFeatures(
   const quality = qualityFromScan(scan, context.captureQuality);
   const dynamics = scan.voiceDynamics;
   const output: RawFeatureMeasurement[] = [];
+  const serverFeatureIds = new Set<string>();
 
   const push = (featureId: string, value: unknown, unit?: string, metadata?: Record<string, unknown>) => {
     if (!finite(value)) return;
+    if (serverFeatureIds.has(featureId) && metadata?.source !== "canonical_server") return;
     output.push({
       id: `${context.scanId ?? "scan"}:${featureId}`,
       featureId,
@@ -60,6 +82,42 @@ export function buildRawFeatures(
       metadata,
     });
   };
+
+  for (const prompt of scan.analysisDebug?.promptAnalyses ?? []) {
+    const canonical = prompt.canonicalAcoustic;
+    if (!canonical) continue;
+    for (const measurement of canonical.measurements) {
+      for (const compatible of canonicalCompatibility(measurement)) {
+        serverFeatureIds.add(compatible.featureId);
+        output.push({
+          id: `${context.scanId ?? "scan"}:${compatible.featureId}:${measurement.source_capture_id}`,
+          featureId: compatible.featureId,
+          sensorType: "voice",
+          value: compatible.value,
+          unit: compatible.unit,
+          captureIds: [measurement.source_capture_id],
+          taskId: measurement.capture_kind,
+          extractionVersion: measurement.extractor_version,
+          quality: qualityFromCanonical(measurement.quality),
+          metadata: {
+            source: "canonical_server",
+            canonicalFeatureId: measurement.feature_id,
+            canonicalUnit: measurement.unit,
+            method: measurement.method,
+            featureVersion: measurement.feature_version,
+            extractor: measurement.extractor,
+            extractorVersion: measurement.extractor_version,
+            confidence: measurement.confidence,
+            rejectionReason: measurement.rejection_reason,
+            segmentStartMs: measurement.segment_start_ms,
+            segmentEndMs: measurement.segment_end_ms,
+            captureKind: measurement.capture_kind,
+            parameters: measurement.parameters,
+          },
+        });
+      }
+    }
+  }
 
   push("voice.f0.median", dynamics?.medianPitchHz, "Hz");
   push("voice.f0.range_hz", dynamics?.pitchRangeHz, "Hz");
