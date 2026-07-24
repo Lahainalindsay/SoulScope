@@ -244,6 +244,15 @@
   color: rgba(148, 163, 184, 0.88);
 }
 
+.scanStatusRow {
+  width: min(100%, 520px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
 .infoCard {
   border-radius: 26px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -268,6 +277,7 @@
 
 .timeBadge {
   flex-shrink: 0;
+  min-width: 118px;
   padding: 10px 16px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -562,7 +572,8 @@
   }
 
   .timeBadge {
-    align-self: flex-start;
+    align-self: stretch;
+    text-align: center;
     font-size: 20px;
   }
 

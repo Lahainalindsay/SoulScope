@@ -112,33 +112,21 @@ const DEFAULT_PHASE_DURATIONS: Record<PhaseId, number> = {
 
 const voicePromptsTemplate: Omit<VoicePrompt, "status">[] = [
   {
-    label: "Sustained vowel",
-    prompt: "“Hold a comfortable ah sound for about five seconds.”",
-    duration: "5s",
-    captureKind: "sustained_vowel",
-  },
-  {
-    label: "This moment",
-    prompt: "“Say your name, then describe where you are in this moment.”",
-    duration: "≈ 8s",
+    label: "About you",
+    prompt: "“Please tell me about yourself, whatever comes to mind.”",
+    duration: "30s",
     captureKind: "guided_speech",
   },
   {
-    label: "What matters",
-    prompt: "“What has been taking up the most space in your mind lately?”",
-    duration: "≈ 8s",
+    label: "What is weighing on you",
+    prompt: "“Tell me about something that has been troubling or weighing on you.”",
+    duration: "30s",
     captureKind: "guided_speech",
   },
   {
-    label: "Looking inward",
-    prompt: "“Is there something you have been holding back or finding difficult to express?”",
-    duration: "≈ 6s",
-    captureKind: "guided_speech",
-  },
-  {
-    label: "Looking ahead",
-    prompt: "“What would you like to move toward next?”",
-    duration: "≈ 6s",
+    label: "Hope and direction",
+    prompt: "“Tell me about something you hope for in the future, even if it still feels far away.”",
+    duration: "30s",
     captureKind: "guided_speech",
   },
 ];

@@ -7,6 +7,7 @@ import {
   setGuidedScanSubject,
   type GuidedScanSubject,
 } from "../lib/guidedScanSession";
+import { GUIDED_SCAN_QUESTIONS } from "../lib/scanProtocol";
 import { supabase } from "../lib/supabaseClient";
 import styles from "./scan/ScanIntro.module.css";
 
@@ -105,7 +106,27 @@ export default function ScanIntroPage() {
                 Your surroundings and the way you position your device directly affect the quality of your scan. Please
                 follow each step before you begin.
               </p>
-              <p className={styles.duration}>Set aside about 3 minutes.</p>
+              <p className={styles.duration}>Three prompts · 30 seconds each · 10 seconds between prompts</p>
+
+              <section className={styles.promptPreview} aria-labelledby="scan-prompts-title">
+                <div className={styles.cardHeader}>
+                  <p className={styles.instructionsTitle}>What You Will Answer</p>
+                  <h2 id="scan-prompts-title">Speak for the full 30 seconds on each prompt.</h2>
+                  <p>Read these before you begin so you are not surprised when the recording starts.</p>
+                </div>
+
+                <ol className={styles.promptPreviewList}>
+                  {GUIDED_SCAN_QUESTIONS.map((question) => (
+                    <li key={question.id}>
+                      <div>
+                        <span className={styles.promptDuration}>30 seconds</span>
+                        <strong>{question.rangeLabel}</strong>
+                      </div>
+                      <p>{question.prompt}</p>
+                    </li>
+                  ))}
+                </ol>
+              </section>
 
               <section className={styles.preparationCard} aria-labelledby="scan-preparation-steps-title">
                 <div className={styles.cardHeader}>
@@ -125,7 +146,7 @@ export default function ScanIntroPage() {
                   </li>
                   <li>
                     <strong>Speak naturally</strong>
-                    <span>Use your normal speaking voice. Do not whisper, shout, perform, or try to change how you sound.</span>
+                    <span>Use your normal speaking voice and keep talking until each 30-second timer ends. Do not whisper, shout, perform, or try to change how you sound.</span>
                   </li>
                   <li>
                     <strong>Remain comfortably still</strong>
@@ -133,7 +154,7 @@ export default function ScanIntroPage() {
                   </li>
                   <li>
                     <strong>Allow enough time</strong>
-                    <span>Complete the scan without interruptions. Each response is recorded separately before your Reflection is created.</span>
+                    <span>Complete the scan without interruptions. Each response is recorded separately with a 10-second pause before the next prompt starts.</span>
                   </li>
                   <li>
                     <strong>Keep your face visible</strong>

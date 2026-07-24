@@ -15,7 +15,7 @@ import { GUIDED_SCAN_QUESTIONS } from "../../../lib/scanProtocol";
 import styles from "./GuidedScanQuestion.module.css";
 
 type PendingAction = "next" | "finish" | null;
-const AUTO_START_DELAY_MS = 3000;
+const AUTO_START_DELAY_MS = 10000;
 const CAMERA_BASELINE_MS = 3000;
 
 function signalClass(dbfs: number) {
@@ -57,6 +57,7 @@ export default function GuidedScanQuestionPage() {
   const isLastQuestion = questionIndex === GUIDED_SCAN_QUESTIONS.length - 1;
   const isCalibrating = step === 1 && !isRecording && isAutoStarting;
   const recordingDurationMs = question?.durationMs ?? 10000;
+  const recordingDurationSeconds = Math.max(1, Math.round(recordingDurationMs / 1000));
 
   const handleCameraSummaryChange = (reading: FaceReading | null) => {
     cameraSummaryRef.current = reading;
@@ -153,6 +154,9 @@ export default function GuidedScanQuestionPage() {
   const orbScale = 1 + Math.max(0.02, (liveSample?.rms ?? 0.08) * 0.18);
   const stepLabel = `${question.rangeLabel} · Prompt ${step} of ${GUIDED_SCAN_QUESTIONS.length}`;
   const progressPercent = Math.round((step / GUIDED_SCAN_QUESTIONS.length) * 100);
+  const remainingSeconds = isRecording
+    ? Math.max(0, Math.ceil((recordingDurationMs - elapsedSeconds * 1000) / 1000))
+    : recordingDurationSeconds;
 
   return (
     <>
@@ -168,7 +172,7 @@ export default function GuidedScanQuestionPage() {
             <div>
               <p className={styles.eyebrow}>{stepLabel}</p>
               <h1 className={styles.title}>Speak naturally. There is no perfect answer.</h1>
-              <p className={styles.subtitle}>Pause if you need to. Answer in the way that feels most natural.</p>
+              <p className={styles.subtitle}>Keep speaking until the 30-second timer ends. A 10-second pause separates each prompt.</p>
             </div>
             <div className={`${styles.statusPill} ${signalClass(liveSample?.dbfs ?? -120)}`}>{signalText(liveSample?.dbfs ?? -120)}</div>
           </div>
@@ -182,10 +186,11 @@ export default function GuidedScanQuestionPage() {
               <div className={styles.heroInner}>
                 <div className={styles.recordStage}>
                   <p className={styles.promptText}>{question.prompt}</p>
+                  <p className={styles.rationale}>{question.rationale}</p>
 
                   <div className={styles.scanStatusRow}>
                     <div className={styles.liveBadge}><span className={isRecording ? styles.liveDot : styles.idleDot} />{isRecording ? "Recording" : isSaving ? "Saving response" : hasCompletedRecording ? "Response captured" : "Ready"}</div>
-                    <div className={styles.timeBadge}>{elapsedSeconds}s</div>
+                    <div className={styles.timeBadge}>{isRecording ? `${remainingSeconds}s left` : `${recordingDurationSeconds}s`}</div>
                   </div>
 
                   <div className={styles.cameraGrid}>
@@ -217,9 +222,7 @@ export default function GuidedScanQuestionPage() {
                           ? "Take a moment to settle. Recording starts in a few seconds."
                           : "Get ready. Recording starts automatically."
                         : isRecording
-                          ? question.captureKind === "sustained_vowel"
-                            ? `Hold the sound steadily for ${Math.max(1, Math.round(recordingDurationMs / 1000))} seconds.`
-                            : `Speak naturally for ${Math.max(1, Math.round(recordingDurationMs / 1000))} seconds.`
+                          ? `Keep speaking continuously for ${recordingDurationSeconds} seconds.`
                           : hasCompletedRecording
                             ? "Response captured. Loading the next prompt."
                             : "Preparing your scan."}

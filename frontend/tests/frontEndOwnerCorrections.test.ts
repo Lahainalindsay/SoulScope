@@ -91,5 +91,35 @@ test("duration copy avoids unverified sixty-second claims", () => {
 
   assert.match(homepage, /Private by design · Guided voice scan · No diagnosis/);
   assert.doesNotMatch(homepage + scanIntro, /About 60 seconds|60 seconds|about one minute/i);
-  assert.match(scanIntro, /Set aside about 3 minutes\./);
+  assert.match(scanIntro, /Three prompts · 30 seconds each · 10 seconds between prompts/);
+});
+
+test("scan intro previews the three continuous speech prompts before recording starts", () => {
+  const source = read("pages/scan.tsx");
+  const protocol = read("lib/scanProtocol.ts");
+
+  assert.match(source, /What You Will Answer/);
+  assert.match(source, /Speak for the full 30 seconds on each prompt\./);
+  assert.match(protocol, /Please tell me about yourself, whatever comes to mind\./);
+  assert.match(protocol, /Tell me about something that has been troubling or weighing on you\./);
+  assert.match(protocol, /Tell me about something you hope for in the future, even if it still feels far away\./);
+  assert.equal((protocol.match(/durationMs: 30000/g) ?? []).length, 3);
+  assert.doesNotMatch(protocol, /Hold a comfortable ah sound/);
+});
+
+test("guided scan question timing uses thirty seconds with ten seconds between prompts", () => {
+  const source = read("pages/scan/question/[step].tsx");
+
+  assert.match(source, /const AUTO_START_DELAY_MS = 10000/);
+  assert.match(source, /Keep speaking until the 30-second timer ends/);
+  assert.match(source, /Keep speaking continuously for \$\{recordingDurationSeconds\} seconds\./);
+  assert.match(source, /\$\{remainingSeconds\}s left/);
+});
+
+test("scan intro numbered preparation layout keeps a real text column on narrow screens", () => {
+  const styles = read("pages/scan/ScanIntro.module.css");
+
+  assert.match(styles, /\.preparationList li\s*\{[^}]*grid-template-columns:\s*42px minmax\(0,\s*1fr\)/s);
+  assert.match(styles, /grid-template-columns:\s*32px minmax\(0,\s*1fr\)/);
+  assert.doesNotMatch(styles, /grid-template-columns:\s*1fr;\n\s*}\n}\s*$/);
 });
