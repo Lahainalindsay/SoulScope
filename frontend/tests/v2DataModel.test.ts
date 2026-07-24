@@ -14,6 +14,7 @@ import { mapPatternMatches } from "../lib/data/v2/mappers/mapPatternMatches";
 import { mapReflectionVariants } from "../lib/data/v2/mappers/mapReflectionVariants";
 import { stableUuid } from "../lib/data/v2/stableId";
 import { diagnosticPayloadVariants } from "../lib/data/v2/persistSoulScopeV2Result";
+import { isDiagnosticsSchemaDriftError } from "../lib/data/v2/diagnosticsRepository";
 
 function scan(): VoiceAnalysisResult {
   return {
@@ -122,6 +123,24 @@ test("diagnostic persistence can fall back for older deployed schemas", () => {
   assert.ok(!("canonical_display_name" in legacy));
   assert.ok(!("confidence_margin" in legacy));
   assert.ok("pattern_signature" in legacy);
+});
+
+test("diagnostic schema drift includes deployed missing-column errors", () => {
+  assert.equal(isDiagnosticsSchemaDriftError({ code: "PGRST204", message: "schema cache missing column" }), true);
+  assert.equal(
+    isDiagnosticsSchemaDriftError({
+      code: "42703",
+      message: "column scan_interpretation_diagnostics.organizing_quality does not exist",
+    }),
+    true,
+  );
+  assert.equal(
+    isDiagnosticsSchemaDriftError({
+      message: "column scan_interpretation_diagnostics.naming_matrix_version does not exist",
+    }),
+    true,
+  );
+  assert.equal(isDiagnosticsSchemaDriftError({ code: "42501", message: "permission denied" }), false);
 });
 
 test("evidence, observation, and domain mappings preserve traceability", () => {

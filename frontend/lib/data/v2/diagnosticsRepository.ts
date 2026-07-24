@@ -77,10 +77,14 @@ const LEGACY_DIAGNOSTIC_COLUMNS = [
   "updated_at",
 ].join(",");
 
-function isSchemaCacheColumnError(error: unknown) {
+export function isDiagnosticsSchemaDriftError(error: unknown) {
   if (!error || typeof error !== "object") return false;
   const candidate = error as { code?: string; message?: string };
-  return candidate.code === "PGRST204" || /schema cache.*column|column.*schema cache/i.test(candidate.message ?? "");
+  return (
+    candidate.code === "PGRST204" ||
+    candidate.code === "42703" ||
+    /schema cache.*column|column.*schema cache|column .* does not exist/i.test(candidate.message ?? "")
+  );
 }
 
 export async function listInterpretationDiagnosticsForScans(
@@ -97,7 +101,7 @@ export async function listInterpretationDiagnosticsForScans(
       .eq("user_id", user.id)
       .in("scan_id", scanIds);
     if (!error) return (data ?? []) as unknown as ScanInterpretationDiagnosticRow[];
-    if (!isSchemaCacheColumnError(error)) throwIfError(error, "Could not load scan interpretation diagnostics");
+    if (!isDiagnosticsSchemaDriftError(error)) throwIfError(error, "Could not load scan interpretation diagnostics");
     lastSchemaError = error;
   }
   console.warn("Scan interpretation diagnostics were not loaded because the deployed database schema is behind the application.", lastSchemaError);

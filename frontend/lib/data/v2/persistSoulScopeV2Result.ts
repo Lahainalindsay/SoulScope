@@ -21,6 +21,7 @@ import { mapReflectionVariants } from "./mappers/mapReflectionVariants";
 import type { ScanSessionRow, ScanSessionUpdate } from "./types";
 import { toJsonObject, toJsonValue } from "./json";
 import { throwIfError } from "./client";
+import { isDiagnosticsSchemaDriftError } from "./diagnosticsRepository";
 
 export interface PersistSoulScopeV2ResultArgs {
   client: SupabaseClient;
@@ -39,12 +40,6 @@ function finalSessionUpdate(args: ReturnType<typeof mapScanSession>): ScanSessio
 }
 
 type DiagnosticsPayload = Record<string, unknown>;
-
-function isSchemaCacheColumnError(error: unknown) {
-  if (!error || typeof error !== "object") return false;
-  const candidate = error as { code?: string; message?: string };
-  return candidate.code === "PGRST204" || /schema cache.*column|column.*schema cache/i.test(candidate.message ?? "");
-}
 
 export function diagnosticPayloadVariants(args: PersistSoulScopeV2ResultArgs): DiagnosticsPayload[] {
   const canonical = args.report.canonicalPattern;
@@ -89,7 +84,7 @@ async function upsertInterpretationDiagnostics(args: PersistSoulScopeV2ResultArg
   for (const payload of diagnosticPayloadVariants(args)) {
     const response = await args.client.from("scan_interpretation_diagnostics").upsert(payload, { onConflict: "scan_id" });
     if (!response.error) return;
-    if (!isSchemaCacheColumnError(response.error)) {
+    if (!isDiagnosticsSchemaDriftError(response.error)) {
       throwIfError(response.error, "Could not save scan interpretation diagnostics");
     }
     lastSchemaError = response.error;
