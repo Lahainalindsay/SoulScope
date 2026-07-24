@@ -38,7 +38,7 @@ export default function HomeDailyCheckIn({ linkedScanId = null }: HomeDailyCheck
     }
     try {
       await upsertDailyCheckIn(supabase, { date: toLocalDateKey(), emotions, note, linkedScanId });
-      setStatus("Today’s check-in is saved.");
+      setStatus(linkedScanId ? "Check-in saved with this scan." : "Check-in saved.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Your check-in could not be saved.");
     }
@@ -47,13 +47,13 @@ export default function HomeDailyCheckIn({ linkedScanId = null }: HomeDailyCheck
   return (
     <section className={styles.card} aria-labelledby="daily-check-in-title">
       <div className={styles.header}>
-        <div><p className={styles.eyebrow}>Personal Check-In</p><h2 id="daily-check-in-title">Add context to this moment.</h2></div>
+        <div><p className={styles.eyebrow}>Optional Check-in</p><h2 id="daily-check-in-title">Add Personal Context</h2></div>
         <span>{emotions.length}/3 selected</span>
       </div>
       <div className={styles.chips}>
         {CHECK_IN_EMOTIONS.map((emotion) => <button key={emotion} type="button" aria-pressed={emotions.includes(emotion)} onClick={() => toggle(emotion)}>{emotion}</button>)}
       </div>
-      <textarea value={note} maxLength={2000} onChange={(event) => setNote(event.target.value)} placeholder="Optional note about what was happening around this moment" aria-label="Optional check-in note" />
+      <textarea value={note} maxLength={2000} onChange={(event) => setNote(event.target.value)} placeholder={linkedScanId ? "Optional note for this scan" : "Optional note"} aria-label="Optional check-in note" />
       <div className={styles.footer}><p aria-live="polite">{status}</p><button type="button" onClick={save}>Save Check-In</button></div>
     </section>
   );

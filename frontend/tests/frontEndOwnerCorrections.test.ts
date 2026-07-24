@@ -5,23 +5,27 @@ import test from "node:test";
 
 const read = (relativePath: string) => fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
 
-test("homepage opens with the campaign line before the concise Soul and Scope captions", () => {
+test("homepage opens as a minimal instrument landing page", () => {
   const source = read("pages/index.tsx");
-  const clarityIndex = source.indexOf("Clarity comes from within.");
-  const observeIndex = source.indexOf("Observe your inner world.");
-  const soulIndex = source.indexOf("Your inner experience.");
-  const scopeIndex = source.indexOf("A way of seeing.");
+  const eyebrowIndex = source.indexOf("A new instrument for self-reflection");
+  const soulIndex = source.indexOf(">Soul<");
+  const scopeIndex = source.indexOf(">Scope<");
+  const titleIndex = source.indexOf(">SoulScope<");
+  const taglineIndex = source.indexOf("A private instrument for self-awareness.");
 
-  assert.ok(clarityIndex >= 0);
-  assert.ok(observeIndex > clarityIndex);
-  assert.ok(soulIndex > observeIndex);
-  assert.ok(scopeIndex > observeIndex);
-  assert.match(source, />Soul</);
-  assert.match(source, />Scope</);
-  assert.match(source, /<h1[^>]*className=\{styles\.heroHeadline\}>Clarity comes from within\.<\/h1>/);
+  assert.ok(eyebrowIndex >= 0);
+  assert.ok(soulIndex > eyebrowIndex);
+  assert.ok(titleIndex > soulIndex);
+  assert.ok(scopeIndex > titleIndex);
+  assert.ok(taglineIndex > titleIndex);
+  assert.match(source, />noun</);
+  assert.match(source, /<h1[^>]*className=\{styles\.heroHeadline\}>SoulScope<\/h1>/);
+  assert.doesNotMatch(source, /Clarity comes from within\./);
+  assert.doesNotMatch(source, /Observe your inner world\./);
+  assert.doesNotMatch(source, /Your inner experience\./);
+  assert.doesNotMatch(source, /A way of seeing\./);
   assert.doesNotMatch(source, /The inner world of a person/);
   assert.doesNotMatch(source, /An instrument used to observe, examine/);
-  assert.doesNotMatch(source, /A private instrument for seeing more clearly within\./);
 });
 
 test("homepage no longer renders an illustrative Resonance Signature", () => {
@@ -34,11 +38,13 @@ test("homepage no longer renders an illustrative Resonance Signature", () => {
   assert.doesNotMatch(styles, /heroVisual|illustrativeLabel|signatureFrame/);
 });
 
-test("homepage definition layout stays paired on mobile with a narrow fallback", () => {
+test("homepage definition layout keeps dictionary terms with the title", () => {
   const styles = read("styles/Home.module.css");
 
-  assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+18px\s+minmax\(0,\s*1fr\)/);
-  assert.match(styles, /@media\s*\(max-width:\s*330px\)/);
+  assert.match(styles, /\.heroIdentity/);
+  assert.match(styles, /grid-template-columns:\s*minmax\(82px,\s*max-content\)\s+minmax\(0,\s*max-content\)\s+minmax\(82px,\s*max-content\)/);
+  assert.match(styles, /\.dictionaryTerm small/);
+  assert.match(styles, /@media\s*\(max-width:\s*700px\)/);
 });
 
 test("How It Works explains the illustrative Resonance Signature in the signature section", () => {
@@ -96,7 +102,8 @@ test("duration copy avoids unverified sixty-second claims", () => {
   const homepage = read("pages/index.tsx");
   const scanIntro = read("pages/scan.tsx");
 
-  assert.match(homepage, /Private by design · Guided voice scan · No diagnosis/);
+  assert.match(homepage, /Private by design\./);
+  assert.match(homepage, /Your scan data remains securely associated with your account\./);
   assert.doesNotMatch(homepage + scanIntro, /About 60 seconds|60 seconds|about one minute/i);
   assert.match(scanIntro, /You have 30 seconds to answer each one/);
 });

@@ -18,7 +18,7 @@ import { mapObservations } from "./mappers/mapObservations";
 import { mapDomains } from "./mappers/mapDomains";
 import { mapPatternMatches } from "./mappers/mapPatternMatches";
 import { mapReflectionVariants } from "./mappers/mapReflectionVariants";
-import type { ScanSessionRow, ScanSessionUpdate } from "./types";
+import type { ReflectionVariantRow, ScanInterpretationDiagnosticRow, ScanSessionRow, ScanSessionUpdate } from "./types";
 import { toJsonObject, toJsonValue } from "./json";
 import { throwIfError } from "./client";
 import { isDiagnosticsSchemaDriftError } from "./diagnosticsRepository";
@@ -40,6 +40,23 @@ function finalSessionUpdate(args: ReturnType<typeof mapScanSession>): ScanSessio
 }
 
 type DiagnosticsPayload = Record<string, unknown>;
+
+const REQUIRED_DIAGNOSTIC_COLUMNS = [
+  "scan_id",
+  "user_id",
+  "canonical_pattern_signature",
+  "canonical_display_name",
+  "organizing_quality",
+  "result_type",
+  "naming_matrix_version",
+  "confidence",
+  "confidence_margin",
+  "state_vector",
+  "decision_ledger",
+  "reflection_source",
+  "subpattern_scores",
+  "engine_version",
+].join(",");
 
 export function diagnosticPayloadVariants(args: PersistSoulScopeV2ResultArgs): DiagnosticsPayload[] {
   const canonical = args.report.canonicalPattern;
@@ -79,17 +96,64 @@ export function diagnosticPayloadVariants(args: PersistSoulScopeV2ResultArgs): D
   return [matrixFields, canonicalFields, legacy];
 }
 
-async function upsertInterpretationDiagnostics(args: PersistSoulScopeV2ResultArgs) {
-  let lastSchemaError: unknown = null;
-  for (const payload of diagnosticPayloadVariants(args)) {
-    const response = await args.client.from("scan_interpretation_diagnostics").upsert(payload, { onConflict: "scan_id" });
-    if (!response.error) return;
-    if (!isDiagnosticsSchemaDriftError(response.error)) {
-      throwIfError(response.error, "Could not save scan interpretation diagnostics");
-    }
-    lastSchemaError = response.error;
+function canonicalPersistenceSchemaError(error: unknown) {
+  if (!isDiagnosticsSchemaDriftError(error)) return null;
+  const details = error instanceof Error ? error.message : typeof error === "object" && error ? JSON.stringify(error) : String(error);
+  return new Error(
+    `Canonical diagnostic persistence failed because the Supabase schema is behind the application. Apply migration 20260723033318_add_pattern_matrix_diagnostics.sql. Details: ${details}`,
+  );
+}
+
+function assertJsonObjectField(value: unknown, field: string) {
+  if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).length === 0) {
+    throw new Error(`Canonical diagnostic verification failed: ${field} was not saved.`);
   }
-  console.warn("Scan interpretation diagnostics were saved without blocking the scan because the deployed database schema is behind the application.", lastSchemaError);
+}
+
+function verifyCanonicalDiagnostic(row: ScanInterpretationDiagnosticRow | null, args: PersistSoulScopeV2ResultArgs) {
+  const canonical = args.report.canonicalPattern;
+  if (!row) throw new Error("Canonical diagnostic verification failed: no diagnostic row was returned.");
+  if (row.scan_id !== args.scanId) throw new Error("Canonical diagnostic verification failed: scan id mismatch.");
+  if (row.canonical_display_name !== canonical.canonicalDisplayName) {
+    throw new Error("Canonical diagnostic verification failed: canonical display name mismatch.");
+  }
+  if (row.canonical_pattern_signature !== canonical.canonicalPatternSignature) {
+    throw new Error("Canonical diagnostic verification failed: canonical signature mismatch.");
+  }
+  if (!row.organizing_quality || !row.result_type || !row.naming_matrix_version) {
+    throw new Error("Canonical diagnostic verification failed: naming matrix fields were not saved.");
+  }
+  assertJsonObjectField(row.state_vector, "state_vector");
+  assertJsonObjectField(row.decision_ledger, "decision_ledger");
+}
+
+function verifyReflectionIdentity(rows: ReflectionVariantRow[], args: PersistSoulScopeV2ResultArgs) {
+  const canonical = args.report.canonicalPattern;
+  if (rows.length !== args.report.storyCandidates.length) {
+    throw new Error("Reflection verification failed: not all reflection variants were saved.");
+  }
+  for (const row of rows) {
+    const content = row.content as { canonicalDisplayName?: unknown; canonicalPatternSignature?: unknown } | null;
+    if (content?.canonicalDisplayName !== canonical.canonicalDisplayName) {
+      throw new Error("Reflection verification failed: canonical display name mismatch.");
+    }
+    if (content?.canonicalPatternSignature !== canonical.canonicalPatternSignature) {
+      throw new Error("Reflection verification failed: canonical signature mismatch.");
+    }
+  }
+}
+
+async function upsertAndVerifyInterpretationDiagnostics(args: PersistSoulScopeV2ResultArgs) {
+  const [payload] = diagnosticPayloadVariants(args);
+  const response = await args.client
+    .from("scan_interpretation_diagnostics")
+    .upsert(payload, { onConflict: "scan_id" })
+    .select(REQUIRED_DIAGNOSTIC_COLUMNS)
+    .single();
+  const schemaError = canonicalPersistenceSchemaError(response.error);
+  if (schemaError) throw schemaError;
+  throwIfError(response.error, "Could not save scan interpretation diagnostics");
+  verifyCanonicalDiagnostic((response.data ?? null) as unknown as ScanInterpretationDiagnosticRow | null, args);
 }
 
 export async function persistSoulScopeV2Result(args: PersistSoulScopeV2ResultArgs): Promise<ScanSessionRow> {
@@ -115,8 +179,9 @@ export async function persistSoulScopeV2Result(args: PersistSoulScopeV2ResultArg
     await insertObservations(args.client, mapObservations(context));
     await insertDomainResults(args.client, mapDomains(context));
     await insertPatternMatches(args.client, mapPatternMatches(context));
-    await insertReflectionVariants(args.client, mapReflectionVariants(context));
-    await upsertInterpretationDiagnostics(args);
+    const reflectionRows = await insertReflectionVariants(args.client, mapReflectionVariants(context));
+    verifyReflectionIdentity(reflectionRows, args);
+    await upsertAndVerifyInterpretationDiagnostics(args);
     const session = await updateScanSession(
       args.client,
       args.scanId,

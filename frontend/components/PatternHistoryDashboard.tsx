@@ -9,7 +9,6 @@ import { buildSoulScopeReport } from "../lib/buildSoulScopeReport";
 import { type NoteEnergyResult, type VoiceAnalysisResult } from "../lib/voiceSpectrum";
 import { getScanHistoryViewModel } from "../lib/data/v2/getScanHistoryViewModel";
 import ResonanceSignature, { type ResonanceSignatureDatum } from "./ResonanceSignature";
-import HomeDailyCheckIn from "./HomeDailyCheckIn";
 import styles from "../pages/History.module.css";
 
 type ScanRow = {
@@ -98,7 +97,7 @@ function buildMovement(entries: HistoryEntry[]) {
 
 type PatternHistoryDashboardProps = { mode?: "dashboard" | "history" };
 
-export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternHistoryDashboardProps) {
+export default function PatternHistoryDashboard({ mode = "history" }: PatternHistoryDashboardProps) {
   const isArchive = mode === "history";
   const session = useSession();
   const { isLoading: sessionLoading } = useSessionContext();
@@ -173,17 +172,16 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
       <main className={styles.shell}>
         <section className={styles.instrumentHero}>
           <div className={styles.instrumentCopy}>
-            <p className={styles.eyebrow}>{isArchive ? "Your History" : "My SoulScope"}</p>
-            <h1 className={styles.instrumentTitle}>{isArchive ? "Notice what changes. Recognize what returns." : "Welcome back."}</h1>
-            <p className={styles.instrumentLead}>{latestEntry?.conciseSummary ?? "After your first Resonance Scan, your Signature and Reflection will appear here."}</p>
-            <p className={styles.reflectionQuestion}>{latestEntry?.report.presentation.reflectionQuestion ?? "What would you like to understand more clearly today?"}</p>
+            <p className={styles.eyebrow}>Your History</p>
+            <h1 className={styles.instrumentTitle}>Notice what changes. Recognize what returns.</h1>
+            <p className={styles.instrumentLead}>{latestEntry?.conciseSummary ?? "No scans recorded yet."}</p>
             <div className={styles.instrumentMeta}>
               <span>{latestEntry ? `Last scan: ${formatScanDate(latestEntry.scan.created_at)}` : "No scan recorded yet"}</span>
               {latestEntry?.preferredStyle ? <span>Reflection: {latestEntry.preferredStyle}</span> : null}
             </div>
             <div className={styles.newScanActions}>
               {latestEntry?.scan.id ? <Link href={`/results/${latestEntry.scan.id}`} className={styles.primaryButton}>View Reflection</Link> : null}
-              <Link href="/scan" className={latestEntry?.scan.id ? styles.secondaryButton : styles.primaryButton}>{latestEntry ? "Start New Scan" : "Begin My First Scan"}</Link>
+              <Link href="/scan" className={latestEntry?.scan.id ? styles.secondaryButton : styles.primaryButton}>{latestEntry ? "Begin New Scan" : "Begin First Resonance Scan"}</Link>
             </div>
           </div>
           <div className={styles.instrumentMap}>
@@ -191,7 +189,6 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
           </div>
         </section>
 
-        {!isArchive ? <HomeDailyCheckIn linkedScanId={latestEntry?.scan.id ?? null} /> : null}
         {loading ? <div className={styles.stateCard}>Opening your SoulScope...</div> : null}
         {error ? <div className={`${styles.stateCard} ${styles.stateError}`}>{error}</div> : null}
 
@@ -263,7 +260,7 @@ export default function PatternHistoryDashboard({ mode = "dashboard" }: PatternH
           <div className={styles.stateCard}>
             <h2>Your story begins with one scan.</h2>
             <p>After your first Resonance Scan, your Signature and Reflection will appear here.</p>
-            <Link href="/scan" className={styles.primaryButton}>Begin My First Scan</Link>
+            <Link href="/scan" className={styles.primaryButton}>Begin First Resonance Scan</Link>
           </div>
         ) : null}
       </main>

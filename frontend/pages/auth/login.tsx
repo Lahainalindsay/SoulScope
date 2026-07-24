@@ -7,7 +7,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { clearLocalDevSession } from "../../lib/localSession";
 import styles from "../Auth.module.css";
 
-const DEFAULT_AUTH_HOME = "/dashboard";
+const DEFAULT_AUTH_HOME = "/profile";
 
 function safeInternalDestination(value: string | string[] | undefined) {
   const candidate = Array.isArray(value) ? value[0] : value;
@@ -48,7 +48,7 @@ export default function LoginPage() {
       }
 
       clearLocalDevSession();
-      setStatus(destination === "/scan" ? "Opening your scan..." : "Opening SoulScope...");
+      setStatus(destination === "/scan" ? "Opening your scan..." : "Opening your profile...");
       await router.push(destination);
     } catch (error) {
       console.error("Login request failed", error);
@@ -62,12 +62,6 @@ export default function LoginPage() {
   return (
     <main className={styles.page}>
       <section className={styles.card}>
-        <p className={styles.brand}>SoulScope</p>
-        <h1 className={styles.title}>Your inner world, kept private.</h1>
-        <p className={styles.lead}>
-          Sign in to begin a Resonance Scan, revisit your Reflections, and see how your patterns change over time.
-        </p>
-
         <form className={styles.form} onSubmit={handleLogin}>
           <label className={styles.field}>
             <span className={styles.label}>Email</span>
@@ -84,9 +78,10 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className={styles.secondary}>
-          New here? <Link href={signupHref} className={styles.link}>Create your private SoulScope</Link>
-        </p>
+        <div className={styles.authLinks}>
+          <Link href={signupHref} className={styles.link}>Create Account</Link>
+          <Link href="/auth/debug" className={styles.link}>Forgot Password</Link>
+        </div>
       </section>
     </main>
   );

@@ -8,207 +8,40 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>SoulScope — Clarity Comes From Within</title>
+        <title>SoulScope — A private instrument for self-awareness</title>
         <meta
           name="description"
-          content="SoulScope is a private instrument for self-awareness that organizes subtle patterns in your voice and expression into a personal Resonance Signature and Reflection."
+          content="SoulScope is a private instrument for self-awareness."
         />
       </Head>
 
       <main className={styles.page}>
         <section className={styles.productIntro}>
           <div className={styles.productIntroInner}>
-            <p className={styles.heroEyebrow}>A private instrument for self-awareness</p>
-            <h1 className={styles.heroHeadline}>Clarity comes from within.</h1>
-            <p className={styles.heroBody}>
-              Your voice carries subtle patterns shaped by the way you are responding to life. SoulScope organizes those
-              patterns into a personal Resonance Signature and Reflection, helping you see what may be difficult to
-              notice on your own.
-            </p>
+            <p className={styles.heroEyebrow}>A new instrument for self-reflection</p>
+            <div className={styles.heroIdentity} aria-label="SoulScope definition">
+              <div className={styles.dictionaryTerm}>
+                <span>Soul</span>
+                <small>noun</small>
+              </div>
+              <h1 className={styles.heroHeadline}>SoulScope</h1>
+              <div className={styles.dictionaryTerm}>
+                <span>Scope</span>
+                <small>noun</small>
+              </div>
+            </div>
+            <p className={styles.heroBody}>A private instrument for self-awareness.</p>
             <div className={styles.heroActions}>
               <Link href={START_SCAN_LOGIN} className={styles.primaryCta}>Begin Your Resonance Scan</Link>
               <Link href="/how-it-works" className={styles.secondaryCta}>How SoulScope Works</Link>
             </div>
-            <p className={styles.heroMeta}>Private by design · Guided voice scan · No diagnosis</p>
-
-            <section className={styles.definitionSection} aria-labelledby="soulscope-definition-title">
-              <p id="soulscope-definition-title" className={styles.definitionIntro}>Observe your inner world.</p>
-              <div className={styles.definitionPair}>
-                <article className={styles.dictionaryEntry}>
-                  <h2>Soul</h2>
-                  <p>Your inner experience.</p>
-                </article>
-
-                <div className={styles.dictionaryLight} aria-hidden="true" />
-
-                <article className={styles.dictionaryEntry}>
-                  <h2>Scope</h2>
-                  <p>A way of seeing.</p>
-                </article>
-              </div>
-            </section>
           </div>
         </section>
 
-        <section className={styles.section}>
-          <div className={styles.sectionInnerNarrow}>
-            <p className={styles.sectionEyebrow}>A different kind of self-reflection</p>
-            <h2 className={styles.sectionTitle}>SoulScope begins by listening.</h2>
-            <div className={styles.editorialBlock}>
-              <p>
-                Most self-reflection tools begin by asking you to describe yourself. A Resonance Scan begins with
-                patterns already present in the way you speak.
-              </p>
-              <p>
-                Your answers provide context. Your voice provides the signal. Together, they create a clearer view of
-                this moment.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.section} id="how-it-works">
-          <div className={styles.sectionInner}>
-            <p className={styles.sectionEyebrow}>How it works</p>
-            <h2 className={styles.sectionTitle}>Speak. Observe. Reflect.</h2>
-            <div className={styles.steps}>
-              <article className={styles.step}>
-                <span>1</span>
-                <h3>Speak</h3>
-                <p>Respond naturally to a short series of guided prompts.</p>
-              </article>
-              <article className={styles.step}>
-                <span>2</span>
-                <h3>Observe</h3>
-                <p>SoulScope organizes patterns in timing, steadiness, rhythm, energy, and expression.</p>
-              </article>
-              <article className={styles.step}>
-                <span>3</span>
-                <h3>Reflect</h3>
-                <p>Receive a Resonance Signature, a clear Reflection, and something meaningful to notice.</p>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.receiveLayout}>
-            <div>
-              <p className={styles.sectionEyebrow}>What you receive</p>
-              <h2 className={styles.sectionTitle}>One scan reveals a moment. Many scans reveal a story.</h2>
-            </div>
-            <div className={styles.receiveList}>
-              <article>
-                <h3>Your Resonance Signature</h3>
-                <p>A visual expression shaped by the patterns present in your scan.</p>
-              </article>
-              <article>
-                <h3>Your Reflection</h3>
-                <p>A clear, human explanation of what stood out and how those patterns may relate.</p>
-              </article>
-              <article>
-                <h3>Your Resonance Timeline</h3>
-                <p>A private record of how your patterns shift, return, and evolve over time.</p>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.sectionInnerNarrow}>
-            <p className={styles.sectionEyebrow}>Why return</p>
-            <h2 className={styles.sectionTitle}>Your inner world is always moving.</h2>
-            <div className={styles.editorialBlock}>
-              <p>
-                A single scan offers a view of the present. Over time, SoulScope can help you recognize what is
-                temporary, what tends to return, and what may be changing.
-              </p>
-              <p>Scan when you want to pause, check in, prepare, reflect, or compare.</p>
-            </div>
-            <ul className={styles.returnList}>
-              <li>At the beginning or end of the day</li>
-              <li>Before or after an important conversation</li>
-              <li>During a demanding week</li>
-              <li>When something feels different</li>
-              <li>When you want to notice progress</li>
-            </ul>
-          </div>
-        </section>
-
-        <section className={styles.section} id="privacy">
-          <div className={styles.sectionInner}>
-            <p className={styles.sectionEyebrow}>Privacy</p>
-            <h2 className={styles.sectionTitle}>Your inner world should remain yours.</h2>
-            <div className={styles.privacyGrid}>
-              <p>
-                A Resonance Scan asks for microphone access to record your responses. Camera access is optional where
-                supported and may be used to observe broad changes in facial movement.
-              </p>
-              <p>
-                SoulScope saves derived scan measurements, your Resonance Signature, Reflection, and history with your
-                account. The saved scan record is built from measurements and interpretation data, not a public profile
-                or advertisement target.
-              </p>
-              <p>
-                This application does not include advertising or data-sale flows in the user experience. You can delete
-                saved scan records from Settings.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.pairedGrid}>
-            <article>
-              <h2>SoulScope is</h2>
-              <ul>
-                <li>A reflection instrument</li>
-                <li>A way to observe patterns</li>
-                <li>A private record of change over time</li>
-                <li>A starting point for self-awareness</li>
-              </ul>
-            </article>
-            <article>
-              <h2>SoulScope is not</h2>
-              <ul>
-                <li>A diagnosis</li>
-                <li>A medical test</li>
-                <li>A definition of who you are</li>
-                <li>A replacement for professional care</li>
-              </ul>
-            </article>
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.sectionInnerNarrow}>
-            <p className={styles.sectionEyebrow}>Founding 500</p>
-            <h2 className={styles.sectionTitle}>Become one of the Founding 500.</h2>
-            <div className={styles.editorialBlock}>
-              <p>
-                Help shape SoulScope from the beginning. Founding members receive full access for the first year and
-                will be invited to share brief feedback as the experience evolves.
-              </p>
-            </div>
-            <div className={styles.heroActions}>
-              <Link href={START_SCAN_LOGIN} className={styles.primaryCta}>Join the Founding 500</Link>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.finalSection}>
-          <div className={styles.finalInner}>
-            <h2 className={styles.finalTitle}>See what this moment may be expressing.</h2>
-            <p className={styles.finalLine}>Your first Reflection begins with your voice.</p>
-            <div className={styles.finalActions}>
-              <Link href={START_SCAN_LOGIN} className={styles.primaryCta}>Begin Your Resonance Scan</Link>
-            </div>
-            <p className={styles.heroMeta}>
-              SoulScope is designed for personal reflection and self-understanding. It does not diagnose medical or
-              psychological conditions.
-            </p>
-          </div>
-        </section>
+        <footer className={styles.footer} id="privacy">
+          <p>Private by design.</p>
+          <span>Your scan data remains securely associated with your account.</span>
+        </footer>
       </main>
     </>
   );

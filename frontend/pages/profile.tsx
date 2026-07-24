@@ -14,6 +14,11 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
+function formatConfidence(value: number | null | undefined) {
+  if (!Number.isFinite(value)) return "Emerging";
+  return `${Math.round(Math.max(0, Math.min(1, value ?? 0)) * 100)}%`;
+}
+
 function buildSignatureData(latest: ScanHistoryItemViewModel | null): ResonanceSignatureDatum[] {
   if (!latest?.scan || !latest.report) return [];
   const resonance = (latest.scan.noteEnergies ?? [])
@@ -51,7 +56,7 @@ export default function ProfilePage() {
 
   const latest = scans[0] ?? null;
   const signatureData = useMemo(() => buildSignatureData(latest), [latest]);
-  const displayName = profile?.display_name?.trim();
+  const confidence = latest?.report?.canonicalPattern.confidence ?? latest?.report?.primaryPattern.confidence ?? null;
 
   const saveName = async () => {
     try {
@@ -70,15 +75,7 @@ export default function ProfilePage() {
       <main className={styles.page}>
         <div className={styles.shell}>
           <header className={styles.hero}>
-            <div>
-              <p className={styles.eyebrow}>My SoulScope</p>
-              <h1 className={styles.title}>{displayName ? `Welcome back, ${displayName}.` : "Welcome back."}</h1>
-              <p className={styles.lead}>Your latest Reflection and the patterns taking shape over time.</p>
-            </div>
-            <div className={styles.actions}>
-              <Link href="/scan" className={styles.primary}>{latest ? "Start New Scan" : "Begin My First Scan"}</Link>
-              <Link href="/history" className={styles.secondary}>View My History</Link>
-            </div>
+            <p className={styles.eyebrow}>Your Latest Resonance Scan</p>
           </header>
 
           {error ? <p className={styles.error}>{error}</p> : null}
@@ -86,35 +83,37 @@ export default function ProfilePage() {
 
           {!loading ? (
             <section className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <p className={styles.eyebrow}>Latest Resonance Signature</p>
-                <h2 className={styles.sectionTitle}>{latest ? latest.patternName : "Your story begins with one scan."}</h2>
-              </div>
               {latest ? (
                 <div className={styles.resonance}>
                   <div className={styles.mapWrap}><ResonanceSignature data={signatureData} label="Latest Resonance Signature" /></div>
                   <div className={styles.reflection}>
-                    <p className={styles.meta}>{formatDate(latest.createdAt)}</p>
-                    <p>{latest.conciseSummary}</p>
-                    <div><p className={styles.meta}>What changed</p><p>{latest.report?.baselineComparison?.overallSummary ?? "Your personal pattern will become clearer as you complete more scans."}</p></div>
-                    <div className={styles.actions}>
-                      <Link href={`/results/${latest.scanId}`} className={styles.secondary}>View Full Reflection</Link>
-                      <Link href="/dashboard#daily-check-in" className={styles.secondary}>Add Context</Link>
+                    <p className={styles.meta}>Pattern</p>
+                    <h1 className={styles.title}>{latest.patternName}</h1>
+                    <p className={styles.summary}>{latest.conciseSummary}</p>
+                    <div className={styles.scanMetaGrid}>
+                      <div>
+                        <p className={styles.meta}>Resonance Signature</p>
+                        <p>Recorded</p>
+                      </div>
+                      <div>
+                        <p className={styles.meta}>Date</p>
+                        <p>{formatDate(latest.createdAt)}</p>
+                      </div>
+                      <div>
+                        <p className={styles.meta}>Confidence</p>
+                        <p>{formatConfidence(confidence)}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              ) : <div className={styles.empty}><p>After your first Resonance Scan, your Signature and Reflection will appear here.</p><Link href="/scan" className={styles.primary}>Begin My First Scan</Link></div>}
+              ) : <div className={styles.empty}><p>Your latest scan will appear here.</p></div>}
+              <div className={styles.belowActions}>
+                <Link href="/scan" className={styles.primary}>{latest ? "Begin New Scan" : "Begin First Resonance Scan"}</Link>
+                {latest ? <Link href={`/results/${latest.scanId}`} className={styles.secondary}>View Full Reflection</Link> : null}
+                {latest ? <Link href="/history" className={styles.secondary}>History</Link> : null}
+              </div>
             </section>
           ) : null}
-
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}><p className={styles.eyebrow}>Personal Check-In</p><h2 className={styles.sectionTitle}>Add context to this moment.</h2><p className={styles.sectionLead}>Add a few words about what was happening around this moment. Your note remains separate from the measured scan and can help you understand the pattern later.</p></div>
-            <div className={styles.notes}>
-              <Link href="/dashboard#daily-check-in" className={styles.noteCard}><h3>Add a Check-In</h3><p>Add private context for what was happening around this moment.</p></Link>
-              <Link href="/history" className={styles.noteCard}><h3>View My History</h3><p>See previous Signatures and pattern movement over time.</p></Link>
-              <a href="#account-settings" className={styles.noteCard}><h3>Account Settings</h3><p>Update how SoulScope addresses you and review account details.</p></a>
-            </div>
-          </section>
 
           <details id="account-settings" className={styles.account}>
             <summary>Account Settings</summary>

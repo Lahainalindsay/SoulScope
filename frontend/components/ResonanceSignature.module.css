@@ -1,6 +1,6 @@
 .shell {
   aspect-ratio: 1;
-  color: var(--resonance-signature-color, #c6a7ff);
+  color: var(--resonance-signature-color, #b9d8e7);
   contain: layout paint style;
 }
 
@@ -19,13 +19,13 @@
 
 .breathe {
   transform-origin: center;
-  animation: signatureBreathe 10s ease-in-out infinite;
+  animation: signatureBreathe 14s ease-in-out infinite;
   will-change: transform;
 }
 
 .rotate {
   transform-origin: center;
-  animation: signatureRotate 120s linear infinite;
+  animation: signatureSettle 18s ease-in-out infinite;
   will-change: transform;
 }
 
@@ -33,6 +33,7 @@
   opacity: 0;
   animation: signatureReveal 1.8s ease-out forwards;
   shape-rendering: geometricPrecision;
+  filter: drop-shadow(0 0 2px rgba(185, 216, 231, 0.16));
 }
 
 .core {
@@ -63,13 +64,13 @@
 }
 
 @keyframes signatureBreathe {
-  0%, 100% { transform: scale(0.996); }
-  50% { transform: scale(1.004); }
+  0%, 100% { transform: scale(0.998); }
+  50% { transform: scale(1.002); }
 }
 
-@keyframes signatureRotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes signatureSettle {
+  0%, 100% { transform: rotate(-0.35deg); }
+  50% { transform: rotate(0.35deg); }
 }
 
 @keyframes signatureShimmer {

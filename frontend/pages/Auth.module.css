@@ -11,14 +11,14 @@
 
 .card {
   width: min(100%, 440px);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   border: var(--border-standard);
   background:
     radial-gradient(circle at top left, rgba(89, 225, 230, 0.08), transparent 34%),
     var(--surface-glass);
   box-shadow: var(--shadow-card);
   backdrop-filter: blur(18px);
-  padding: 34px;
+  padding: clamp(28px, 5vw, 38px);
 }
 
 .brand {
@@ -48,7 +48,7 @@
 .form {
   display: grid;
   gap: 18px;
-  margin-top: 30px;
+  margin-top: 0;
 }
 
 .field {
@@ -121,6 +121,15 @@
   text-align: center;
   font-size: 14px;
   color: var(--color-text-muted);
+}
+
+.authLinks {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px 20px;
+  font-size: 14px;
 }
 
 .link {

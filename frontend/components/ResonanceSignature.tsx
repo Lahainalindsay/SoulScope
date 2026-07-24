@@ -124,15 +124,18 @@ function buildContourPaths(
   const average = values.reduce((sum, datum) => sum + datum.value * (datum.weight ?? 1), 0) /
     values.reduce((sum, datum) => sum + (datum.weight ?? 1), 0);
   const variance = values.reduce((sum, datum) => sum + Math.abs(datum.value - average), 0) / values.length;
-  const contourCount = Math.round(15 + visualState.density * 25 + variance * 6);
-  const sampleCount = 112;
-  const expansionScale = 0.82 + visualState.expansion * 0.28;
-  const coherenceDamping = 1.18 - visualState.coherence * 0.55;
+  const contourCount = Math.round(22 + visualState.density * 22 + variance * 8);
+  const sampleCount = 168;
+  const expansionScale = 0.78 + visualState.expansion * 0.24;
+  const coherenceDamping = 1.06 - visualState.coherence * 0.42;
   const directionalAngle = seededUnit(seed, 991) * TAU;
+  const ovalX = 0.92 + seededUnit(seed, 401) * 0.16;
+  const ovalY = 0.92 + seededUnit(seed, 509) * 0.16;
+  const ridgeTilt = (seededUnit(seed, 613) - 0.5) * 0.22;
 
   return Array.from({ length: contourCount }, (_, contourIndex) => {
     const normalizedLayer = contourCount === 1 ? 0 : contourIndex / (contourCount - 1);
-    const baseRadius = (38 + normalizedLayer * 226) * expansionScale;
+    const baseRadius = (26 + Math.pow(normalizedLayer, 1.08) * 254) * expansionScale;
     const points: Point[] = [];
 
     for (let sample = 0; sample < sampleCount; sample += 1) {
@@ -143,33 +146,36 @@ function buildContourPaths(
         const phase = seededUnit(seed, datumIndex * 11 + 1) * TAU;
         const harmonic = 2 + Math.floor(seededUnit(seed, datumIndex * 11 + 2) * 6);
         const secondary = harmonic + 1 + Math.floor(seededUnit(seed, datumIndex * 11 + 3) * 4);
-        const amplitude = (3 + datum.value * 12) * (datum.weight ?? 1) * coherenceDamping;
-        const layerEnvelope = 0.32 + 0.68 * Math.sin(Math.PI * normalizedLayer);
-        displacement += Math.sin(angle * harmonic + phase + contourIndex * 0.09) * amplitude * layerEnvelope;
-        displacement += Math.cos(angle * secondary - phase * 0.7 - contourIndex * 0.05) * amplitude * 0.28;
+        const amplitude = (2.2 + datum.value * 9.5) * (datum.weight ?? 1) * coherenceDamping;
+        const layerEnvelope = 0.24 + 0.76 * Math.sin(Math.PI * normalizedLayer);
+        displacement += Math.sin(angle * harmonic + phase + contourIndex * 0.055) * amplitude * layerEnvelope;
+        displacement += Math.cos(angle * secondary - phase * 0.7 - contourIndex * 0.034) * amplitude * 0.22;
       });
 
       const interference = Math.sin(angle * (5 + (seed % 4)) + normalizedLayer * TAU * 1.5) *
-        (1.5 + variance * 7) * coherenceDamping;
-      const directionalPull = Math.cos(angle - directionalAngle) * visualState.asymmetry * 22 *
-        (0.35 + normalizedLayer * 0.65);
-      const secondaryPull = Math.sin((angle - directionalAngle) * 2) * visualState.asymmetry * 7;
+        (1.2 + variance * 5) * coherenceDamping;
+      const directionalPull = Math.cos(angle - directionalAngle) * visualState.asymmetry * 14 *
+        (0.25 + normalizedLayer * 0.75);
+      const secondaryPull = Math.sin((angle - directionalAngle) * 2) * visualState.asymmetry * 4.8;
+      const ridgeFlow = Math.sin(angle * 2 + normalizedLayer * TAU + directionalAngle) * (3.2 + visualState.density * 2.2);
       const radius = baseRadius
         + displacement / Math.max(1, values.length * 0.62)
         + interference
         + directionalPull
-        + secondaryPull;
+        + secondaryPull
+        + ridgeFlow;
+      const tiltedAngle = angle + ridgeTilt * Math.sin(angle + normalizedLayer * 1.8);
       points.push({
-        x: CENTER + Math.cos(angle) * radius,
-        y: CENTER + Math.sin(angle) * radius,
+        x: CENTER + Math.cos(tiltedAngle) * radius * ovalX,
+        y: CENTER + Math.sin(tiltedAngle) * radius * ovalY,
       });
     }
 
     return {
       path: catmullRomPath(points),
-      opacity: 0.12 + normalizedLayer * (0.28 + visualState.density * 0.18),
-      width: 0.65 + (1 - normalizedLayer) * (0.65 + visualState.coherence * 0.55),
-      delay: normalizedLayer * 0.9,
+      opacity: 0.08 + Math.sin(Math.PI * normalizedLayer) * (0.22 + visualState.density * 0.16),
+      width: 0.54 + (1 - normalizedLayer) * (0.44 + visualState.coherence * 0.3),
+      delay: normalizedLayer * 0.55,
     };
   });
 }
@@ -240,6 +246,8 @@ function ResonanceSignatureComponent({
                 stroke="currentColor"
                 strokeWidth={contour.width}
                 strokeOpacity={contour.opacity}
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 vectorEffect="non-scaling-stroke"
                 className={styles.contour}
                 style={{ animationDelay: `${contour.delay}s` }}

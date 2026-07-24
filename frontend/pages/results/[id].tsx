@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import BetaFeedbackForm from "../../components/BetaFeedbackForm";
 import DeveloperAnalysisDebug from "../../components/DeveloperAnalysisDebug";
+import HomeDailyCheckIn from "../../components/HomeDailyCheckIn";
 import ResonanceResultsDashboard from "../../components/ResonanceResultsDashboard";
 import { supabase } from "../../lib/supabaseClient";
 import { type SoulScopeReport } from "../../lib/buildSoulScopeReport";
@@ -176,6 +177,7 @@ export default function ResultDetailPage() {
               scan={scan as ScanWithCompleteness}
               report={report}
             />
+            <HomeDailyCheckIn linkedScanId={scanRow?.id ?? (typeof id === "string" ? id : null)} />
             <BetaFeedbackForm
               key={`feedback-${scanRow?.id ?? (typeof id === "string" ? id : "unknown-scan")}`}
               page="results"
@@ -187,7 +189,7 @@ export default function ResultDetailPage() {
               <p>{scan.caution}</p>
               <div className={styles.footerAction}>
                 <Link href="/history" className={styles.primaryButton}>View My History</Link>
-                <Link href="/scan" className={styles.secondaryButton}>Start New Scan</Link>
+                <Link href="/scan" className={styles.secondaryButton}>Begin New Scan</Link>
               </div>
             </section>
           </>

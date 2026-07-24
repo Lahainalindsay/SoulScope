@@ -14,10 +14,8 @@ const PUBLIC_NAV_ITEMS = [
 ];
 
 const PRIVATE_NAV_ITEMS = [
-  { href: "/dashboard", label: "Home" },
-  { href: "/scan", label: "Scan" },
-  { href: "/history", label: "History" },
   { href: "/profile", label: "Profile" },
+  { href: "/history", label: "History" },
 ];
 
 const START_SCAN_LOGIN = { pathname: "/auth/login", query: { next: "/scan" } };
@@ -75,21 +73,20 @@ export default function Navbar() {
 
   const isActive = (href: string) => {
     if (href.includes("#")) return router.asPath === href;
-    if (href === "/dashboard") return router.pathname === "/dashboard";
     if (href === "/history") return router.pathname === "/history";
     if (href === "/profile") return router.pathname === "/profile";
     if (href === "/settings") return router.pathname === "/settings";
     return router.pathname === href || router.pathname.startsWith(`${href}/`);
   };
 
-  const scanLabel = email ? "Start New Scan" : "Begin Scan";
+  const scanLabel = email ? "Begin New Scan" : "Begin Scan";
   const desktopItems = email ? PRIVATE_NAV_ITEMS : PUBLIC_NAV_ITEMS;
   const mobileItems = email ? [...PRIVATE_NAV_ITEMS, { href: "/settings", label: "Settings" }] : PUBLIC_NAV_ITEMS;
 
   return (
     <nav className={styles.nav} aria-label="Main navigation">
       <div className={styles.inner}>
-        <Link href="/" className={styles.brand} aria-label="SoulScope home">
+        <Link href={email ? "/profile" : "/"} className={styles.brand} aria-label="SoulScope home">
           <div className={styles.mark} aria-hidden="true">S</div>
           <p className={styles.brandTitle}>SOULSCOPE</p>
         </Link>

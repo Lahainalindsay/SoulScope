@@ -7,12 +7,12 @@ export default function ResultsIndexPage() {
   const router = useRouter();
 
   useEffect(() => {
-    void router.replace("/dashboard");
+    void router.replace("/history");
   }, [router]);
 
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "white" }}>
-      Loading pattern history...
+      Opening history...
     </div>
   );
 }

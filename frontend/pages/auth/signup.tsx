@@ -8,7 +8,7 @@ import { clearLocalDevSession, setLocalDevSession } from "../../lib/localSession
 import { normalizeProfileName, upsertOwnProfileName } from "../../lib/data/v2/profileRepository";
 import styles from "../Auth.module.css";
 
-const DEFAULT_SIGNUP_HOME = "/profile";
+const DEFAULT_SIGNUP_HOME = "/scan";
 
 function safeInternalDestination(value: string | string[] | undefined) {
   const candidate = Array.isArray(value) ? value[0] : value;
@@ -66,12 +66,6 @@ export default function SignupPage() {
   return (
     <main className={styles.page}>
       <section className={styles.card}>
-        <p className={styles.brand}>SoulScope</p>
-        <h1 className={styles.title}>Create your private SoulScope.</h1>
-        <p className={styles.lead}>
-          Your account keeps your Resonance Signatures, Reflections, and history connected over time.
-        </p>
-
         <form className={styles.form} onSubmit={handleSignup}>
           <label className={styles.field}>
             <span className={styles.label}>Preferred name</span>
@@ -108,9 +102,9 @@ export default function SignupPage() {
           <button type="submit" className={styles.button}>Create Account</button>
         </form>
 
-        <p className={styles.secondary}>
-          Already have an account? <Link href={loginHref} className={styles.link}>Sign In</Link>
-        </p>
+        <div className={styles.authLinks}>
+          <Link href={loginHref} className={styles.link}>Sign In</Link>
+        </div>
       </section>
     </main>
   );
