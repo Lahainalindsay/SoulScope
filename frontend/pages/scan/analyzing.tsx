@@ -75,6 +75,7 @@ export default function ScanAnalyzingPage() {
   const router = useRouter();
   const startedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorHeading, setErrorHeading] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState("Organizing patterns across your responses");
   const [completeness, setCompleteness] = useState<ScanCompleteness | null>(null);
 
@@ -91,6 +92,7 @@ export default function ScanAnalyzingPage() {
       const expectedRecordings = GUIDED_SCAN_QUESTIONS.length;
 
       if (!answers.length) {
+        setErrorHeading(null);
         setError(hardRetryMessage().body);
         return;
       }
@@ -141,6 +143,7 @@ export default function ScanAnalyzingPage() {
         setCompleteness(nextCompleteness);
 
         if (nextCompleteness.status === "failed" || validAnalyses.length < 3) {
+          setErrorHeading(null);
           setError(hardRetryMessage().body);
           return;
         }
@@ -148,6 +151,7 @@ export default function ScanAnalyzingPage() {
         setProgressMessage("Comparing rhythm, timing, steadiness, and expression");
         const merged = validAnalyses.length === 1 ? validAnalyses[0] : mergeVoiceAnalyses(validAnalyses);
         if (!merged) {
+          setErrorHeading(null);
           setError(hardRetryMessage().body);
           return;
         }
@@ -251,7 +255,9 @@ export default function ScanAnalyzingPage() {
         void router.replace(`/results/${scanId}`);
       } catch (analysisError) {
         console.error("Guided scan analysis or persistence failed", analysisError);
-        setError(analysisError instanceof Error ? analysisError.message : hardRetryMessage().body);
+        const message = analysisError instanceof Error ? analysisError.message : hardRetryMessage().body;
+        setErrorHeading(/^Could not save|could not be saved|Supabase/i.test(message) ? "We could not save your reflection" : null);
+        setError(message);
       }
     };
 
@@ -259,7 +265,7 @@ export default function ScanAnalyzingPage() {
   }, [router]);
 
   const failed = Boolean(error);
-  const heading = failed ? hardRetryMessage().heading : "Creating your Resonance Signature.";
+  const heading = failed ? errorHeading ?? hardRetryMessage().heading : "Creating your Resonance Signature.";
   const lead = failed ? error : progressMessage;
 
   return (

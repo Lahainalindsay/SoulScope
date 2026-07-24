@@ -38,39 +38,63 @@ function finalSessionUpdate(args: ReturnType<typeof mapScanSession>): ScanSessio
   return updates;
 }
 
-async function upsertInterpretationDiagnostics(args: PersistSoulScopeV2ResultArgs) {
+type DiagnosticsPayload = Record<string, unknown>;
+
+function isSchemaCacheColumnError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { code?: string; message?: string };
+  return candidate.code === "PGRST204" || /schema cache.*column|column.*schema cache/i.test(candidate.message ?? "");
+}
+
+export function diagnosticPayloadVariants(args: PersistSoulScopeV2ResultArgs): DiagnosticsPayload[] {
   const canonical = args.report.canonicalPattern;
-  const response = await args.client.from("scan_interpretation_diagnostics").upsert(
-    {
-      scan_id: args.scanId,
-      user_id: args.userId,
-      subject_id: args.report.dynamicPattern.baseline.subjectId,
-      pattern_signature: canonical.canonicalPatternSignature,
-      display_name: canonical.canonicalDisplayName,
-      family: canonical.canonicalFamily,
-      canonical_pattern_signature: canonical.canonicalPatternSignature,
-      canonical_display_name: canonical.canonicalDisplayName,
-      canonical_family: canonical.canonicalFamily,
-      primary_family: canonical.primaryFamily,
-      secondary_family: canonical.secondaryFamily,
-      organizing_quality: canonical.organizingQuality,
-      result_type: canonical.resultType,
-      naming_matrix_version: canonical.namingMatrixVersion,
-      confidence: canonical.confidence,
-      confidence_margin: canonical.confidenceMargin,
-      state_vector: toJsonObject(canonical.stateVector),
-      evidence_ledger: toJsonObject(canonical.evidenceLedger),
-      dimension_ledger: toJsonObject(canonical.dimensionLedger),
-      decision_ledger: toJsonObject(canonical.decisionLedger),
-      subpattern_scores: args.report.atlas.result.subpatterns.map(toJsonValue),
-      baseline: toJsonObject(args.report.dynamicPattern.baseline),
-      interpretation_limits: canonical.interpretationLimits.map(toJsonValue),
-      reflection_source: toJsonObject(canonical.reflectionSource),
-      engine_version: canonical.engineVersion,
-    },
-    { onConflict: "scan_id" },
-  );
-  throwIfError(response.error, "Could not save scan interpretation diagnostics");
+  const legacy = {
+    scan_id: args.scanId,
+    user_id: args.userId,
+    subject_id: args.report.dynamicPattern.baseline.subjectId,
+    pattern_signature: canonical.canonicalPatternSignature,
+    display_name: canonical.canonicalDisplayName,
+    family: canonical.canonicalFamily,
+    confidence: canonical.confidence,
+    state_vector: toJsonObject(canonical.stateVector),
+    evidence_ledger: toJsonObject(canonical.evidenceLedger),
+    dimension_ledger: toJsonObject(canonical.dimensionLedger),
+    decision_ledger: toJsonObject(canonical.decisionLedger),
+    baseline: toJsonObject(args.report.dynamicPattern.baseline),
+    interpretation_limits: canonical.interpretationLimits.map(toJsonValue),
+    engine_version: canonical.engineVersion,
+  };
+  const canonicalFields = {
+    ...legacy,
+    canonical_pattern_signature: canonical.canonicalPatternSignature,
+    canonical_display_name: canonical.canonicalDisplayName,
+    canonical_family: canonical.canonicalFamily,
+    primary_family: canonical.primaryFamily,
+    secondary_family: canonical.secondaryFamily,
+    confidence_margin: canonical.confidenceMargin,
+    reflection_source: toJsonObject(canonical.reflectionSource),
+  };
+  const matrixFields = {
+    ...canonicalFields,
+    organizing_quality: canonical.organizingQuality,
+    result_type: canonical.resultType,
+    naming_matrix_version: canonical.namingMatrixVersion,
+    subpattern_scores: args.report.atlas.result.subpatterns.map(toJsonValue),
+  };
+  return [matrixFields, canonicalFields, legacy];
+}
+
+async function upsertInterpretationDiagnostics(args: PersistSoulScopeV2ResultArgs) {
+  let lastSchemaError: unknown = null;
+  for (const payload of diagnosticPayloadVariants(args)) {
+    const response = await args.client.from("scan_interpretation_diagnostics").upsert(payload, { onConflict: "scan_id" });
+    if (!response.error) return;
+    if (!isSchemaCacheColumnError(response.error)) {
+      throwIfError(response.error, "Could not save scan interpretation diagnostics");
+    }
+    lastSchemaError = response.error;
+  }
+  console.warn("Scan interpretation diagnostics were saved without blocking the scan because the deployed database schema is behind the application.", lastSchemaError);
 }
 
 export async function persistSoulScopeV2Result(args: PersistSoulScopeV2ResultArgs): Promise<ScanSessionRow> {

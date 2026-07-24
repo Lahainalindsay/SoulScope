@@ -13,6 +13,7 @@ import { mapDomains } from "../lib/data/v2/mappers/mapDomains";
 import { mapPatternMatches } from "../lib/data/v2/mappers/mapPatternMatches";
 import { mapReflectionVariants } from "../lib/data/v2/mappers/mapReflectionVariants";
 import { stableUuid } from "../lib/data/v2/stableId";
+import { diagnosticPayloadVariants } from "../lib/data/v2/persistSoulScopeV2Result";
 
 function scan(): VoiceAnalysisResult {
   return {
@@ -111,6 +112,18 @@ test("raw feature mapping preserves versions and finite values", () => {
   assert.ok(rows.every((row) => row.extraction_version === "1.1.0"));
 });
 
+test("diagnostic persistence can fall back for older deployed schemas", () => {
+  const [matrix, canonical, legacy] = diagnosticPayloadVariants(context() as any);
+  assert.ok("naming_matrix_version" in matrix);
+  assert.ok("organizing_quality" in matrix);
+  assert.ok("canonical_display_name" in canonical);
+  assert.ok(!("naming_matrix_version" in canonical));
+  assert.ok(!("organizing_quality" in canonical));
+  assert.ok(!("canonical_display_name" in legacy));
+  assert.ok(!("confidence_margin" in legacy));
+  assert.ok("pattern_signature" in legacy);
+});
+
 test("evidence, observation, and domain mappings preserve traceability", () => {
   const value = context();
   const evidence = mapEvidenceSignals(value);
@@ -169,5 +182,7 @@ test("the V2 scan flow never writes the compatibility view", () => {
   const source = readFileSync("pages/scan/analyzing.tsx", "utf8");
   assert.match(source, /persistCanonicalReport/);
   assert.doesNotMatch(source, /\.from\(["']scans["']\)/);
+  assert.match(source, /We could not save your reflection/);
+  assert.match(source, /errorHeading \?\? hardRetryMessage\(\)\.heading/);
   assert.match(readFileSync("lib/data/v2/scanRepository.ts", "utf8"), /from\(["']scan_sessions["']\)/);
 });
