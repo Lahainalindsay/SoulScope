@@ -87,10 +87,8 @@
   font-weight: 500;
 }
 
-.promptPreview,
 .preparationCard,
 .privacySummary {
-  margin: var(--space-7) 0 0;
   border-radius: var(--radius-lg);
   border: var(--border-standard);
   background: rgba(8, 19, 33, 0.78);
@@ -98,8 +96,8 @@
   box-shadow: var(--shadow-card);
 }
 
-.promptPreview,
 .preparationCard {
+  margin: 0;
   padding: clamp(24px, 4vw, 32px);
 }
 
@@ -121,7 +119,6 @@
   line-height: 1.65;
 }
 
-.promptPreviewList,
 .preparationList {
   margin: var(--space-6) 0 0;
   padding: 0;
@@ -130,62 +127,11 @@
   list-style: none;
 }
 
-.promptPreviewList {
-  counter-reset: prompts;
-}
-
-.promptPreviewList li {
-  counter-increment: prompts;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(180px, 0.36fr) minmax(0, 1fr);
-  gap: var(--space-4);
-  align-items: start;
-  padding: var(--space-5);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(129, 192, 220, 0.14);
-  background: rgba(2, 7, 17, 0.38);
-}
-
-.promptPreviewList li > div {
-  min-width: 0;
-}
-
-.promptPreviewList strong {
-  display: block;
-  margin-top: var(--space-2);
-  color: var(--color-text-bright);
-  font-size: 1rem;
-  line-height: 1.35;
-}
-
-.promptPreviewList p {
-  min-width: 0;
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 1rem;
-  line-height: 1.65;
-  overflow-wrap: anywhere;
-}
-
-.promptDuration {
-  display: inline-flex;
-  min-height: 30px;
-  align-items: center;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(89, 225, 230, 0.24);
-  background: rgba(89, 225, 230, 0.06);
-  color: var(--color-cyan);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
 .preparationList {
   counter-reset: preparation;
 }
 
-.preparationList li {
+.preparationList > li {
   counter-increment: preparation;
   min-width: 0;
   display: grid;
@@ -198,7 +144,7 @@
   background: rgba(2, 7, 17, 0.38);
 }
 
-.preparationList li::before {
+.preparationList > li::before {
   content: counter(preparation);
   width: 42px;
   height: 42px;
@@ -212,7 +158,7 @@
   font-size: 0.86rem;
 }
 
-.preparationList strong {
+.preparationList > li > strong {
   min-width: 0;
   display: block;
   color: var(--color-text-bright);
@@ -221,7 +167,7 @@
   line-height: 1.35;
 }
 
-.preparationList span {
+.preparationList > li > span {
   min-width: 0;
   display: block;
   margin-top: var(--space-2);
@@ -230,40 +176,47 @@
   line-height: 1.6;
 }
 
+.promptList {
+  margin: var(--space-4) 0 0;
+  padding-left: 1.2rem;
+  color: var(--color-text-secondary);
+}
+
+.promptList li {
+  margin-top: var(--space-2);
+  display: list-item;
+  line-height: 1.55;
+}
+
 .privacySummary {
-  padding: var(--space-5);
-}
-
-.privacySummary dl {
   margin: var(--space-5) 0 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
+  padding: var(--space-4);
+  box-shadow: none;
 }
 
-.privacySummary div {
-  min-width: 0;
-}
-
-.privacySummary dt {
-  color: var(--color-text-bright);
+.privacySummary h2 {
+  margin: 0;
+  font-family: inherit;
+  font-size: 0.95rem;
   font-weight: 600;
+  line-height: 1.4;
 }
 
-.privacySummary dd {
+.privacySummary p {
   margin: var(--space-2) 0 0;
   color: var(--color-text-secondary);
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 0.86rem;
+  line-height: 1.55;
 }
 
 .privacyLink {
-  min-height: 44px;
-  margin-top: var(--space-4);
+  min-height: 36px;
+  margin-top: var(--space-2);
   display: inline-flex;
   align-items: center;
   color: var(--color-cyan);
   text-decoration: none;
+  font-size: 0.86rem;
   font-weight: 500;
 }
 
@@ -271,25 +224,6 @@
   color: var(--color-text-bright);
 }
 
-.confirmation {
-  margin: var(--space-6) 0 0;
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  gap: var(--space-3);
-  align-items: start;
-  color: var(--color-text-bright);
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-.confirmation input {
-  width: 20px;
-  height: 20px;
-  margin-top: 2px;
-  accent-color: var(--color-cyan);
-}
-
-.confirmation input:focus-visible,
 .primaryButton:focus-visible,
 .privacyLink:focus-visible {
   outline: 2px solid var(--color-cyan);
@@ -368,25 +302,15 @@
     line-height: 1.65;
   }
 
-  .preparationList li {
+  .preparationList > li {
     padding: var(--space-4);
     grid-template-columns: 36px minmax(0, 1fr);
     gap: var(--space-3);
   }
 
-  .promptPreviewList li {
-    grid-template-columns: 1fr;
-    padding: var(--space-4);
-    gap: var(--space-3);
-  }
-
-  .preparationList li::before {
+  .preparationList > li::before {
     width: 36px;
     height: 36px;
-  }
-
-  .privacySummary dl {
-    grid-template-columns: 1fr;
   }
 
   .actions,
@@ -400,12 +324,12 @@
     padding: var(--space-4);
   }
 
-  .preparationList li {
+  .preparationList > li {
     grid-template-columns: 32px minmax(0, 1fr);
     gap: var(--space-3);
   }
 
-  .preparationList li::before {
+  .preparationList > li::before {
     width: 32px;
     height: 32px;
   }
