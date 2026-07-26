@@ -2,7 +2,7 @@ import type { AcousticAnalysisResponse, CanonicalAcousticAnalysis, CanonicalCapt
 import { supabase } from "./supabaseClient";
 
 const ACOUSTIC_ANALYSIS_URL = "/backend-api/api/acoustic/analyze";
-const STORED_ACOUSTIC_ANALYSIS_URL = "/backend-api/api/acoustic/analyze-stored";
+const AUDIO_BUCKET = "scan-audio";
 const CANONICAL_SAMPLE_RATE = 16000;
 const MAX_FETCH_ATTEMPTS = 3;
 const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504]);
@@ -83,12 +83,16 @@ async function waitBeforeRetry(attempt: number) {
   await new Promise((resolve) => window.setTimeout(resolve, 1200 * attempt));
 }
 
-async function postWithRetry(url: string, init: RequestInit) {
+async function postAcousticAnalysis(form: FormData, token: string) {
   let lastError: unknown;
   let lastResponse: Response | null = null;
   for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt += 1) {
     try {
-      const response = await fetch(url, init);
+      const response = await fetch(ACOUSTIC_ANALYSIS_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
       lastResponse = response;
       if (!RETRYABLE_STATUS_CODES.has(response.status) || attempt === MAX_FETCH_ATTEMPTS) return response;
     } catch (error) {
@@ -114,39 +118,34 @@ async function serializeUpload<T>(task: () => Promise<T>): Promise<T> {
   }
 }
 
+function safeCaptureName(captureId: string) {
+  return captureId.replace(/[^a-zA-Z0-9_-]/g, "-");
+}
+
 export async function analyzeAudioOnServer(args: {
   blob: Blob;
   scanId: string;
   captureId: string;
   captureKind: CanonicalCaptureKind;
   durationMs?: number;
-  storagePath?: string;
 }): Promise<CanonicalAcousticAnalysis> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error("A signed-in session is required for server acoustic analysis.");
+  const { data, error: sessionError } = await supabase.auth.getSession();
+  const session = data.session;
+  const token = session?.access_token;
+  const user = session?.user;
+  if (sessionError || !token || !user) throw new Error("A signed-in session is required for server acoustic analysis.");
 
-  let response: Response;
-  if (args.storagePath) {
-    response = await serializeUpload(() => postWithRetry(STORED_ACOUSTIC_ANALYSIS_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        scan_id: args.scanId,
-        source_capture_id: args.captureId,
-        capture_kind: args.captureKind,
-        storage_path: args.storagePath,
-        device_metadata: { captureDurationMs: args.durationMs ?? null, source: "supabase-storage" },
-      }),
-    }));
-  } else {
+  return await serializeUpload(async () => {
     const wav = await canonicalizeAudioBlob(args.blob);
-    const form = new FormData();
-    form.append("file", wav.blob, `${args.captureId}.wav`);
-    form.append("scan_id", args.scanId);
-    form.append("source_capture_id", args.captureId);
-    form.append("capture_kind", args.captureKind);
-    form.append("device_metadata", JSON.stringify({
+    const storagePath = `${user.id}/${args.scanId}/${safeCaptureName(args.captureId)}.wav`;
+
+    const { error: storageError } = await supabase.storage
+      .from(AUDIO_BUCKET)
+      .upload(storagePath, wav.blob, { contentType: "audio/wav", upsert: true });
+    if (storageError) throw new Error(`Could not securely preserve this recording: ${storageError.message}`);
+
+    const captureMetadata = {
+      captureKind: args.captureKind,
       browserSampleRate: wav.sourceSampleRate,
       canonicalSampleRate: wav.canonicalSampleRate,
       browserChannelCount: wav.channelCount,
@@ -155,32 +154,70 @@ export async function analyzeAudioOnServer(args: {
       canonicalBlobSize: wav.blob.size,
       captureDurationMs: args.durationMs ?? null,
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-    }));
-    response = await serializeUpload(() => postWithRetry(ACOUSTIC_ANALYSIS_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: form,
-    }));
-  }
+    };
 
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || `Server acoustic analysis failed with ${response.status}`);
-  }
-  const body = (await response.json()) as AcousticAnalysisResponse;
-  return {
-    schemaVersion: body.schema_version,
-    authoritative: true,
-    captureId: body.source_capture_id,
-    captureKind: body.capture_kind,
-    extractor: body.extractor,
-    extractorVersion: body.extractor_version,
-    quality: body.quality,
-    confidence: body.confidence,
-    storagePath: args.storagePath ?? body.storage_path,
-    retentionPolicy: body.retention_policy,
-    measurements: body.features,
-    vadSegments: body.vad_segments,
-    metadata: body.metadata,
-  };
+    const { data: captureRow, error: captureError } = await supabase
+      .from("sensor_captures")
+      .upsert({
+        scan_id: args.scanId,
+        user_id: user.id,
+        sensor_type: "voice",
+        task_id: args.captureId.split(":")[0],
+        attempt_number: 1,
+        status: "valid",
+        quality: "limited",
+        recorded_at: new Date().toISOString(),
+        duration_seconds: (args.durationMs ?? 0) / 1000,
+        invalid_reasons: [],
+        storage_bucket: AUDIO_BUCKET,
+        storage_path: storagePath,
+        analysis_status: "uploaded",
+        analysis_error: null,
+        metadata: captureMetadata,
+      }, { onConflict: "scan_id,sensor_type,task_id,attempt_number" })
+      .select("id")
+      .single();
+    if (captureError || !captureRow) {
+      throw new Error(`Recording was preserved, but its capture record could not be saved: ${captureError?.message ?? "unknown error"}`);
+    }
+
+    const form = new FormData();
+    form.append("file", wav.blob, `${safeCaptureName(args.captureId)}.wav`);
+    form.append("scan_id", args.scanId);
+    form.append("source_capture_id", captureRow.id as string);
+    form.append("capture_kind", args.captureKind);
+    form.append("device_metadata", JSON.stringify({ ...captureMetadata, storageBucket: AUDIO_BUCKET, storagePath }));
+
+    await supabase.from("sensor_captures").update({ analysis_status: "processing", analysis_error: null }).eq("id", captureRow.id);
+    const response = await postAcousticAnalysis(form, token);
+    if (!response.ok) {
+      const detail = await response.text();
+      await supabase.from("sensor_captures").update({ analysis_status: "failed_retryable", analysis_error: detail }).eq("id", captureRow.id);
+      throw new Error(detail || `Server acoustic analysis failed with ${response.status}`);
+    }
+
+    const body = (await response.json()) as AcousticAnalysisResponse;
+    await supabase.from("sensor_captures").update({
+      analysis_status: "analyzed",
+      analyzed_at: new Date().toISOString(),
+      analysis_error: null,
+      quality: body.quality,
+    }).eq("id", captureRow.id);
+
+    return {
+      schemaVersion: body.schema_version,
+      authoritative: true,
+      captureId: body.source_capture_id,
+      captureKind: body.capture_kind,
+      extractor: body.extractor,
+      extractorVersion: body.extractor_version,
+      quality: body.quality,
+      confidence: body.confidence,
+      storagePath,
+      retentionPolicy: body.retention_policy,
+      measurements: body.features,
+      vadSegments: body.vad_segments,
+      metadata: { ...body.metadata, storageBucket: AUDIO_BUCKET, storagePath },
+    };
+  });
 }
