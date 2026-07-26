@@ -25,7 +25,7 @@ type SavedScanResult = ScanWithCompleteness & { id?: string; created_at?: string
 
 const AUTH_REFRESH_TIMEOUT_MS = 30000;
 const CLOUD_WRITE_TIMEOUT_MS = 20000;
-const ANALYSIS_REQUEST_TIMEOUT_MS = 45000;
+const ANALYSIS_REQUEST_TIMEOUT_MS = 120000;
 const UNCONFIRMED_SUBJECT: GuidedScanSubject = {
   subjectId: null,
   subjectLabel: "Unconfirmed subject",
@@ -179,9 +179,14 @@ export default function ScanAnalyzingPage() {
           method: "scan_preparation",
         };
 
-        const settled = await Promise.allSettled(
-          answers.map((answer, index) =>
-            withTimeout(
+        // Run each recording end-to-end before starting the next. The transport is
+        // intentionally serialized, so starting all three timeout clocks together
+        // incorrectly caused queued recordings to expire before their upload began.
+        const settled: PromiseSettledResult<VoiceAnalysisResult>[] = [];
+        for (const [index, answer] of answers.entries()) {
+          setProgressMessage(`Analyzing response ${index + 1} of ${answers.length}`);
+          try {
+            const value = await withTimeout(
               provider.analyzeFile({
                 blob: answer.blob,
                 captureKind: GUIDED_SCAN_QUESTIONS.find((question) => question.id === answer.questionId)?.captureKind,
@@ -191,9 +196,12 @@ export default function ScanAnalyzingPage() {
               }, consent).then((providerResult) => providerResult.result),
               ANALYSIS_REQUEST_TIMEOUT_MS,
               `Voice analysis for ${answer.questionId}`,
-            ),
-          ),
-        );
+            );
+            settled.push({ status: "fulfilled", value });
+          } catch (reason) {
+            settled.push({ status: "rejected", reason });
+          }
+        }
 
         const promptAnalyses: Array<VoiceAnalysisResult | null> = settled.map((entry) => entry.status === "fulfilled" ? entry.value : null);
         const invalidRecordingReasons = settled
