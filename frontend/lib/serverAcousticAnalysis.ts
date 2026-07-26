@@ -3,7 +3,10 @@ import { supabase } from "./supabaseClient";
 
 const ACOUSTIC_ANALYSIS_URL = "/backend-api/api/acoustic/analyze";
 const CANONICAL_SAMPLE_RATE = 16000;
-const MAX_FETCH_ATTEMPTS = 2;
+const MAX_FETCH_ATTEMPTS = 3;
+const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504]);
+
+let uploadQueue: Promise<void> = Promise.resolve();
 
 function interleaveToWav(samples: Float32Array, sampleRate: number) {
   const bytesPerSample = 2;
@@ -75,24 +78,52 @@ async function decodeToMonoWav(blob: Blob) {
   }
 }
 
+async function waitBeforeRetry(attempt: number) {
+  await new Promise((resolve) => window.setTimeout(resolve, 1200 * attempt));
+}
+
 async function postAcousticAnalysis(form: FormData, token: string) {
   let lastError: unknown;
+  let lastResponse: Response | null = null;
+
   for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt += 1) {
     try {
-      return await fetch(ACOUSTIC_ANALYSIS_URL, {
+      const response = await fetch(ACOUSTIC_ANALYSIS_URL, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: form,
       });
+      lastResponse = response;
+
+      if (!RETRYABLE_STATUS_CODES.has(response.status) || attempt === MAX_FETCH_ATTEMPTS) {
+        return response;
+      }
     } catch (error) {
       lastError = error;
-      if (attempt < MAX_FETCH_ATTEMPTS) {
-        await new Promise((resolve) => window.setTimeout(resolve, 1500));
-      }
+      if (attempt === MAX_FETCH_ATTEMPTS) break;
     }
+
+    await waitBeforeRetry(attempt);
   }
+
+  if (lastResponse) return lastResponse;
   const detail = lastError instanceof Error ? lastError.message : "unknown network failure";
   throw new Error(`Acoustic upload could not reach the analysis service after ${MAX_FETCH_ATTEMPTS} attempts: ${detail}`);
+}
+
+async function serializeUpload<T>(task: () => Promise<T>): Promise<T> {
+  const previous = uploadQueue;
+  let release: () => void = () => undefined;
+  uploadQueue = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await previous;
+  try {
+    return await task();
+  } finally {
+    release();
+  }
 }
 
 export async function analyzeAudioOnServer(args: {
@@ -121,7 +152,8 @@ export async function analyzeAudioOnServer(args: {
     captureDurationMs: args.durationMs ?? null,
     userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
   }));
-  const response = await postAcousticAnalysis(form, token);
+
+  const response = await serializeUpload(() => postAcousticAnalysis(form, token));
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(detail || `Server acoustic analysis failed with ${response.status}`);
