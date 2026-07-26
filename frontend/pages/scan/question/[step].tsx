@@ -17,6 +17,7 @@ import styles from "./GuidedScanQuestion.module.css";
 type PendingAction = "next" | "finish" | null;
 const AUTO_START_DELAY_MS = 10000;
 const CAMERA_BASELINE_MS = 3000;
+const BACKEND_WARMUP_URL = "/backend-api/openapi.json";
 
 function signalClass(dbfs: number) {
   if (dbfs < -58) return styles.statusWarn;
@@ -101,6 +102,15 @@ export default function GuidedScanQuestionPage() {
       void router.replace("/scan");
     }
   }, [question, questionIndex, router]);
+
+  useEffect(() => {
+    if (!router.isReady || !question) return;
+    // Render's free service may be asleep. Wake it while the user is recording so
+    // the first acoustic upload does not spend its request window on a cold start.
+    void fetch(BACKEND_WARMUP_URL, { cache: "no-store", keepalive: true }).catch((warmupError) => {
+      console.info("Acoustic backend warmup is still pending", warmupError);
+    });
+  }, [question, router.isReady, step]);
 
   useEffect(() => {
     if (!router.isReady || !question) return;
