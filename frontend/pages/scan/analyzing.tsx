@@ -23,7 +23,8 @@ import styles from "./Analyzing.module.css";
 
 type SavedScanResult = ScanWithCompleteness & { id?: string; created_at?: string };
 
-const CLOUD_REQUEST_TIMEOUT_MS = 8000;
+const AUTH_REFRESH_TIMEOUT_MS = 30000;
+const CLOUD_WRITE_TIMEOUT_MS = 20000;
 const ANALYSIS_REQUEST_TIMEOUT_MS = 45000;
 const UNCONFIRMED_SUBJECT: GuidedScanSubject = {
   subjectId: null,
@@ -47,6 +48,24 @@ async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label:
       },
     );
   });
+}
+
+async function getReliableSession() {
+  // getSession reads the cached mobile session first and normally does not need a network request.
+  const cached = await supabase.auth.getSession();
+  if (cached.error) throw new Error(`Could not read your saved session: ${cached.error.message}`);
+  if (cached.data.session?.user) return cached.data.session;
+
+  // Only contact Supabase Auth when the cached session is absent or expired.
+  const refreshed = await withTimeout(
+    supabase.auth.refreshSession(),
+    AUTH_REFRESH_TIMEOUT_MS,
+    "Session refresh",
+  );
+  if (refreshed.error || !refreshed.data.session?.user) {
+    throw new Error("Your sign-in session could not be restored. Please sign in again; your recorded answers are still saved on this device.");
+  }
+  return refreshed.data.session;
 }
 
 function averageCameraMetrics(captures: ReturnType<typeof getGuidedScanCameraCaptures>) {
@@ -109,13 +128,13 @@ export default function ScanAnalyzingPage() {
       let scanId: string | null = null;
 
       try {
-        setProgressMessage("Preparing your scan session");
-        const authResponse = await withTimeout(supabase.auth.getUser(), CLOUD_REQUEST_TIMEOUT_MS, "Supabase auth");
-        const user = authResponse.data.user;
-        if (authResponse.error || !user) throw new Error("A signed-in session is required to run a Resonance Scan.");
+        setProgressMessage("Restoring your secure session");
+        const session = await getReliableSession();
+        const user = session.user;
 
         scanId = crypto.randomUUID();
         const startedAt = scanStartedAt ?? new Date().toISOString();
+        setProgressMessage("Preparing your scan session");
         const initialSession = await withTimeout(
           supabase
             .from("scan_sessions")
@@ -144,7 +163,7 @@ export default function ScanAnalyzingPage() {
             }, { onConflict: "id" })
             .select("id")
             .single(),
-          CLOUD_REQUEST_TIMEOUT_MS,
+          CLOUD_WRITE_TIMEOUT_MS,
           "Scan session initialization",
         );
         if (initialSession.error || !initialSession.data) {
@@ -294,7 +313,7 @@ export default function ScanAnalyzingPage() {
       } catch (analysisError) {
         console.error("Guided scan analysis or persistence failed", analysisError);
         const message = analysisError instanceof Error ? analysisError.message : hardRetryMessage().body;
-        setErrorHeading(/^Could not initialize|Could not save|could not be saved|Supabase|A signed-in/i.test(message)
+        setErrorHeading(/^Could not initialize|Could not save|could not be saved|Session refresh|session could not|Supabase|A signed-in/i.test(message)
           ? "We could not complete your scan"
           : null);
         setError(message);
@@ -329,6 +348,7 @@ export default function ScanAnalyzingPage() {
                 </div>
               ) : (
                 <ul className={styles.statusList}>
+                  <li>Restoring your secure session</li>
                   <li>Preparing your scan session</li>
                   <li>Organizing patterns across your responses</li>
                   <li>Comparing rhythm, timing, steadiness, and expression</li>
