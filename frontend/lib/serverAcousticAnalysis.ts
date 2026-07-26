@@ -2,6 +2,8 @@ import type { AcousticAnalysisResponse, CanonicalAcousticAnalysis, CanonicalCapt
 import { supabase } from "./supabaseClient";
 
 const ACOUSTIC_ANALYSIS_URL = "/backend-api/api/acoustic/analyze";
+const CANONICAL_SAMPLE_RATE = 16000;
+const MAX_FETCH_ATTEMPTS = 2;
 
 function interleaveToWav(samples: Float32Array, sampleRate: number) {
   const bytesPerSample = 2;
@@ -34,6 +36,21 @@ function interleaveToWav(samples: Float32Array, sampleRate: number) {
   return new Blob([buffer], { type: "audio/wav" });
 }
 
+function resampleLinear(samples: Float32Array, sourceRate: number, targetRate: number) {
+  if (sourceRate === targetRate) return samples;
+  const outputLength = Math.max(1, Math.round(samples.length * targetRate / sourceRate));
+  const output = new Float32Array(outputLength);
+  const ratio = sourceRate / targetRate;
+  for (let index = 0; index < outputLength; index += 1) {
+    const sourcePosition = index * ratio;
+    const leftIndex = Math.floor(sourcePosition);
+    const rightIndex = Math.min(leftIndex + 1, samples.length - 1);
+    const fraction = sourcePosition - leftIndex;
+    output[index] = samples[leftIndex] * (1 - fraction) + samples[rightIndex] * fraction;
+  }
+  return output;
+}
+
 async function decodeToMonoWav(blob: Blob) {
   const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AudioContextCtor) throw new Error("Audio decoding is not available in this browser.");
@@ -46,14 +63,36 @@ async function decodeToMonoWav(blob: Blob) {
       const data = decoded.getChannelData(channel);
       for (let index = 0; index < length; index += 1) mono[index] += data[index] / decoded.numberOfChannels;
     }
+    const canonicalMono = resampleLinear(mono, decoded.sampleRate, CANONICAL_SAMPLE_RATE);
     return {
-      blob: interleaveToWav(mono, decoded.sampleRate),
-      sampleRate: decoded.sampleRate,
+      blob: interleaveToWav(canonicalMono, CANONICAL_SAMPLE_RATE),
+      sourceSampleRate: decoded.sampleRate,
+      canonicalSampleRate: CANONICAL_SAMPLE_RATE,
       channelCount: decoded.numberOfChannels,
     };
   } finally {
     void context.close();
   }
+}
+
+async function postAcousticAnalysis(form: FormData, token: string) {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt += 1) {
+    try {
+      return await fetch(ACOUSTIC_ANALYSIS_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt < MAX_FETCH_ATTEMPTS) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1500));
+      }
+    }
+  }
+  const detail = lastError instanceof Error ? lastError.message : "unknown network failure";
+  throw new Error(`Acoustic upload could not reach the analysis service after ${MAX_FETCH_ATTEMPTS} attempts: ${detail}`);
 }
 
 export async function analyzeAudioOnServer(args: {
@@ -73,18 +112,16 @@ export async function analyzeAudioOnServer(args: {
   form.append("source_capture_id", args.captureId);
   form.append("capture_kind", args.captureKind);
   form.append("device_metadata", JSON.stringify({
-    browserSampleRate: wav.sampleRate,
+    browserSampleRate: wav.sourceSampleRate,
+    canonicalSampleRate: wav.canonicalSampleRate,
     browserChannelCount: wav.channelCount,
     originalBlobType: args.blob.type,
     originalBlobSize: args.blob.size,
+    canonicalBlobSize: wav.blob.size,
     captureDurationMs: args.durationMs ?? null,
     userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
   }));
-  const response = await fetch(ACOUSTIC_ANALYSIS_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: form,
-  });
+  const response = await postAcousticAnalysis(form, token);
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(detail || `Server acoustic analysis failed with ${response.status}`);
