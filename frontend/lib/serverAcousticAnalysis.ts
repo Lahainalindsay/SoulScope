@@ -2,6 +2,7 @@ import type { AcousticAnalysisResponse, CanonicalAcousticAnalysis, CanonicalCapt
 import { supabase } from "./supabaseClient";
 
 const ACOUSTIC_ANALYSIS_URL = "/backend-api/api/acoustic/analyze";
+const STORED_ACOUSTIC_ANALYSIS_URL = "/backend-api/api/acoustic/analyze-stored";
 const CANONICAL_SAMPLE_RATE = 16000;
 const MAX_FETCH_ATTEMPTS = 3;
 const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504]);
@@ -54,7 +55,7 @@ function resampleLinear(samples: Float32Array, sourceRate: number, targetRate: n
   return output;
 }
 
-async function decodeToMonoWav(blob: Blob) {
+export async function canonicalizeAudioBlob(blob: Blob) {
   const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AudioContextCtor) throw new Error("Audio decoding is not available in this browser.");
   const context = new AudioContextCtor();
@@ -82,42 +83,29 @@ async function waitBeforeRetry(attempt: number) {
   await new Promise((resolve) => window.setTimeout(resolve, 1200 * attempt));
 }
 
-async function postAcousticAnalysis(form: FormData, token: string) {
+async function postWithRetry(url: string, init: RequestInit) {
   let lastError: unknown;
   let lastResponse: Response | null = null;
-
   for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt += 1) {
     try {
-      const response = await fetch(ACOUSTIC_ANALYSIS_URL, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      });
+      const response = await fetch(url, init);
       lastResponse = response;
-
-      if (!RETRYABLE_STATUS_CODES.has(response.status) || attempt === MAX_FETCH_ATTEMPTS) {
-        return response;
-      }
+      if (!RETRYABLE_STATUS_CODES.has(response.status) || attempt === MAX_FETCH_ATTEMPTS) return response;
     } catch (error) {
       lastError = error;
       if (attempt === MAX_FETCH_ATTEMPTS) break;
     }
-
     await waitBeforeRetry(attempt);
   }
-
   if (lastResponse) return lastResponse;
   const detail = lastError instanceof Error ? lastError.message : "unknown network failure";
-  throw new Error(`Acoustic upload could not reach the analysis service after ${MAX_FETCH_ATTEMPTS} attempts: ${detail}`);
+  throw new Error(`Acoustic analysis could not reach the service after ${MAX_FETCH_ATTEMPTS} attempts: ${detail}`);
 }
 
 async function serializeUpload<T>(task: () => Promise<T>): Promise<T> {
   const previous = uploadQueue;
   let release: () => void = () => undefined;
-  uploadQueue = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-
+  uploadQueue = new Promise<void>((resolve) => { release = resolve; });
   await previous;
   try {
     return await task();
@@ -132,28 +120,49 @@ export async function analyzeAudioOnServer(args: {
   captureId: string;
   captureKind: CanonicalCaptureKind;
   durationMs?: number;
+  storagePath?: string;
 }): Promise<CanonicalAcousticAnalysis> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("A signed-in session is required for server acoustic analysis.");
-  const wav = await decodeToMonoWav(args.blob);
-  const form = new FormData();
-  form.append("file", wav.blob, `${args.captureId}.wav`);
-  form.append("scan_id", args.scanId);
-  form.append("source_capture_id", args.captureId);
-  form.append("capture_kind", args.captureKind);
-  form.append("device_metadata", JSON.stringify({
-    browserSampleRate: wav.sourceSampleRate,
-    canonicalSampleRate: wav.canonicalSampleRate,
-    browserChannelCount: wav.channelCount,
-    originalBlobType: args.blob.type,
-    originalBlobSize: args.blob.size,
-    canonicalBlobSize: wav.blob.size,
-    captureDurationMs: args.durationMs ?? null,
-    userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-  }));
 
-  const response = await serializeUpload(() => postAcousticAnalysis(form, token));
+  let response: Response;
+  if (args.storagePath) {
+    response = await serializeUpload(() => postWithRetry(STORED_ACOUSTIC_ANALYSIS_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        scan_id: args.scanId,
+        source_capture_id: args.captureId,
+        capture_kind: args.captureKind,
+        storage_path: args.storagePath,
+        device_metadata: { captureDurationMs: args.durationMs ?? null, source: "supabase-storage" },
+      }),
+    }));
+  } else {
+    const wav = await canonicalizeAudioBlob(args.blob);
+    const form = new FormData();
+    form.append("file", wav.blob, `${args.captureId}.wav`);
+    form.append("scan_id", args.scanId);
+    form.append("source_capture_id", args.captureId);
+    form.append("capture_kind", args.captureKind);
+    form.append("device_metadata", JSON.stringify({
+      browserSampleRate: wav.sourceSampleRate,
+      canonicalSampleRate: wav.canonicalSampleRate,
+      browserChannelCount: wav.channelCount,
+      originalBlobType: args.blob.type,
+      originalBlobSize: args.blob.size,
+      canonicalBlobSize: wav.blob.size,
+      captureDurationMs: args.durationMs ?? null,
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    }));
+    response = await serializeUpload(() => postWithRetry(ACOUSTIC_ANALYSIS_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    }));
+  }
+
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(detail || `Server acoustic analysis failed with ${response.status}`);
@@ -168,7 +177,7 @@ export async function analyzeAudioOnServer(args: {
     extractorVersion: body.extractor_version,
     quality: body.quality,
     confidence: body.confidence,
-    storagePath: body.storage_path,
+    storagePath: args.storagePath ?? body.storage_path,
     retentionPolicy: body.retention_policy,
     measurements: body.features,
     vadSegments: body.vad_segments,
