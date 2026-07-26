@@ -1,7 +1,8 @@
 import type { AcousticAnalysisResponse, CanonicalAcousticAnalysis, CanonicalCaptureKind } from "./acousticContract";
 import { supabase } from "./supabaseClient";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 
 function interleaveToWav(samples: Float32Array, sampleRate: number) {
   const bytesPerSample = 2;
