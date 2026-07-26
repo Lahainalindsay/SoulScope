@@ -8,6 +8,10 @@ const nextConfig = {
         source: "/backend-api/:path*",
         destination: `${backendBaseUrl}/:path*`,
       },
+      {
+        source: "/openapi.json",
+        destination: `${backendBaseUrl}/openapi.json`,
+      },
     ];
   },
 };
