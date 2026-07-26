@@ -21,18 +21,24 @@ from corescope.core_frequency.models import (
 
 app = FastAPI()
 
-# Allow local dev + explicitly configured production frontends. Never use a
-# wildcard with credentials.
-configured_origins = [origin.strip() for origin in os.getenv("SOULSCOPE_ALLOWED_ORIGINS", "").split(",") if origin.strip()]
+# Allow local development, the production frontend, and Vercel preview deployments.
+# Preview URLs change per deployment, so use a constrained regex rather than manually
+# updating Render for every preview hostname.
+configured_origins = [origin.strip().rstrip("/") for origin in os.getenv("SOULSCOPE_ALLOWED_ORIGINS", "").split(",") if origin.strip()]
 origins = configured_origins or [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://soul-scope-lime.vercel.app",
 ]
+vercel_origin_regex = os.getenv(
+    "SOULSCOPE_ALLOWED_ORIGIN_REGEX",
+    r"https://[a-zA-Z0-9-]+\.vercel\.app",
+)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=vercel_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
