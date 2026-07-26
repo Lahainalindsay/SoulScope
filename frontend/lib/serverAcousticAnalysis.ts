@@ -1,8 +1,7 @@
 import type { AcousticAnalysisResponse, CanonicalAcousticAnalysis, CanonicalCaptureKind } from "./acousticContract";
 import { supabase } from "./supabaseClient";
 
-const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
+const ACOUSTIC_ANALYSIS_URL = "/backend-api/api/acoustic/analyze";
 
 function interleaveToWav(samples: Float32Array, sampleRate: number) {
   const bytesPerSample = 2;
@@ -81,7 +80,7 @@ export async function analyzeAudioOnServer(args: {
     captureDurationMs: args.durationMs ?? null,
     userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
   }));
-  const response = await fetch(`${API_BASE_URL}/api/acoustic/analyze`, {
+  const response = await fetch(ACOUSTIC_ANALYSIS_URL, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: form,
