@@ -23,7 +23,7 @@ import styles from "./Analyzing.module.css";
 
 type SavedScanResult = ScanWithCompleteness & { id?: string; created_at?: string };
 
-const CLOUD_REQUEST_TIMEOUT_MS = 4500;
+const CLOUD_REQUEST_TIMEOUT_MS = 8000;
 const ANALYSIS_REQUEST_TIMEOUT_MS = 45000;
 const UNCONFIRMED_SUBJECT: GuidedScanSubject = {
   subjectId: null,
@@ -71,12 +71,21 @@ function hardRetryMessage() {
   };
 }
 
+function analysisFailureMessage(reasons: Array<{ reason: string }>) {
+  const first = reasons.find((entry) => entry.reason)?.reason;
+  if (!first) return hardRetryMessage().body;
+  if (/scan is not owned|could not verify scan ownership|failed to fetch|network|localhost|127\.0\.0\.1/i.test(first)) {
+    return `The voice-analysis service could not complete this scan. ${first}`;
+  }
+  return first;
+}
+
 export default function ScanAnalyzingPage() {
   const router = useRouter();
   const startedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [errorHeading, setErrorHeading] = useState<string | null>(null);
-  const [progressMessage, setProgressMessage] = useState("Organizing patterns across your responses");
+  const [progressMessage, setProgressMessage] = useState("Preparing your scan session");
   const [completeness, setCompleteness] = useState<ScanCompleteness | null>(null);
 
   useEffect(() => {
@@ -97,16 +106,60 @@ export default function ScanAnalyzingPage() {
         return;
       }
 
+      let scanId: string | null = null;
+
       try {
+        setProgressMessage("Preparing your scan session");
+        const authResponse = await withTimeout(supabase.auth.getUser(), CLOUD_REQUEST_TIMEOUT_MS, "Supabase auth");
+        const user = authResponse.data.user;
+        if (authResponse.error || !user) throw new Error("A signed-in session is required to run a Resonance Scan.");
+
+        scanId = crypto.randomUUID();
+        const startedAt = scanStartedAt ?? new Date().toISOString();
+        const initialSession = await withTimeout(
+          supabase
+            .from("scan_sessions")
+            .upsert({
+              id: scanId,
+              user_id: user.id,
+              subject_id: scanSubject.subjectId,
+              status: "processing",
+              expected_recording_count: expectedRecordings,
+              valid_recording_count: 0,
+              invalid_recording_count: 0,
+              completion_ratio: 0,
+              capture_quality: "limited",
+              result_confidence: "exploratory",
+              retry_recommended: false,
+              engine_version: "soulscope-canonical-acoustic-v1",
+              observation_engine_version: null,
+              observation_pipeline: null,
+              observation_pipeline_created_at: null,
+              raw_result: null,
+              completeness_metadata: {},
+              invalid_recording_reasons: [],
+              warnings: [],
+              started_at: startedAt,
+              completed_at: null,
+            }, { onConflict: "id" })
+            .select("id")
+            .single(),
+          CLOUD_REQUEST_TIMEOUT_MS,
+          "Scan session initialization",
+        );
+        if (initialSession.error || !initialSession.data) {
+          throw new Error(`Could not initialize scan session: ${initialSession.error?.message ?? "no row returned"}`);
+        }
+
         setProgressMessage("Organizing patterns across your responses");
         const provider = createDefaultVoiceAnalysisProvider();
-        const scanId = crypto.randomUUID();
         const consent: ConsentRecord = {
-          consentId: `${scanSubject.subjectId ?? "unconfirmed"}:${scanStartedAt ?? Date.now()}:voice-analysis-consent`,
+          consentId: `${scanSubject.subjectId ?? "unconfirmed"}:${startedAt}:voice-analysis-consent`,
           obtainedFromDataSubject: true,
-          obtainedAt: scanStartedAt ?? new Date().toISOString(),
+          obtainedAt: startedAt,
           method: "scan_preparation",
         };
+
         const settled = await Promise.allSettled(
           answers.map((answer, index) =>
             withTimeout(
@@ -115,7 +168,7 @@ export default function ScanAnalyzingPage() {
                 captureKind: GUIDED_SCAN_QUESTIONS.find((question) => question.id === answer.questionId)?.captureKind,
                 captureDurationMs: answer.durationMs,
                 captureId: `${answer.questionId}:voice:${index + 1}`,
-                scanId,
+                scanId: scanId as string,
               }, consent).then((providerResult) => providerResult.result),
               ANALYSIS_REQUEST_TIMEOUT_MS,
               `Voice analysis for ${answer.questionId}`,
@@ -137,26 +190,27 @@ export default function ScanAnalyzingPage() {
           .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 
         const validAnalyses = promptAnalyses.filter((entry): entry is VoiceAnalysisResult => isUsableAnalysis(entry));
-        const nextCompleteness = buildScanCompleteness({
-          expectedRecordings,
-          analyses: promptAnalyses,
-          invalidRecordingReasons,
-        });
+        const nextCompleteness = buildScanCompleteness({ expectedRecordings, analyses: promptAnalyses, invalidRecordingReasons });
         setCompleteness(nextCompleteness);
 
         if (nextCompleteness.status === "failed" || validAnalyses.length < 3) {
-          setErrorHeading(null);
-          setError(hardRetryMessage().body);
+          await supabase.from("scan_sessions").update({
+            status: "failed",
+            valid_recording_count: validAnalyses.length,
+            invalid_recording_count: invalidRecordingReasons.length,
+            completion_ratio: expectedRecordings ? validAnalyses.length / expectedRecordings : 0,
+            retry_recommended: true,
+            invalid_recording_reasons: invalidRecordingReasons,
+            warnings: invalidRecordingReasons.map((entry) => entry.reason),
+          }).eq("id", scanId).eq("user_id", user.id);
+          setErrorHeading("The scan service could not complete this reading");
+          setError(analysisFailureMessage(invalidRecordingReasons));
           return;
         }
 
         setProgressMessage("Comparing rhythm, timing, steadiness, and expression");
         const merged = validAnalyses.length === 1 ? validAnalyses[0] : mergeVoiceAnalyses(validAnalyses);
-        if (!merged) {
-          setErrorHeading(null);
-          setError(hardRetryMessage().body);
-          return;
-        }
+        if (!merged) throw new Error(hardRetryMessage().body);
 
         const completedAt = new Date().toISOString();
         const result: SavedScanResult = {
@@ -207,12 +261,7 @@ export default function ScanAnalyzingPage() {
             })),
           },
           researchBasis: { validationNote: VALIDATION_NOTE, references: RESEARCH_REFERENCES },
-          scanMeta: {
-            subject: scanSubject,
-            startedAt: scanStartedAt,
-            completedAt,
-            source: "guided-resonance-scan",
-          },
+          scanMeta: { subject: scanSubject, startedAt, completedAt, source: "guided-resonance-scan" },
           id: scanId,
           created_at: completedAt,
         };
@@ -223,33 +272,20 @@ export default function ScanAnalyzingPage() {
         window.localStorage.setItem(LOCAL_SCAN_LIST_KEY, JSON.stringify([result, ...parsed.filter((scan) => scan.id !== scanId)].slice(0, 10)));
 
         setProgressMessage("Preparing your Reflection");
-        const authResponse = await withTimeout(supabase.auth.getUser(), CLOUD_REQUEST_TIMEOUT_MS, "Supabase auth");
-        const userData = authResponse.data;
-        if (authResponse.error || !userData?.user) {
-          setError("Your reflection was created, but it could not be saved because no signed-in user was found.");
-          return;
-        }
-
         const report = buildSoulScopeReport(result, { scanId });
         await withTimeout(
           persistCanonicalReport(supabase, {
             scanId,
-            userId: userData.user.id,
+            userId: user.id,
             report,
             completeness: nextCompleteness,
             rawResult: {
               ...result,
-              scanMeta: {
-                ...result.scanMeta,
-                subject: scanSubject,
-                startedAt: scanStartedAt,
-                completedAt,
-                source: "authenticated",
-              },
+              scanMeta: { ...result.scanMeta, subject: scanSubject, startedAt, completedAt, source: "authenticated" },
             },
-            startedAt: scanStartedAt,
+            startedAt,
           }),
-          20000,
+          30000,
           "Supabase V2 result save",
         );
 
@@ -258,7 +294,9 @@ export default function ScanAnalyzingPage() {
       } catch (analysisError) {
         console.error("Guided scan analysis or persistence failed", analysisError);
         const message = analysisError instanceof Error ? analysisError.message : hardRetryMessage().body;
-        setErrorHeading(/^Could not save|could not be saved|Supabase/i.test(message) ? "We could not save your reflection" : null);
+        setErrorHeading(/^Could not initialize|Could not save|could not be saved|Supabase|A signed-in/i.test(message)
+          ? "We could not complete your scan"
+          : null);
         setError(message);
       }
     };
@@ -281,7 +319,7 @@ export default function ScanAnalyzingPage() {
         <main className={styles.shell}>
           <section className={styles.panel}>
             <article className={styles.heroCard}>
-              <p className={styles.eyebrow}>{failed ? "Clearer Sample Needed" : "Resonance Scan"}</p>
+              <p className={styles.eyebrow}>{failed ? "Scan Interrupted" : "Resonance Scan"}</p>
               <h1 className={styles.title}>{heading}</h1>
               <p className={styles.lead}>{lead}</p>
               {!failed ? <div className={styles.mapVisual}><span /><span /><span /></div> : null}
@@ -291,10 +329,10 @@ export default function ScanAnalyzingPage() {
                 </div>
               ) : (
                 <ul className={styles.statusList}>
+                  <li>Preparing your scan session</li>
                   <li>Organizing patterns across your responses</li>
                   <li>Comparing rhythm, timing, steadiness, and expression</li>
                   <li>Preparing your Reflection</li>
-                  <li>Shaping this scan into a visual signature</li>
                 </ul>
               )}
               {completeness?.status === "partial" ? <p className={styles.lead}>{completeness.userMessage}</p> : null}
