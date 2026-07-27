@@ -67,7 +67,7 @@ export function buildScanCompleteness(args: {
   const validRecordings = args.analyses.filter(isUsableAnalysis).length;
   const invalidRecordings = Math.max(0, expected - validRecordings);
   const completionRatio = Math.min(1, validRecordings / expected);
-  const minimumPartialEvidence = Math.max(1, Math.ceil(expected * 0.43));
+  const minimumPartialEvidence = Math.max(1, Math.ceil(expected * 0.4));
 
   let status: ScanStatus = "failed";
   let qualityLevel: ScanQualityLevel = "limited";
