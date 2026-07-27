@@ -201,7 +201,7 @@ test("the V2 scan flow never writes the compatibility view", () => {
   const source = readFileSync("pages/scan/analyzing.tsx", "utf8");
   assert.match(source, /persistCanonicalReport/);
   assert.doesNotMatch(source, /\.from\(["']scans["']\)/);
-  assert.match(source, /We could not save your reflection/);
+  assert.match(source, /We could not complete your scan/);
   assert.match(source, /errorHeading \?\? hardRetryMessage\(\)\.heading/);
   assert.match(readFileSync("lib/data/v2/scanRepository.ts", "utf8"), /from\(["']scan_sessions["']\)/);
 });
