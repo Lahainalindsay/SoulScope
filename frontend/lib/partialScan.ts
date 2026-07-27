@@ -66,26 +66,32 @@ export function buildScanCompleteness(args: {
   const expected = Math.max(1, args.expectedRecordings);
   const validRecordings = args.analyses.filter(isUsableAnalysis).length;
   const invalidRecordings = Math.max(0, expected - validRecordings);
-  const completionRatio = validRecordings / expected;
+  const completionRatio = Math.min(1, validRecordings / expected);
 
   let status: ScanStatus = "failed";
   let qualityLevel: ScanQualityLevel = "limited";
   let userMessage = "Not enough voice data was captured to create a reliable reflection. Find a quiet space, speak naturally, and try again.";
   let retryRecommended = true;
 
-  if (validRecordings >= 6) {
+  // Completeness must be evaluated against the current protocol size. The old
+  // fixed thresholds assumed a seven-recording scan, which incorrectly marked a
+  // perfect three-prompt scan (3 of 3) as limited.
+  if (validRecordings === expected) {
     status = "completed";
-    qualityLevel = validRecordings === expected ? "high" : "good";
-    userMessage = validRecordings === expected
-      ? "Your reflection is ready."
-      : `We analyzed ${validRecordings} of ${expected} recordings. Your result is based on the signals captured successfully and may be slightly less detailed than a complete scan.`;
-    retryRecommended = validRecordings !== expected;
-  } else if (validRecordings >= 4) {
+    qualityLevel = "high";
+    userMessage = "Your reflection is ready.";
+    retryRecommended = false;
+  } else if (completionRatio >= 0.8) {
+    status = "completed";
+    qualityLevel = "good";
+    userMessage = `We analyzed ${validRecordings} of ${expected} recordings. Your result is based on the signals captured successfully and may be slightly less detailed than a complete scan.`;
+    retryRecommended = true;
+  } else if (completionRatio >= 0.5) {
     status = "partial";
     qualityLevel = "good";
     userMessage = "This result is based on the recordings captured clearly. Because part of the scan was incomplete, some details may be less specific.";
     retryRecommended = true;
-  } else if (validRecordings === 3) {
+  } else if (validRecordings >= 1) {
     status = "partial";
     qualityLevel = "limited";
     userMessage = "We captured enough information to offer an initial reflection, but the result is less complete than a full scan.";
