@@ -67,15 +67,16 @@ export function buildScanCompleteness(args: {
   const validRecordings = args.analyses.filter(isUsableAnalysis).length;
   const invalidRecordings = Math.max(0, expected - validRecordings);
   const completionRatio = Math.min(1, validRecordings / expected);
+  const minimumPartialEvidence = Math.max(1, Math.ceil(expected * 0.43));
 
   let status: ScanStatus = "failed";
   let qualityLevel: ScanQualityLevel = "limited";
   let userMessage = "Not enough voice data was captured to create a reliable reflection. Find a quiet space, speak naturally, and try again.";
   let retryRecommended = true;
 
-  // Completeness must be evaluated against the current protocol size. The old
-  // fixed thresholds assumed a seven-recording scan, which incorrectly marked a
-  // perfect three-prompt scan (3 of 3) as limited.
+  // Completeness is evaluated against the current protocol size. The old fixed
+  // thresholds assumed seven recordings and incorrectly marked a perfect
+  // three-prompt scan (3 of 3) as limited.
   if (validRecordings === expected) {
     status = "completed";
     qualityLevel = "high";
@@ -91,7 +92,7 @@ export function buildScanCompleteness(args: {
     qualityLevel = "good";
     userMessage = "This result is based on the recordings captured clearly. Because part of the scan was incomplete, some details may be less specific.";
     retryRecommended = true;
-  } else if (validRecordings >= 1) {
+  } else if (validRecordings >= minimumPartialEvidence) {
     status = "partial";
     qualityLevel = "limited";
     userMessage = "We captured enough information to offer an initial reflection, but the result is less complete than a full scan.";
