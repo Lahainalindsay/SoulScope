@@ -17,6 +17,7 @@ import { type PatternPresentation } from "./patternKnowledge";
 import type { ScanCompleteness, ScanWithCompleteness } from "./partialScan";
 import type { UserResultDomain, UserResultStoryCandidate } from "./systemDimensions";
 import type { VoiceAnalysisResult } from "./voiceSpectrum";
+import { buildVocalStateProfile, type VocalStateProfile } from "./vocalStateProfile";
 import { adaptDomainsToLegacy } from "./observationFramework/adaptDomainsToLegacy";
 import { buildObservationPipeline } from "./observationFramework/buildObservationPipeline";
 import type { ObservationPipelineResult } from "./observationFramework/types";
@@ -39,6 +40,7 @@ export type SoulScopeReport = BaseSoulScopeReport & {
   presentation: PatternPresentation;
   scanCompleteness?: ScanCompleteness;
   observationPipeline?: ObservationPipelineResult;
+  vocalStateProfile: VocalStateProfile;
   atlas: {
     input: AtlasInput;
     result: AtlasResult;
@@ -102,6 +104,7 @@ export function buildSoulScopeReport(
 ): SoulScopeReport {
   const scanWithCompleteness = scan as ScanWithCompleteness;
   const base = buildBaseSoulScopeReport(scan);
+  const vocalStateProfile = buildVocalStateProfile(scan);
   const observationPipeline = USE_OBSERVATION_PIPELINE_V2
     ? buildObservationPipeline(scan, {
         scanId: options.scanId,
@@ -195,6 +198,7 @@ export function buildSoulScopeReport(
     canonicalPattern,
     scanCompleteness: scanWithCompleteness.scanCompleteness,
     observationPipeline,
+    vocalStateProfile,
     storyCandidates,
     atlas: {
       input: atlasRuntime.input,
