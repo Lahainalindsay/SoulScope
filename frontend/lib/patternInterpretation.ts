@@ -31,11 +31,7 @@ export type EvidenceLedger = {
   supporting: EvidenceEntry[];
   contradictory: EvidenceEntry[];
   missing: EvidenceEntry[];
-  quality: {
-    usable: boolean;
-    confidence: number;
-    reasons: string[];
-  };
+  quality: { usable: boolean; confidence: number; reasons: string[] };
 };
 
 export type StateVector = {
@@ -70,11 +66,7 @@ export type DynamicPatternResult = {
   interpretationLimits: string[];
   decisionLedger: {
     selected: string;
-    rejected: Array<{
-      id: string;
-      name: string;
-      reasons: string[];
-    }>;
+    rejected: Array<{ id: string; name: string; reasons: string[] }>;
     alternatives: Array<{
       id: string;
       name: string;
@@ -93,561 +85,250 @@ export type DynamicPatternResult = {
   };
 };
 
-export type LegacyPatternCandidate = {
-  id: string;
-  name: string;
-  confidence: number;
-};
+export type LegacyPatternCandidate = { id: string; name: string; confidence: number };
 
 type PromptAnalysis = NonNullable<NonNullable<VoiceAnalysisResult["analysisDebug"]>["promptAnalyses"]>[number];
+type DimensionKey = keyof StateVector;
+type CanonicalFeature = { value: number; confidence: number };
+type FeatureMap = Record<string, CanonicalFeature>;
+
+const LABELS: Record<DimensionKey, string> = {
+  activation: "Activation",
+  organization: "Organization",
+  regulation: "Regulation",
+  expression: "Expression",
+  relationalOrientation: "Relational Orientation",
+  direction: "Direction",
+  capacity: "Capacity",
+};
+
+const STATES: Record<DimensionKey, [string, string, string, string]> = {
+  activation: ["low", "settled", "elevated", "high"],
+  organization: ["fragmenting", "searching", "coherent", "highly coherent"],
+  regulation: ["strained", "effortful", "steady", "flexible"],
+  expression: ["contained", "measured", "open", "forceful"],
+  relationalOrientation: ["inward", "selective", "available", "connected"],
+  direction: ["dispersed", "exploratory", "focused", "action-oriented"],
+  capacity: ["taxed", "limited", "available", "sustained"],
+};
+
+const PATTERNS: Array<{ id: PatternFamily; name: string; target: Partial<StateVector> }> = [
+  { id: "grounded", name: "The Grounded Navigator", target: { activation: 0.45, organization: 0.78, regulation: 0.8, capacity: 0.78, direction: 0.68 } },
+  { id: "activated", name: "The Coherent Accelerator", target: { activation: 0.86, organization: 0.62, expression: 0.78, capacity: 0.48 } },
+  { id: "reorganizing", name: "The Reorganizing Explorer", target: { activation: 0.62, organization: 0.28, regulation: 0.42, direction: 0.52 } },
+  { id: "protective", name: "The Selective Protector", target: { activation: 0.42, relationalOrientation: 0.25, expression: 0.35, regulation: 0.6 } },
+  { id: "overextended", name: "The Overextended Steward", target: { activation: 0.72, capacity: 0.25, regulation: 0.35, expression: 0.58 } },
+  { id: "expressive", name: "The Open Communicator", target: { expression: 0.84, activation: 0.62, organization: 0.6 } },
+  { id: "purposeful", name: "The Focused Navigator", target: { direction: 0.86, organization: 0.72, capacity: 0.65 } },
+  { id: "recovering", name: "The Recovering Adapter", target: { regulation: 0.62, capacity: 0.58, activation: 0.46 } },
+  { id: "reflective", name: "The Reflective Observer", target: { activation: 0.28, expression: 0.38, organization: 0.68 } },
+  { id: "adaptive", name: "The Adaptive Integrator", target: { activation: 0.5, organization: 0.56, regulation: 0.56, expression: 0.55, direction: 0.56, capacity: 0.56 } },
+];
 
 function clamp(value: number, min = 0, max = 1) {
-  if (!Number.isFinite(value)) return min;
-  return Math.max(min, Math.min(max, value));
+  return Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : min;
 }
 
 function mean(values: number[]) {
   const valid = values.filter(Number.isFinite);
-  if (!valid.length) return 0;
-  return valid.reduce((sum, value) => sum + value, 0) / valid.length;
-}
-
-function standardDeviation(values: number[]) {
-  if (values.length <= 1) return 0;
-  const avg = mean(values);
-  return Math.sqrt(mean(values.map((value) => (value - avg) ** 2)));
+  return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : 0;
 }
 
 function normalize(value: number, low: number, high: number) {
-  return clamp((value - low) / Math.max(1, high - low));
+  return clamp((value - low) / Math.max(0.0001, high - low));
+}
+
+function round(value: number) {
+  return Number(clamp(value).toFixed(3));
 }
 
 function addEvidence(ledger: EvidenceLedger, entry: EvidenceEntry) {
-  ledger[entry.polarity].push({
-    ...entry,
-    value: Number(clamp(entry.value).toFixed(3)),
-    confidence: Number(clamp(entry.confidence).toFixed(3)),
-  });
+  ledger[entry.polarity].push({ ...entry, value: round(entry.value), confidence: round(entry.confidence) });
 }
 
-function promptTitles(prompts: PromptAnalysis[]) {
-  return prompts.map((prompt) => `Prompt ${prompt.index + 1}`);
+function acceptedCanonical(prompt: PromptAnalysis): FeatureMap {
+  const map: FeatureMap = {};
+  if (!prompt.canonicalAcoustic?.authoritative) return map;
+  for (const item of prompt.canonicalAcoustic.measurements ?? []) {
+    if (item.value === null || item.quality === "poor" || item.confidence < 0.35 || item.rejection_reason) continue;
+    map[item.feature_id] = { value: item.value, confidence: item.confidence };
+  }
+  return map;
 }
 
-function qualityLedger(scan: VoiceAnalysisResult): EvidenceLedger["quality"] {
-  const dynamics = scan.voiceDynamics;
-  const reasons: string[] = [];
-  let confidence = 0.72;
+function promptFeature(prompt: PromptAnalysis, featureId: string, legacy: () => number | null): CanonicalFeature | null {
+  const canonical = acceptedCanonical(prompt)[featureId];
+  if (canonical) return canonical;
+  if (prompt.canonicalAcoustic?.authoritative) return null;
+  const value = legacy();
+  return value === null ? null : { value, confidence: 0.45 };
+}
 
-  if (!dynamics) {
-    return { usable: false, confidence: 0.15, reasons: ["Voice dynamics were unavailable."] };
-  }
-  if (dynamics.captureQuality === "poor") {
-    confidence -= 0.32;
-    reasons.push("Capture quality was poor.");
-  }
-  if (dynamics.voicedFrameCount < 16) {
-    confidence -= 0.22;
-    reasons.push("Voiced-frame count was limited.");
-  }
-  if (dynamics.voicedFrameRatio < 0.18) {
-    confidence -= 0.18;
-    reasons.push("Voiced speech ratio was low.");
-  }
-  if (dynamics.clippingFrameRatio > 0.08) {
-    confidence -= 0.16;
-    reasons.push("Clipping was present in the audio.");
-  }
-  if ((scan.protocolNotes?.camera?.trackingConfidence ?? 1) < 0.45) {
-    confidence -= 0.08;
-    reasons.push("Camera tracking confidence was limited.");
-  }
+function aggregate(prompts: PromptAnalysis[], featureId: string, legacy: (prompt: PromptAnalysis) => number | null): CanonicalFeature | null {
+  const values = prompts.map((prompt) => promptFeature(prompt, featureId, () => legacy(prompt))).filter((item): item is CanonicalFeature => item !== null);
+  if (!values.length) return null;
+  return { value: mean(values.map((item) => item.value)), confidence: mean(values.map((item) => item.confidence)) };
+}
 
-  return {
-    usable: confidence >= 0.35,
-    confidence: Number(clamp(confidence).toFixed(3)),
-    reasons: reasons.length ? reasons : ["Capture quality was sufficient for a bounded reflection."],
-  };
+function qualityLedger(scan: VoiceAnalysisResult, prompts: PromptAnalysis[]): EvidenceLedger["quality"] {
+  const canonical = prompts.map((prompt) => prompt.canonicalAcoustic).filter((item) => item?.authoritative);
+  if (canonical.length) {
+    const confidence = mean(canonical.map((item) => item?.confidence ?? 0));
+    return { usable: confidence >= 0.4, confidence: round(confidence), reasons: ["Authoritative canonical acoustic measurements were used."] };
+  }
+  const d = scan.voiceDynamics;
+  if (!d) return { usable: false, confidence: 0.15, reasons: ["Acoustic evidence was unavailable."] };
+  let confidence = d.captureQuality === "good" ? 0.68 : 0.42;
+  if (d.voicedFrameRatio < 0.2) confidence -= 0.15;
+  if (d.clippingFrameRatio > 0.05) confidence -= 0.14;
+  return { usable: confidence >= 0.4, confidence: round(confidence), reasons: ["Legacy acoustic summaries were used because canonical measurements were unavailable."] };
 }
 
 export function buildEvidenceLedger(scan: VoiceAnalysisResult): EvidenceLedger {
-  const ledger: EvidenceLedger = {
-    supporting: [],
-    contradictory: [],
-    missing: [],
-    quality: qualityLedger(scan),
-  };
-  const dynamics = scan.voiceDynamics;
   const prompts = scan.analysisDebug?.promptAnalyses ?? [];
-  const promptCameras = scan.protocolNotes?.prompts?.filter((prompt) => prompt.camera) ?? [];
-  const camera = scan.protocolNotes?.camera;
-  const cameraBaseline = scan.protocolNotes?.cameraBaseline;
+  const ledger: EvidenceLedger = { supporting: [], contradictory: [], missing: [], quality: qualityLedger(scan, prompts) };
+  const speechRate = aggregate(prompts, "voice.syllable_nuclei_rate", (p) => p.voiceDynamics?.speechRateProxyPerMin ?? null);
+  const pitchRange = aggregate(prompts, "voice.f0.range_semitones", (p) => p.voiceDynamics?.pitchRangeSemitones ?? null);
+  const voicedRatio = aggregate(prompts, "voice.phonation_time_ratio", (p) => p.voiceDynamics?.voicedFrameRatio ?? null);
+  const pitchStability = aggregate(prompts, "voice.pitch_stability", (p) => p.voiceDynamics?.pitchStability ?? null);
+  const pitchClarity = aggregate(prompts, "voice.pitch_clarity", (p) => p.voiceDynamics?.pitchClarity ?? null);
+  const pauseMean = aggregate(prompts, "voice.pause.duration_mean", (p) => p.voiceDynamics?.averagePauseMs ?? null);
+  const flatness = aggregate(prompts, "voice.spectral_flatness", (p) => p.voiceDynamics?.spectralFlatness ?? null);
+  const richness = aggregate(prompts, "voice.harmonic_richness", (p) => p.voiceDynamics?.harmonicRichness ?? null);
 
-  if (!dynamics) {
-    addEvidence(ledger, {
-      id: "voice-dynamics-missing",
-      label: "Voice dynamics unavailable",
-      value: 1,
-      confidence: 0.9,
-      polarity: "missing",
-      measurements: {},
-      prompts: [],
-      longitudinal: false,
-      rationale: "The scan cannot score voice-derived dynamics without voice timing and pitch features.",
-    });
-    return ledger;
+  if (!speechRate || !pitchRange || !voicedRatio || !pitchStability || !pitchClarity || !pauseMean || !flatness || !richness) {
+    addEvidence(ledger, { id: "acoustic-evidence-limited", label: "Acoustic evidence incomplete", value: 1, confidence: 0.9, polarity: "missing", measurements: {}, prompts: [], longitudinal: false, rationale: "Rejected or unavailable measurements are not replaced by conflicting legacy values." });
   }
 
-  const activationValue = mean([
-    normalize(dynamics.speechRateProxyPerMin ?? 0, 80, 210),
-    normalize(dynamics.pitchRangeSemitones, 4, 18),
-    normalize(dynamics.voicedFrameRatio, 0.24, 0.7),
-    normalize(dynamics.harmonicRichness ?? 0, 0.2, 0.8),
+  const activation = mean([
+    speechRate ? normalize(speechRate.value, 90, 210) : 0.5,
+    pitchRange ? normalize(pitchRange.value, 3, 15) : 0.5,
+    voicedRatio ? normalize(voicedRatio.value, 0.55, 0.95) : 0.5,
   ]);
-  if (activationValue >= 0.58) {
-    addEvidence(ledger, {
-      id: "high-activation",
-      label: "High activation",
-      value: activationValue,
-      confidence: ledger.quality.confidence,
-      polarity: "supporting",
-      measurements: {
-        speechRateProxyPerMin: dynamics.speechRateProxyPerMin ?? null,
-        pitchRangeSemitones: dynamics.pitchRangeSemitones,
-        voicedFrameRatio: dynamics.voicedFrameRatio,
-      },
-      prompts: [],
-      longitudinal: false,
-      rationale: "Speech rate, pitch range, and voiced activity suggest elevated activation.",
-    });
-  }
+  addEvidence(ledger, { id: "acoustic-activation", label: "Acoustic activation", value: activation, confidence: mean([speechRate?.confidence ?? 0.35, pitchRange?.confidence ?? 0.35, voicedRatio?.confidence ?? 0.35]), polarity: "supporting", measurements: { speechRate: speechRate?.value ?? null, pitchRangeSemitones: pitchRange?.value ?? null, phonationRatio: voicedRatio?.value ?? null }, prompts: prompts.map((p) => `Prompt ${p.index + 1}`), longitudinal: false, rationale: "Activation is estimated from pace, pitch modulation, and phonation time." });
 
-  const fragmentationValue = mean([
-    normalize(dynamics.pauseCount, 2, 7),
-    normalize(dynamics.averagePauseMs, 260, 1100),
-    normalize(1 - dynamics.pitchStability, 0.24, 0.72),
-    normalize(dynamics.spectralFlatness ?? 0, 0.15, 0.52),
+  const organization = mean([
+    pitchStability?.value ?? 0.5,
+    pitchClarity?.value ?? 0.5,
+    pauseMean ? 1 - normalize(pauseMean.value, 200, 1100) : 0.5,
+    flatness ? 1 - normalize(flatness.value, 0.02, 0.3) : 0.5,
   ]);
-  if (fragmentationValue >= 0.55) {
-    addEvidence(ledger, {
-      id: "activation-with-fragmentation",
-      label: "Activation with fragmentation",
-      value: fragmentationValue,
-      confidence: ledger.quality.confidence,
-      polarity: "supporting",
-      measurements: {
-        pauseCount: dynamics.pauseCount,
-        averagePauseMs: dynamics.averagePauseMs,
-        pitchStability: dynamics.pitchStability,
-        spectralFlatness: dynamics.spectralFlatness ?? null,
-      },
-      prompts: [],
-      longitudinal: false,
-      rationale: "Pauses, pitch instability, and spectral flatness suggest organization may be harder under activation.",
-    });
-  } else if (activationValue >= 0.52) {
-    addEvidence(ledger, {
-      id: "activation-with-coherence",
-      label: "Activation with coherence",
-      value: 1 - fragmentationValue,
-      confidence: ledger.quality.confidence,
-      polarity: "supporting",
-      measurements: {
-        pauseCount: dynamics.pauseCount,
-        pitchStability: dynamics.pitchStability,
-      },
-      prompts: [],
-      longitudinal: false,
-      rationale: "Activation is present, but the available timing and pitch features remain comparatively organized.",
-    });
-  }
+  addEvidence(ledger, { id: "acoustic-organization", label: "Acoustic organization", value: organization, confidence: mean([pitchStability?.confidence ?? 0.35, pitchClarity?.confidence ?? 0.35, pauseMean?.confidence ?? 0.35, flatness?.confidence ?? 0.35]), polarity: "supporting", measurements: { pitchStability: pitchStability?.value ?? null, pitchClarity: pitchClarity?.value ?? null, pauseMeanMs: pauseMean?.value ?? null, spectralFlatness: flatness?.value ?? null }, prompts: prompts.map((p) => `Prompt ${p.index + 1}`), longitudinal: false, rationale: "Organization is estimated from pitch reliability, pause timing, and spectral structure." });
 
-  if (prompts.length >= 2) {
-    const resonanceValues = prompts.map((prompt) => prompt.resonanceScore);
-    const pitchRanges = prompts.map((prompt) => prompt.voiceDynamics?.pitchRangeSemitones ?? 0);
-    const speechRates = prompts.map((prompt) => prompt.voiceDynamics?.speechRateProxyPerMin ?? 0);
-    const first = mean(resonanceValues.slice(0, Math.ceil(prompts.length / 2)));
-    const last = mean(resonanceValues.slice(Math.floor(prompts.length / 2)));
-    const escalation = normalize(last - first, 0.05, 0.28);
-    const variability = mean([
-      normalize(standardDeviation(resonanceValues), 0.04, 0.24),
-      normalize(standardDeviation(pitchRanges), 1.2, 7),
-      normalize(standardDeviation(speechRates), 8, 44),
-    ]);
+  const expression = mean([
+    pitchRange ? normalize(pitchRange.value, 3, 15) : 0.5,
+    speechRate ? normalize(speechRate.value, 90, 210) : 0.5,
+    richness ? normalize(richness.value, 0.35, 0.95) : 0.5,
+  ]);
+  addEvidence(ledger, { id: "acoustic-expression", label: "Acoustic expression", value: expression, confidence: mean([pitchRange?.confidence ?? 0.35, speechRate?.confidence ?? 0.35, richness?.confidence ?? 0.35]), polarity: "supporting", measurements: { pitchRangeSemitones: pitchRange?.value ?? null, speechRate: speechRate?.value ?? null, harmonicRichness: richness?.value ?? null }, prompts: prompts.map((p) => `Prompt ${p.index + 1}`), longitudinal: false, rationale: "Expression is estimated from prosodic range, pace, and harmonic structure." });
 
-    if (escalation >= 0.45 || variability >= 0.55) {
-      addEvidence(ledger, {
-        id: "cross-prompt-escalation",
-        label: "Cross-prompt modulation",
-        value: Math.max(escalation, variability),
-        confidence: ledger.quality.confidence,
-        polarity: "supporting",
-        measurements: {
-          firstHalfResonance: Number(first.toFixed(3)),
-          secondHalfResonance: Number(last.toFixed(3)),
-          resonanceSpread: Number(standardDeviation(resonanceValues).toFixed(3)),
-          pitchRangeSpread: Number(standardDeviation(pitchRanges).toFixed(3)),
-        },
-        prompts: promptTitles(prompts),
-        longitudinal: false,
-        rationale: "Prompt-level features changed enough that a scan-wide average may hide important modulation.",
-      });
+  if (prompts.length >= 3) {
+    const [opening, challenge, future] = prompts;
+    const features = (prompt: PromptAnalysis) => ({
+      range: promptFeature(prompt, "voice.f0.range_semitones", () => prompt.voiceDynamics?.pitchRangeSemitones ?? null),
+      stability: promptFeature(prompt, "voice.pitch_stability", () => prompt.voiceDynamics?.pitchStability ?? null),
+      phonation: promptFeature(prompt, "voice.phonation_time_ratio", () => prompt.voiceDynamics?.voicedFrameRatio ?? null),
+    });
+    const a = features(opening); const b = features(challenge); const c = features(future);
+    if (a.range && a.stability && a.phonation && b.range && b.stability && b.phonation && c.range && c.stability && c.phonation) {
+      const distance = (x: typeof a, y: typeof a) => mean([
+        normalize(Math.abs(x.range!.value - y.range!.value), 0, 7),
+        normalize(Math.abs(x.stability!.value - y.stability!.value), 0, 0.3),
+        normalize(Math.abs(x.phonation!.value - y.phonation!.value), 0, 0.25),
+      ]);
+      const challengeDistance = distance(a, b);
+      const futureDistance = distance(a, c);
+      const recovery = challengeDistance > 0.08 ? clamp((challengeDistance - futureDistance) / challengeDistance) : 0.5;
+      addEvidence(ledger, { id: "challenge-modulation", label: "Challenge modulation", value: challengeDistance, confidence: mean([opening.canonicalAcoustic?.confidence ?? 0.45, challenge.canonicalAcoustic?.confidence ?? 0.45]), polarity: "supporting", measurements: { challengeDistance: round(challengeDistance) }, prompts: ["Prompt 1", "Prompt 2"], longitudinal: false, rationale: "The challenge prompt is compared directly with the opening prompt." });
+      addEvidence(ledger, { id: "within-scan-recovery", label: "Within-scan recovery", value: recovery, confidence: mean([opening.canonicalAcoustic?.confidence ?? 0.45, challenge.canonicalAcoustic?.confidence ?? 0.45, future.canonicalAcoustic?.confidence ?? 0.45]), polarity: "supporting", measurements: { challengeDistance: round(challengeDistance), futureDistance: round(futureDistance) }, prompts: ["Prompt 1", "Prompt 2", "Prompt 3"], longitudinal: false, rationale: "Recovery measures whether the future-oriented prompt moved toward the opening pattern after challenge modulation." });
+    } else {
+      addEvidence(ledger, { id: "recovery-evidence-missing", label: "Recovery evidence unavailable", value: 1, confidence: 0.9, polarity: "missing", measurements: {}, prompts: [], longitudinal: false, rationale: "All three prompts need accepted measurements for recovery scoring." });
     }
   } else {
-    addEvidence(ledger, {
-      id: "prompt-level-evidence-missing",
-      label: "Prompt-level evidence unavailable",
-      value: 1,
-      confidence: 0.8,
-      polarity: "missing",
-      measurements: {},
-      prompts: [],
-      longitudinal: false,
-      rationale: "Cross-prompt modulation cannot be scored without prompt-level audio summaries.",
-    });
+    addEvidence(ledger, { id: "recovery-evidence-missing", label: "Recovery evidence unavailable", value: 1, confidence: 0.9, polarity: "missing", measurements: {}, prompts: [], longitudinal: false, rationale: "Three prompts are required for recovery scoring." });
   }
 
-  if (camera && camera.trackingConfidence >= 0.45) {
-    const visualActivation = mean([
-      normalize(camera.facialTension, 0.32, 0.72),
-      normalize(camera.blinkRatePerMin, 12, 34),
-      normalize(1 - camera.eyeOpenness, 0.18, 0.62),
-    ]);
-    const divergence = Math.abs(visualActivation - activationValue);
-    addEvidence(ledger, {
-      id: divergence >= 0.32 ? "vocal-facial-divergence" : "vocal-facial-congruence",
-      label: divergence >= 0.32 ? "Vocal-facial divergence" : "Vocal-facial congruence",
-      value: divergence >= 0.32 ? divergence : 1 - divergence,
-      confidence: Math.min(ledger.quality.confidence, camera.trackingConfidence),
-      polarity: "supporting",
-      measurements: {
-        vocalActivation: Number(activationValue.toFixed(3)),
-        visualActivation: Number(visualActivation.toFixed(3)),
-        trackingConfidence: camera.trackingConfidence,
-      },
-      prompts: promptCameras.map((prompt) => prompt.title),
-      longitudinal: false,
-      rationale:
-        divergence >= 0.32
-          ? "Voice and visible expression did not move in the same direction, so interpretation should preserve that mismatch."
-          : "Voice and visible expression moved in a broadly aligned direction.",
-    });
-  } else {
-    addEvidence(ledger, {
-      id: "camera-evidence-missing",
-      label: "Reliable camera evidence unavailable",
-      value: 1,
-      confidence: 0.72,
-      polarity: "missing",
-      measurements: { trackingConfidence: camera?.trackingConfidence ?? null },
-      prompts: [],
-      longitudinal: false,
-      rationale: "Cross-modal congruence cannot be strongly scored without reliable camera tracking.",
-    });
-  }
-
-  if (camera && cameraBaseline && camera.trackingConfidence >= 0.45) {
-    const recoveryDelta =
-      (camera.facialTension - cameraBaseline.facialTension) +
-      (camera.blinkRatePerMin - cameraBaseline.blinkRatePerMin) / 40 -
-      (camera.eyeOpenness - cameraBaseline.eyeOpenness);
-    if (recoveryDelta >= 0.26) {
-      addEvidence(ledger, {
-        id: "slow-recovery",
-        label: "Slow recovery",
-        value: normalize(recoveryDelta, 0.18, 0.8),
-        confidence: Math.min(ledger.quality.confidence, camera.trackingConfidence),
-        polarity: "supporting",
-        measurements: {
-          facialTensionDelta: Number((camera.facialTension - cameraBaseline.facialTension).toFixed(3)),
-          blinkDelta: Number((camera.blinkRatePerMin - cameraBaseline.blinkRatePerMin).toFixed(1)),
-          eyeOpennessDelta: Number((camera.eyeOpenness - cameraBaseline.eyeOpenness).toFixed(3)),
-        },
-        prompts: [],
-        longitudinal: false,
-        rationale: "Camera summary stayed more activated than the opening baseline.",
-      });
-    }
-  } else {
-    addEvidence(ledger, {
-      id: "recovery-evidence-missing",
-      label: "Recovery evidence unavailable",
-      value: 1,
-      confidence: 0.7,
-      polarity: "missing",
-      measurements: {},
-      prompts: [],
-      longitudinal: false,
-      rationale: "Recovery cannot be scored strongly without a reliable opening baseline and later comparison.",
-    });
-  }
-
-  addEvidence(ledger, {
-    id: "baseline-deviation-unavailable",
-    label: "Personal baseline unavailable",
-    value: 1,
-    confidence: 1,
-    polarity: "missing",
-    measurements: {},
-    prompts: [],
-    longitudinal: true,
-    rationale: "No confirmed scan subject and eligible prior scan set were supplied, so personal baseline deviation is not used.",
-  });
-
+  if (!scan.protocolNotes?.camera || scan.protocolNotes.camera.trackingConfidence < 0.45) addEvidence(ledger, { id: "camera-evidence-missing", label: "Reliable camera evidence unavailable", value: 1, confidence: 0.9, polarity: "missing", measurements: {}, prompts: [], longitudinal: false, rationale: "Camera absence limits cross-modal confidence without invalidating voice evidence." });
+  const subject = scan.scanMeta?.subject;
+  if (!(subject?.subjectId && subject.historyEligible === true && (subject.identityConfidence ?? 0) >= 0.7)) addEvidence(ledger, { id: "personal-baseline-unavailable", label: "Personal baseline unavailable", value: 1, confidence: 1, polarity: "missing", measurements: {}, prompts: [], longitudinal: true, rationale: "Longitudinal claims remain disabled until eligible prior scans exist." });
   return ledger;
 }
 
-function evidenceValue(ledger: EvidenceLedger, id: string) {
-  return ledger.supporting.find((entry) => entry.id === id)?.value ?? 0;
+function evidenceValue(ledger: EvidenceLedger, id: string, fallback = 0.5) {
+  return ledger.supporting.find((item) => item.id === id)?.value ?? fallback;
 }
 
-function evidenceConfidence(ledger: EvidenceLedger, ids: string[]) {
-  const entries = ledger.supporting.filter((entry) => ids.includes(entry.id));
-  if (!entries.length) return ledger.quality.confidence * 0.55;
-  return mean(entries.map((entry) => entry.confidence));
+function domain(domains: UserResultDomain[], title: UserResultDomain["title"]) {
+  return (domains.find((item) => item.title === title)?.score ?? 50) / 100;
 }
 
 function buildStateVector(ledger: EvidenceLedger, domains: UserResultDomain[]): StateVector {
-  const byDomain = (title: UserResultDomain["title"]) => domains.find((domain) => domain.title === title)?.score ?? 50;
-  const highActivation = evidenceValue(ledger, "high-activation");
-  const fragmentation = evidenceValue(ledger, "activation-with-fragmentation");
-  const coherence = evidenceValue(ledger, "activation-with-coherence");
-  const escalation = evidenceValue(ledger, "cross-prompt-escalation");
-  const slowRecovery = evidenceValue(ledger, "slow-recovery");
-  const congruence = evidenceValue(ledger, "vocal-facial-congruence");
-  const divergence = evidenceValue(ledger, "vocal-facial-divergence");
-
+  const activation = evidenceValue(ledger, "acoustic-activation");
+  const organization = evidenceValue(ledger, "acoustic-organization");
+  const expression = evidenceValue(ledger, "acoustic-expression");
+  const recovery = evidenceValue(ledger, "within-scan-recovery");
   return {
-    activation: clamp(mean([highActivation, byDomain("Energy & Vitality") / 100, byDomain("Emotional Expression") / 100, escalation])),
-    organization: clamp(0.62 + coherence * 0.24 - fragmentation * 0.52 - divergence * 0.12),
-    regulation: clamp(byDomain("Regulation") / 100 - slowRecovery * 0.3 - escalation * 0.18),
-    expression: clamp(mean([byDomain("Communication & Clarity") / 100, byDomain("Emotional Expression") / 100, highActivation * 0.8])),
-    relationalOrientation: clamp(byDomain("Connection & Support") / 100 + congruence * 0.1 - divergence * 0.14),
-    direction: clamp(byDomain("Direction & Adaptability") / 100 + escalation * 0.08),
-    capacity: clamp(mean([byDomain("Recovery & Restoration") / 100, byDomain("Regulation") / 100]) - slowRecovery * 0.24 - fragmentation * 0.16),
+    activation: round(activation),
+    organization: round(organization),
+    regulation: round(mean([organization, recovery, domain(domains, "Regulation")])),
+    expression: round(expression),
+    relationalOrientation: round(mean([expression, domain(domains, "Connection & Support")])),
+    direction: round(mean([domain(domains, "Direction & Adaptability"), recovery])),
+    capacity: round(mean([recovery, organization, domain(domains, "Recovery & Restoration")])),
   };
 }
 
-function stateFor(key: keyof StateVector, score: number) {
-  const bands: Record<keyof StateVector, [string, string, string, string]> = {
-    activation: ["low", "settled", "elevated", "high"],
-    organization: ["fragmenting", "searching", "coherent", "highly coherent"],
-    regulation: ["strained", "effortful", "steady", "flexible"],
-    expression: ["contained", "measured", "open", "forceful"],
-    relationalOrientation: ["inward", "selective", "available", "connected"],
-    direction: ["dispersed", "exploratory", "focused", "action-oriented"],
-    capacity: ["taxed", "limited", "available", "sustained"],
-  };
-  const [low, midLow, midHigh, high] = bands[key];
-  if (score < 0.34) return low;
-  if (score < 0.52) return midLow;
-  if (score < 0.72) return midHigh;
-  return high;
-}
-
-function dimension(
-  key: keyof StateVector,
-  score: number,
-  ledger: EvidenceLedger,
-  supportingIds: string[],
-  contradictoryIds: string[] = [],
-): ScoredDimension {
-  const labels: Record<keyof StateVector, string> = {
-    activation: "Activation",
-    organization: "Organization",
-    regulation: "Regulation",
-    expression: "Expression",
-    relationalOrientation: "Relational Orientation",
-    direction: "Direction",
-    capacity: "Capacity",
-  };
-  return {
-    key,
-    label: labels[key],
-    state: stateFor(key, score),
-    score: Number(score.toFixed(3)),
-    confidence: Number(evidenceConfidence(ledger, supportingIds).toFixed(3)),
-    supportingEvidence: supportingIds.filter((id) => ledger.supporting.some((entry) => entry.id === id)),
-    contradictoryEvidence: contradictoryIds.filter((id) => ledger.supporting.some((entry) => entry.id === id)),
-    missingEvidence: ledger.missing.map((entry) => entry.id),
-  };
+function stateFor(key: DimensionKey, value: number) {
+  const states = STATES[key];
+  return value < 0.34 ? states[0] : value < 0.52 ? states[1] : value < 0.72 ? states[2] : states[3];
 }
 
 function buildDimensions(vector: StateVector, ledger: EvidenceLedger): DynamicPatternResult["dimensions"] {
-  return {
-    activation: dimension("activation", vector.activation, ledger, ["high-activation", "cross-prompt-escalation"]),
-    organization: dimension("organization", vector.organization, ledger, ["activation-with-coherence"], ["activation-with-fragmentation"]),
-    regulation: dimension("regulation", vector.regulation, ledger, ["vocal-facial-congruence"], ["slow-recovery", "cross-prompt-escalation"]),
-    expression: dimension("expression", vector.expression, ledger, ["high-activation", "vocal-facial-congruence", "vocal-facial-divergence"]),
-    relationalOrientation: dimension("relationalOrientation", vector.relationalOrientation, ledger, ["vocal-facial-congruence"], ["vocal-facial-divergence"]),
-    direction: dimension("direction", vector.direction, ledger, ["cross-prompt-escalation"]),
-    capacity: dimension("capacity", vector.capacity, ledger, ["activation-with-coherence"], ["slow-recovery", "activation-with-fragmentation"]),
+  const ids: Record<DimensionKey, string[]> = {
+    activation: ["acoustic-activation"], organization: ["acoustic-organization"], expression: ["acoustic-expression"],
+    regulation: ["acoustic-organization", "within-scan-recovery"], relationalOrientation: ["acoustic-expression"],
+    direction: ["within-scan-recovery"], capacity: ["acoustic-organization", "within-scan-recovery"],
   };
+  const result = {} as DynamicPatternResult["dimensions"];
+  for (const key of Object.keys(vector) as DimensionKey[]) {
+    const supportingEvidence = ids[key].filter((id) => ledger.supporting.some((entry) => entry.id === id));
+    const relevantMissing = ledger.missing.filter((entry) => key === "regulation" || key === "capacity" || key === "direction" ? entry.id === "recovery-evidence-missing" : entry.id === "acoustic-evidence-limited").map((entry) => entry.id);
+    const confidenceEntries = ledger.supporting.filter((entry) => supportingEvidence.includes(entry.id));
+    result[key] = { key, label: LABELS[key], state: stateFor(key, vector[key]), score: vector[key], confidence: round(confidenceEntries.length ? mean(confidenceEntries.map((entry) => entry.confidence)) : ledger.quality.confidence * 0.5), supportingEvidence, contradictoryEvidence: [], missingEvidence: relevantMissing };
+  }
+  return result;
 }
 
-function chooseFamily(vector: StateVector): PatternFamily {
-  if (vector.activation >= 0.7 && vector.capacity < 0.45) return "activated";
-  if (vector.organization < 0.42) return "reorganizing";
-  if (vector.regulation >= 0.6 && vector.capacity >= 0.58) return "grounded";
-  if (vector.expression >= 0.68) return "expressive";
-  if (vector.relationalOrientation < 0.42) return "protective";
-  if (vector.capacity < 0.42) return "overextended";
-  if (vector.direction >= 0.68) return "purposeful";
-  return "adaptive";
+function compatibility(vector: StateVector, target: Partial<StateVector>) {
+  const entries = Object.entries(target) as Array<[DimensionKey, number]>;
+  return round(1 - mean(entries.map(([key, value]) => Math.abs(vector[key] - value))));
 }
 
-function displayName(vector: StateVector, family: PatternFamily) {
-  if (family === "grounded") return "The Grounded Navigator";
-  if (family === "activated" && vector.organization < 0.45) return "The Pressurized Reorganizer";
-  if (family === "activated" && vector.organization >= 0.58) return "The Coherent Accelerator";
-  if (family === "protective") return "The Selective Protector";
-  if (family === "overextended") return "The Overextended Steward";
-  if (family === "expressive" && vector.capacity < 0.5) return "The Expression Under Pressure";
-  if (family === "reorganizing") return "The Reorganizing Explorer";
-  if (family === "purposeful") return "The Focused Navigator";
-  return "The Adaptive Integrator";
-}
-
-function compatibility(name: string, vector: StateVector, ledger: EvidenceLedger) {
-  const fragmentation = evidenceValue(ledger, "activation-with-fragmentation");
-  const escalation = evidenceValue(ledger, "cross-prompt-escalation");
-  const slowRecovery = evidenceValue(ledger, "slow-recovery");
-  const score =
-    name === "grounded"
-      ? vector.organization * 0.3 + vector.regulation * 0.34 + vector.capacity * 0.28 - fragmentation * 0.24 - escalation * 0.16 - slowRecovery * 0.18
-      : name === "activated"
-      ? vector.activation * 0.42 + (1 - vector.capacity) * 0.22 + escalation * 0.18 + fragmentation * 0.14
-      : name === "protective"
-      ? (1 - vector.relationalOrientation) * 0.36 + vector.regulation * 0.18 + evidenceValue(ledger, "vocal-facial-divergence") * 0.2
-      : name === "reorganizing"
-      ? (1 - vector.organization) * 0.42 + fragmentation * 0.28 + vector.activation * 0.12
-      : vector.direction * 0.2 + vector.expression * 0.16 + vector.regulation * 0.16;
-  return clamp(score);
-}
-
-function buildPatternSignature(dimensions: DynamicPatternResult["dimensions"]) {
-  return [
-    `activation:${dimensions.activation.state}`,
-    `organization:${dimensions.organization.state}`,
-    `regulation:${dimensions.regulation.state}`,
-    `expression:${dimensions.expression.state}`,
-    `relationship:${dimensions.relationalOrientation.state}`,
-    `direction:${dimensions.direction.state}`,
-    `capacity:${dimensions.capacity.state}`,
-  ].join("+");
-}
-
-function buildDecisionLedger(
-  family: PatternFamily,
-  name: string,
-  vector: StateVector,
-  ledger: EvidenceLedger,
-  legacyCandidates: LegacyPatternCandidate[],
-): DynamicPatternResult["decisionLedger"] {
-  const candidates = [
-    { id: "grounded", name: "Grounded Navigator" },
-    { id: "activated", name: "Activated Pattern" },
-    { id: "protective", name: "Protective Pattern" },
-    { id: "reorganizing", name: "Reorganizing Pattern" },
-    { id: "adaptive", name: "Adaptive Pattern" },
-  ].map((candidate) => {
-    const supportingEvidence = ledger.supporting
-      .filter((entry) => {
-        if (candidate.id === "grounded") return ["activation-with-coherence", "vocal-facial-congruence"].includes(entry.id);
-        if (candidate.id === "activated") return ["high-activation", "cross-prompt-escalation"].includes(entry.id);
-        if (candidate.id === "protective") return ["vocal-facial-divergence", "slow-recovery"].includes(entry.id);
-        if (candidate.id === "reorganizing") return ["activation-with-fragmentation", "cross-prompt-escalation"].includes(entry.id);
-        return true;
-      })
-      .map((entry) => entry.id);
-    const contradictoryEvidence =
-      candidate.id === "grounded"
-        ? ledger.supporting
-            .filter((entry) => ["high-activation", "activation-with-fragmentation", "cross-prompt-escalation", "slow-recovery"].includes(entry.id))
-            .map((entry) => entry.id)
-        : [];
-    return {
-      id: candidate.id,
-      name: candidate.name,
-      compatibility: Number(compatibility(candidate.id, vector, ledger).toFixed(3)),
-      supportingEvidence,
-      contradictoryEvidence,
-      missingEvidence: ledger.missing.map((entry) => entry.id),
-    };
-  }).sort((a, b) => b.compatibility - a.compatibility);
-
-  const rejected = candidates
-    .filter((candidate) => candidate.id !== family)
-    .slice(0, 4)
-    .map((candidate) => ({
-      id: candidate.id,
-      name: candidate.name,
-      reasons: [
-        candidate.contradictoryEvidence.length
-          ? `Contradicted by ${candidate.contradictoryEvidence.join(", ")}.`
-          : `Compatibility ${candidate.compatibility} did not exceed selected signature.`,
-        candidate.missingEvidence.length ? `Missing evidence: ${candidate.missingEvidence.slice(0, 2).join(", ")}.` : "",
-      ].filter(Boolean),
-    }));
-
-  return {
-    selected: `${name} from ${family} family`,
-    rejected: [
-      ...rejected,
-      ...legacyCandidates.slice(0, 3).map((candidate) => ({
-        id: `legacy:${candidate.id}`,
-        name: candidate.name,
-        reasons: [`Legacy profile score ${candidate.confidence.toFixed(3)} retained for comparison only.`],
-      })),
-    ],
-    alternatives: candidates,
-  };
-}
-
-function confidenceFor(dimensions: DynamicPatternResult["dimensions"], ledger: EvidenceLedger) {
-  const dimensionConfidence = mean(Object.values(dimensions).map((item) => item.confidence));
-  const contradictionLoad = ledger.contradictory.length * 0.06;
-  const missingLoad = ledger.missing.length * 0.035;
-  return Number(clamp(mean([dimensionConfidence, ledger.quality.confidence]) - contradictionLoad - missingLoad).toFixed(3));
-}
-
-export function buildDynamicPatternResult(
-  scan: VoiceAnalysisResult,
-  domains: UserResultDomain[],
-  legacyCandidates: LegacyPatternCandidate[] = [],
-): DynamicPatternResult {
+export function buildDynamicPatternResult(scan: VoiceAnalysisResult, domains: UserResultDomain[], legacyCandidates: LegacyPatternCandidate[] = []): DynamicPatternResult {
   const evidenceLedger = buildEvidenceLedger(scan);
   const stateVector = buildStateVector(evidenceLedger, domains);
   const dimensions = buildDimensions(stateVector, evidenceLedger);
-  const family = chooseFamily(stateVector);
-  const name = displayName(stateVector, family);
-  const patternSignature = buildPatternSignature(dimensions);
-  const confidence = confidenceFor(dimensions, evidenceLedger);
+  const alternatives = PATTERNS.map((pattern) => ({ id: pattern.id, name: pattern.name, compatibility: compatibility(stateVector, pattern.target), supportingEvidence: evidenceLedger.supporting.map((entry) => entry.id), contradictoryEvidence: evidenceLedger.contradictory.map((entry) => entry.id), missingEvidence: evidenceLedger.missing.map((entry) => entry.id) })).sort((a, b) => b.compatibility - a.compatibility);
+  const selected = alternatives[0];
+  const family = selected.id;
+  const displayName = selected.name;
+  const confidence = round(mean([evidenceLedger.quality.confidence, mean(Object.values(dimensions).map((item) => item.confidence)), selected.compatibility]) - evidenceLedger.missing.length * 0.02);
   const subject = scan.scanMeta?.subject;
   const subjectId = subject?.subjectId ?? null;
   const identityConfidence = subject?.identityConfidence ?? 0;
   const comparisonAvailable = Boolean(subjectId && subject?.historyEligible === true && identityConfidence >= 0.7);
-
+  const rejected: Array<{ id: string; name: string; reasons: string[] }> = alternatives.slice(1, 5).map((candidate) => ({ id: candidate.id, name: candidate.name, reasons: [`Compatibility ${candidate.compatibility} ranked below selected compatibility ${selected.compatibility}.`] }));
+  rejected.push(...legacyCandidates.slice(0, 3).map((candidate) => ({ id: `legacy:${candidate.id}`, name: candidate.name, reasons: [`Legacy profile score ${candidate.confidence.toFixed(3)} is retained for audit only and cannot override the canonical decision.`] })));
   return {
-    family,
-    dimensions,
-    evidenceLedger,
-    stateVector,
-    patternSignature,
-    displayName: name,
-    confidence,
+    family, dimensions, evidenceLedger, stateVector,
+    patternSignature: (Object.keys(dimensions) as DimensionKey[]).map((key) => `${key}:${dimensions[key].state}`).join("+"),
+    displayName, confidence,
     interpretationLimits: [
       ...(!evidenceLedger.quality.usable ? ["Capture quality limits the strength of this interpretation."] : []),
+      ...(evidenceLedger.missing.some((entry) => entry.id === "recovery-evidence-missing") ? ["Recovery is not described because accepted three-prompt evidence was unavailable."] : []),
       "The pattern describes measured signal relationships, not a diagnosis or fixed identity.",
-      "Personal baseline comparison is disabled until a confirmed scan subject has enough eligible prior scans.",
     ],
-    decisionLedger: buildDecisionLedger(family, name, stateVector, evidenceLedger, legacyCandidates),
-    baseline: {
-      subjectId,
-      comparisonAvailable,
-      identityConfidence,
-      deviationScore: null,
-      changedDimensions: [],
-    },
+    decisionLedger: { selected: `${displayName} from ${family} family with compatibility ${selected.compatibility}`, rejected, alternatives },
+    baseline: { subjectId, comparisonAvailable, identityConfidence, deviationScore: null, changedDimensions: [] },
   };
 }
