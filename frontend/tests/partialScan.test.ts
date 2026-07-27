@@ -63,6 +63,15 @@ test("7 valid recordings produce a completed high-completeness result", () => {
   assert.equal(result.validRecordings, 7);
 });
 
+test("3 valid recordings in the current three-prompt protocol produce a completed high-quality result", () => {
+  const result = buildScanCompleteness({ expectedRecordings: 3, analyses: analyses(3, 3) });
+  assert.equal(result.status, "completed");
+  assert.equal(result.qualityLevel, "high");
+  assert.equal(result.resultConfidence, "high");
+  assert.equal(result.retryRecommended, false);
+  assert.equal(result.completionRatio, 1);
+});
+
 test("6 valid plus 1 invalid produces a completed result", () => {
   const result = buildScanCompleteness({ expectedRecordings: 7, analyses: analyses(6) });
   assert.equal(result.status, "completed");
@@ -76,13 +85,13 @@ test("5 and 4 valid recordings produce partial results", () => {
   assert.equal(buildScanCompleteness({ expectedRecordings: 7, analyses: analyses(4) }).status, "partial");
 });
 
-test("3 valid recordings produce a limited partial result", () => {
+test("3 valid recordings out of a seven-recording protocol produce a limited partial result", () => {
   const result = buildScanCompleteness({ expectedRecordings: 7, analyses: analyses(3) });
   assert.equal(result.status, "partial");
   assert.equal(result.qualityLevel, "limited");
 });
 
-test("2 or fewer valid recordings require retry", () => {
+test("2 or fewer valid recordings require retry in the seven-recording protocol", () => {
   for (const count of [0, 1, 2]) {
     const result = buildScanCompleteness({ expectedRecordings: 7, analyses: analyses(count) });
     assert.equal(result.status, "failed");
