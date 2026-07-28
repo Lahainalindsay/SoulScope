@@ -26,6 +26,7 @@ function topNotes(scan: VoiceAnalysisResult) {
 }
 
 export default function DeveloperAnalysisDebug({ scanId, createdAt, scan, report }: Props) {
+  const canonical = report.canonicalPattern;
   const debugObject = {
     scan: {
       id: show(scanId),
@@ -51,15 +52,16 @@ export default function DeveloperAnalysisDebug({ scanId, createdAt, scan, report
       spectralCentroidHz: show(scan.spectralCentroidHz),
       resonanceScore: show(scan.resonanceScore),
       primaryNote: show(scan.noteInterpretation?.primaryNote),
-      primaryPattern: report.primaryPattern.name,
-      patternSignature: report.dynamicPattern.patternSignature,
-      patternFamily: report.dynamicPattern.family,
-      patternConfidence: report.primaryPattern.confidence,
+      primaryPattern: canonical.canonicalDisplayName,
+      patternSignature: canonical.canonicalPatternSignature,
+      patternFamily: canonical.canonicalFamily,
+      patternConfidence: canonical.confidence,
     },
-    evidence_ledger: report.dynamicPattern.evidenceLedger,
-    state_vector: report.dynamicPattern.stateVector,
-    dimension_ledger: report.dynamicPattern.dimensions,
-    decision_ledger: report.dynamicPattern.decisionLedger,
+    evidence_ledger: canonical.evidenceLedger,
+    state_vector: canonical.stateVector,
+    dimension_ledger: canonical.dimensionLedger,
+    decision_ledger: canonical.decisionLedger,
+    resonance_coordinate_decision: report.dynamicPattern.decisionLedger,
     baseline: report.dynamicPattern.baseline,
     top_note_energies: topNotes(scan),
     domain_results: report.domainResults.map((domain) => ({

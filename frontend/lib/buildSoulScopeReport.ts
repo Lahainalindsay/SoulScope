@@ -98,6 +98,59 @@ function personalizeStoryCandidate(
   };
 }
 
+function coordinateAuthoritativePattern(
+  resolved: CanonicalPatternResult,
+  dynamicPattern: BaseSoulScopeReport["dynamicPattern"],
+): CanonicalPatternResult {
+  if (
+    resolved.resultType === "insufficient-evidence" ||
+    (resolved.canonicalFamily === dynamicPattern.family && resolved.canonicalDisplayName === dynamicPattern.displayName)
+  ) {
+    return resolved;
+  }
+
+  const signature = `family:${dynamicPattern.family}+${dynamicPattern.patternSignature}`;
+  return {
+    ...resolved,
+    canonicalPatternSignature: signature,
+    canonicalDisplayName: dynamicPattern.displayName,
+    canonicalFamily: dynamicPattern.family,
+    primaryFamily: dynamicPattern.family,
+    secondaryFamily: null,
+    resultType: "single",
+    confidence: dynamicPattern.confidence,
+    confidenceMargin: 0,
+    evidenceLedger: dynamicPattern.evidenceLedger,
+    dimensionLedger: dynamicPattern.dimensions,
+    stateVector: dynamicPattern.stateVector,
+    decisionLedger: {
+      ...resolved.decisionLedger,
+      selected: {
+        ...resolved.decisionLedger.selected,
+        displayName: dynamicPattern.displayName,
+        signature,
+        mode: "single",
+        primaryFamily: dynamicPattern.family,
+        secondaryFamily: null,
+        confidence: dynamicPattern.confidence,
+        confidenceMargin: 0,
+        nameSource: "fallback",
+      },
+      supportingEvidence: dynamicPattern.decisionLedger.alternatives[0]?.supportingEvidence ?? resolved.decisionLedger.supportingEvidence,
+      contradictoryEvidence: dynamicPattern.decisionLedger.alternatives[0]?.contradictoryEvidence ?? resolved.decisionLedger.contradictoryEvidence,
+      missingEvidence: dynamicPattern.decisionLedger.alternatives[0]?.missingEvidence ?? resolved.decisionLedger.missingEvidence,
+      notes: [
+        `The resonance coordinate engine selected ${dynamicPattern.displayName} in the ${dynamicPattern.family} territory.`,
+        "The coordinate decision is authoritative; legacy family scoring is retained for diagnostics only.",
+      ],
+    },
+    interpretationLimits: [
+      ...dynamicPattern.interpretationLimits,
+      "The displayed pattern name is determined by the resonance coordinate territory.",
+    ],
+  };
+}
+
 export function buildSoulScopeReport(
   scan: VoiceAnalysisResult,
   options: BuildSoulScopeReportOptions = {},
@@ -138,7 +191,7 @@ export function buildSoulScopeReport(
   const atlasSignature = buildAtlasSignatureModel(atlasRuntime.input, atlasRuntime.result);
   const atlasEvidence = topAtlasEvidence(atlasRuntime.input, limited ? 2 : 4);
   const atlasPresentation = buildAtlasPresentation(atlasRuntime.input, atlasRuntime.result, baselineComparison);
-  const canonicalPattern = resolveCanonicalPattern(
+  const resolvedCanonicalPattern = resolveCanonicalPattern(
     {
       dynamicPattern: base.dynamicPattern,
       atlasInput: atlasRuntime.input,
@@ -150,6 +203,7 @@ export function buildSoulScopeReport(
     },
     atlasPresentation,
   );
+  const canonicalPattern = coordinateAuthoritativePattern(resolvedCanonicalPattern, base.dynamicPattern);
 
   const patternExpression: PatternExpression = canonicalPatternExpression(
     canonicalPattern,
