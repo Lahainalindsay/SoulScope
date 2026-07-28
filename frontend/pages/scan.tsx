@@ -104,7 +104,8 @@ export default function ScanIntroPage() {
     void router.push("/scan/question/1");
   };
 
-  const contextReady = Boolean(scanSubject) && referenceReady !== null && signedIn !== null;
+  const canBegin = Boolean(scanSubject);
+  const contextReady = canBegin && referenceReady !== null && signedIn !== null;
   const buttonLabel = !contextReady
     ? "Preparing"
     : !signedIn
@@ -137,11 +138,11 @@ export default function ScanIntroPage() {
                   </li>
                   <li>
                     <strong>Be in a quiet location.</strong>
-                    <span>Background voices, television, and other media can limit results or fail the speaker check.</span>
+                    <span>All background noise can limit results. Background voices, television, and other media can also fail the speaker check.</span>
                   </li>
                   <li>
                     <strong>Speak naturally and continuously.</strong>
-                    <span>You will be guided through 3 prompts. The first creates a current comparison point, followed by challenge and hopeful prompts.</span>
+                    <span>You will be guided through 3 prompts. You have 30 seconds to answer each one. Please speak for the entire 30 seconds available. The first creates a current comparison point, followed by challenge and hopeful prompts.</span>
                     <ul className={styles.promptList}>
                       {GUIDED_SCAN_QUESTIONS.map((question) => (
                         <li key={question.id}>{question.prompt}</li>
@@ -158,7 +159,7 @@ export default function ScanIntroPage() {
                     styles.primaryButton,
                     contextReady ? styles.primaryButtonReady : styles.primaryButtonWaiting,
                   ].join(" ")}
-                  disabled={!contextReady}
+                  disabled={!canBegin}
                   aria-describedby="scan-confirmation-help"
                   onClick={startScan}
                 >
@@ -167,7 +168,7 @@ export default function ScanIntroPage() {
               </div>
               <p id="scan-confirmation-help" className={styles.actionHelp}>
                 {!contextReady
-                  ? "Preparing your account."
+                  ? "Preparing your scan."
                   : !signedIn
                     ? "An account keeps your Reference Signature private and connected to you."
                     : !referenceReady
