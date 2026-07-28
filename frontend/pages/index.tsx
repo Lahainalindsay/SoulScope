@@ -1,10 +1,14 @@
 import Head from "next/head";
 import Link from "next/link";
+import { useSession } from "@supabase/auth-helpers-react";
 import styles from "../styles/Home.module.css";
 
 const START_SCAN_LOGIN = { pathname: "/auth/login", query: { next: "/scan" } };
 
 export default function HomePage() {
+  const session = useSession();
+  const startScanHref = session ? "/scan" : START_SCAN_LOGIN;
+
   return (
     <>
       <Head>
@@ -47,7 +51,7 @@ export default function HomePage() {
               Every scan becomes part of your personal Resonance Timeline, helping you recognize what changes, what returns, and how your inner world evolves.
             </p>
             <div className={styles.heroActions}>
-              <Link href={START_SCAN_LOGIN} className={styles.primaryCta}>Begin Your Resonance Scan</Link>
+              <Link href={startScanHref} className={styles.primaryCta}>Begin Your Resonance Scan</Link>
               <Link href="/how-it-works" className={styles.secondaryCta}>How SoulScope Works</Link>
             </div>
           </div>
