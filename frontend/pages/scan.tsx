@@ -8,6 +8,7 @@ import {
   type GuidedScanSubject,
 } from "../lib/guidedScanSession";
 import { GUIDED_SCAN_QUESTIONS } from "../lib/scanProtocol";
+import { getActiveReferenceSignature } from "../lib/referenceSignatureRepository";
 import { supabase } from "../lib/supabaseClient";
 import styles from "./scan/ScanIntro.module.css";
 
@@ -41,51 +42,76 @@ function subjectFromPrimaryRow(subject: ScanSubjectRow): GuidedScanSubject {
 export default function ScanIntroPage() {
   const router = useRouter();
   const [scanSubject, setScanSubject] = useState<GuidedScanSubject | null>(null);
+  const [referenceReady, setReferenceReady] = useState<boolean | null>(null);
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     let active = true;
     resetGuidedScanSession();
 
-    const resolveSelfScanSubject = async () => {
+    const resolveScanContext = async () => {
       try {
         const userResponse = await supabase.auth.getUser();
         if (!active) return;
 
-        if (userResponse.error || !userResponse.data.user) {
+        const user = userResponse.data.user;
+        if (userResponse.error || !user) {
+          setSignedIn(false);
+          setReferenceReady(false);
           setScanSubject(DEFAULT_SELF_SCAN_SUBJECT);
           return;
         }
 
-        const response = await supabase
-          .from("scan_subjects")
-          .select("id, name, subject_type, identity_metadata")
-          .eq("user_id", userResponse.data.user.id)
-          .eq("subject_type", "primary")
-          .maybeSingle();
+        setSignedIn(true);
+        const [subjectResponse, reference] = await Promise.all([
+          supabase
+            .from("scan_subjects")
+            .select("id, name, subject_type, identity_metadata")
+            .eq("user_id", user.id)
+            .eq("subject_type", "primary")
+            .maybeSingle(),
+          getActiveReferenceSignature(supabase, user.id),
+        ]);
 
         if (!active) return;
-
-        const primarySubject = response.data as ScanSubjectRow | null;
+        const primarySubject = subjectResponse.data as ScanSubjectRow | null;
         setScanSubject(primarySubject ? subjectFromPrimaryRow(primarySubject) : DEFAULT_SELF_SCAN_SUBJECT);
+        setReferenceReady(Boolean(reference));
       } catch {
-        if (active) setScanSubject(DEFAULT_SELF_SCAN_SUBJECT);
+        if (!active) return;
+        setScanSubject(DEFAULT_SELF_SCAN_SUBJECT);
+        setReferenceReady(false);
       }
     };
 
-    void resolveSelfScanSubject();
-
+    void resolveScanContext();
     return () => {
       active = false;
     };
   }, []);
 
   const startScan = () => {
-    if (!scanSubject) return;
+    if (!scanSubject || referenceReady === null || signedIn === null) return;
+    if (!signedIn) {
+      void router.push("/auth/login?next=/baseline");
+      return;
+    }
+    if (!referenceReady) {
+      void router.push("/baseline");
+      return;
+    }
     setGuidedScanSubject(scanSubject);
     void router.push("/scan/question/1");
   };
 
-  const canBegin = Boolean(scanSubject);
+  const contextReady = Boolean(scanSubject) && referenceReady !== null && signedIn !== null;
+  const buttonLabel = !contextReady
+    ? "Preparing"
+    : !signedIn
+      ? "Sign in to begin"
+      : !referenceReady
+        ? "Create My Reference Signature"
+        : "Begin My Scan";
 
   return (
     <>
@@ -106,12 +132,16 @@ export default function ScanIntroPage() {
 
                 <ol className={styles.preparationList}>
                   <li>
+                    <strong>Your Reference Signature.</strong>
+                    <span>SoulScope uses a one-time, natural 30-second recording as an internal calibration point. It supports measurement and speaker continuity without appearing as report language.</span>
+                  </li>
+                  <li>
                     <strong>Be in a quiet location.</strong>
-                    <span>All background noise can limit results.</span>
+                    <span>Background voices, television, and other media can limit results or fail the speaker check.</span>
                   </li>
                   <li>
                     <strong>Speak naturally and continuously.</strong>
-                    <span>You will be guided through 3 prompts. You have 30 seconds to answer each one. Please speak for the entire 30 seconds available.</span>
+                    <span>You will be guided through 3 prompts. The first creates a current comparison point, followed by challenge and hopeful prompts.</span>
                     <ul className={styles.promptList}>
                       {GUIDED_SCAN_QUESTIONS.map((question) => (
                         <li key={question.id}>{question.prompt}</li>
@@ -126,17 +156,23 @@ export default function ScanIntroPage() {
                   type="button"
                   className={[
                     styles.primaryButton,
-                    canBegin ? styles.primaryButtonReady : styles.primaryButtonWaiting,
+                    contextReady ? styles.primaryButtonReady : styles.primaryButtonWaiting,
                   ].join(" ")}
-                  disabled={!canBegin}
+                  disabled={!contextReady}
                   aria-describedby="scan-confirmation-help"
                   onClick={startScan}
                 >
-                  Begin My Scan
+                  {buttonLabel}
                 </button>
               </div>
               <p id="scan-confirmation-help" className={styles.actionHelp}>
-                {canBegin ? "Your scan will begin with the first voice prompt." : "Preparing your scan."}
+                {!contextReady
+                  ? "Preparing your account."
+                  : !signedIn
+                    ? "An account keeps your Reference Signature private and connected to you."
+                    : !referenceReady
+                      ? "Your first step is a one-time 30-second calibration recording."
+                      : "Your Reference Signature is ready. Your scan will begin with the current comparison prompt."}
               </p>
 
               <section className={styles.privacySummary} aria-labelledby="scan-permissions-title">
