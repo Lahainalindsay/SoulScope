@@ -79,9 +79,22 @@ export function buildResonanceNarrative(
     limitations.push("Relationship states with weak or contradictory support are retained as unresolved and do not drive the final story.");
   }
 
+  const stronglyAdaptive = ["structured-processing", "purposeful-focus", "restored-capacity"]
+    .every((id) => pairStates.some((node) => node.id === id && node.confidence >= 0.62));
+  const generatedPattern = stronglyAdaptive
+    ? {
+        ...base.generatedPattern,
+        title: "The Adaptive Integrator",
+        dominantState: "Fluid reorganization",
+        supportingQuality: "Coordinated flexibility",
+        ruleId: "meaning-graph-adaptive-integrator",
+      }
+    : base.generatedPattern;
+
   return {
     ...base,
     engineVersion: RESONANCE_NARRATIVE_ENGINE_VERSION,
+    generatedPattern,
     introduction,
     beneathTheSurface,
     howThisOftenFeels: uniqueSentences([
