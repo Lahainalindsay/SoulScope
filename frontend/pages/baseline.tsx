@@ -66,7 +66,7 @@ export default function BaselinePage() {
         consentId: `${user.id}:${startedAt}:reference-signature-consent`,
         obtainedFromDataSubject: true,
         obtainedAt: startedAt,
-        method: "reference_signature_calibration",
+        method: "scan_preparation",
       };
       const provider = createDefaultVoiceAnalysisProvider();
       const providerResult = await provider.analyzeFile({
