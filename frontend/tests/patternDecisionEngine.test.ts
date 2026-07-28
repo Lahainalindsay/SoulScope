@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildDynamicPatternResult } from "../lib/patternInterpretation";
+import { buildResonanceCoordinate } from "../lib/resonanceCoordinate";
 import type { VoiceAnalysisResult } from "../lib/voiceSpectrum";
 
 function prompt(index: number, speechRate: number, pitchRange: number, pitchStability: number, confidence = 0.82) {
@@ -94,4 +95,41 @@ test("every scored dimension carries direct evidence or an explicit limitation",
       `${dimension.key} must be traceable to evidence or a declared limitation`,
     );
   }
+});
+
+test("four core dimensions create a bounded coordinate before pattern selection", () => {
+  const coordinate = buildResonanceCoordinate({
+    activation: 0.8,
+    organization: 0.75,
+    regulation: 0.62,
+    expression: 0.7,
+    relationalOrientation: 0.65,
+    direction: 0.78,
+    capacity: 0.55,
+    recovery: 0.5,
+    stress: 0.42,
+    mentalEffort: 0.58,
+    evidenceConfidence: 0.82,
+  });
+
+  assert.ok(coordinate.x >= -1 && coordinate.x <= 1);
+  assert.ok(coordinate.y >= -1 && coordinate.y <= 1);
+  assert.equal(Object.keys(coordinate.cores).length, 4);
+  assert.equal(coordinate.quadrant, "activated-coherent");
+});
+
+test("decision ledger records coordinate distance and coordinate compatibility", () => {
+  const result = buildDynamicPatternResult(
+    scanWithPrompts([
+      prompt(0, 150, 5.2, 0.72),
+      prompt(1, 100, 2.5, 0.55),
+      prompt(2, 145, 4.9, 0.69),
+    ]),
+    [],
+  );
+
+  assert.match(result.decisionLedger.selected, /coordinate \(-?\d+(?:\.\d+)?, -?\d+(?:\.\d+)?\)/);
+  assert.ok(result.patternSignature.includes("coordinate:"));
+  assert.ok(result.decisionLedger.alternatives.every((candidate) => Number.isFinite(candidate.distance)));
+  assert.ok(result.decisionLedger.alternatives.every((candidate) => candidate.coordinateCompatibility >= 0 && candidate.coordinateCompatibility <= 1));
 });
