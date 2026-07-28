@@ -1,4 +1,5 @@
 import { buildEmotionDecisionLayer, type EmotionDecisionLayer } from "./emotionDecisionLayer";
+import { buildResonanceCoordinate, coordinateCompatibility, type ResonanceCoordinate } from "./resonanceCoordinate";
 import { type UserResultDomain } from "./systemDimensions";
 import { type VoiceAnalysisResult } from "./voiceSpectrum";
 
@@ -57,6 +58,7 @@ export type DynamicPatternResult = {
   evidenceLedger: EvidenceLedger;
   stateVector: StateVector;
   emotionLayer: EmotionDecisionLayer;
+  resonanceCoordinate: ResonanceCoordinate;
   patternSignature: string;
   displayName: string;
   confidence: number;
@@ -68,6 +70,9 @@ export type DynamicPatternResult = {
       id: string;
       name: string;
       compatibility: number;
+      coordinateCompatibility: number;
+      stateCompatibility: number;
+      distance: number;
       supportingEvidence: string[];
       contradictoryEvidence: string[];
       missingEvidence: string[];
@@ -87,6 +92,12 @@ type PromptAnalysis = NonNullable<NonNullable<VoiceAnalysisResult["analysisDebug
 type DimensionKey = keyof StateVector;
 type CanonicalFeature = { value: number; confidence: number };
 type FeatureMap = Record<string, CanonicalFeature>;
+type PatternTerritory = {
+  id: PatternFamily;
+  name: string;
+  coordinate: { x: number; y: number };
+  target: Partial<StateVector>;
+};
 
 const LABELS: Record<DimensionKey, string> = {
   activation: "Activation",
@@ -106,17 +117,17 @@ const STATES: Record<DimensionKey, [string, string, string, string]> = {
   direction: ["dispersed", "exploratory", "focused", "action-oriented"],
   capacity: ["taxed", "limited", "available", "sustained"],
 };
-const PATTERNS: Array<{ id: PatternFamily; name: string; target: Partial<StateVector> }> = [
-  { id: "grounded", name: "The Grounded Navigator", target: { activation: 0.45, organization: 0.78, regulation: 0.8, capacity: 0.78, direction: 0.68 } },
-  { id: "activated", name: "The Coherent Accelerator", target: { activation: 0.86, organization: 0.62, expression: 0.78, capacity: 0.48 } },
-  { id: "reorganizing", name: "The Reorganizing Explorer", target: { activation: 0.62, organization: 0.28, regulation: 0.42, direction: 0.52 } },
-  { id: "protective", name: "The Selective Protector", target: { activation: 0.42, relationalOrientation: 0.25, expression: 0.35, regulation: 0.6 } },
-  { id: "overextended", name: "The Overextended Steward", target: { activation: 0.72, capacity: 0.25, regulation: 0.35, expression: 0.58 } },
-  { id: "expressive", name: "The Open Communicator", target: { expression: 0.84, activation: 0.62, organization: 0.6 } },
-  { id: "purposeful", name: "The Focused Navigator", target: { direction: 0.86, organization: 0.72, capacity: 0.65 } },
-  { id: "recovering", name: "The Recovering Adapter", target: { regulation: 0.62, capacity: 0.58, activation: 0.46 } },
-  { id: "reflective", name: "The Reflective Observer", target: { activation: 0.28, expression: 0.38, organization: 0.68 } },
-  { id: "adaptive", name: "The Adaptive Integrator", target: { activation: 0.5, organization: 0.56, regulation: 0.56, expression: 0.55, direction: 0.56, capacity: 0.56 } },
+const PATTERNS: PatternTerritory[] = [
+  { id: "grounded", name: "The Grounded Navigator", coordinate: { x: -0.25, y: 0.65 }, target: { activation: 0.45, organization: 0.78, regulation: 0.8, capacity: 0.78, direction: 0.68 } },
+  { id: "activated", name: "The Coherent Accelerator", coordinate: { x: 0.58, y: 0.45 }, target: { activation: 0.86, organization: 0.62, expression: 0.78, capacity: 0.48 } },
+  { id: "reorganizing", name: "The Reorganizing Explorer", coordinate: { x: 0.35, y: -0.45 }, target: { activation: 0.62, organization: 0.28, regulation: 0.42, direction: 0.52 } },
+  { id: "protective", name: "The Selective Protector", coordinate: { x: -0.28, y: 0.02 }, target: { activation: 0.42, relationalOrientation: 0.25, expression: 0.35, regulation: 0.6 } },
+  { id: "overextended", name: "The Overextended Steward", coordinate: { x: 0.62, y: -0.58 }, target: { activation: 0.72, capacity: 0.25, regulation: 0.35, expression: 0.58 } },
+  { id: "expressive", name: "The Open Communicator", coordinate: { x: 0.34, y: 0.2 }, target: { expression: 0.84, activation: 0.62, organization: 0.6 } },
+  { id: "purposeful", name: "The Focused Navigator", coordinate: { x: 0.22, y: 0.68 }, target: { direction: 0.86, organization: 0.72, capacity: 0.65 } },
+  { id: "recovering", name: "The Recovering Adapter", coordinate: { x: -0.5, y: 0.28 }, target: { regulation: 0.62, capacity: 0.58, activation: 0.46 } },
+  { id: "reflective", name: "The Reflective Observer", coordinate: { x: -0.58, y: 0.48 }, target: { activation: 0.28, expression: 0.38, organization: 0.68 } },
+  { id: "adaptive", name: "The Adaptive Integrator", coordinate: { x: 0, y: 0.12 }, target: { activation: 0.5, organization: 0.56, regulation: 0.56, expression: 0.55, direction: 0.56, capacity: 0.56 } },
 ];
 
 const clamp = (value: number, min = 0, max = 1) => Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : min;
@@ -214,7 +225,7 @@ function buildDimensions(vector: StateVector, ledger: EvidenceLedger): DynamicPa
   }
   return result;
 }
-function compatibility(vector: StateVector, target: Partial<StateVector>) { const entries = Object.entries(target) as Array<[DimensionKey, number]>; return round(1 - mean(entries.map(([key, value]) => Math.abs(vector[key] - value)))); }
+function stateCompatibility(vector: StateVector, target: Partial<StateVector>) { const entries = Object.entries(target) as Array<[DimensionKey, number]>; return round(1 - mean(entries.map(([key, value]) => Math.abs(vector[key] - value)))); }
 
 export function buildDynamicPatternResult(scan: VoiceAnalysisResult, domains: UserResultDomain[], legacyCandidates: LegacyPatternCandidate[] = []): DynamicPatternResult {
   const evidenceLedger = buildEvidenceLedger(scan);
@@ -223,28 +234,46 @@ export function buildDynamicPatternResult(scan: VoiceAnalysisResult, domains: Us
   const recovery = evidenceValue(evidenceLedger, "within-scan-recovery");
   const challengeModulation = evidenceValue(evidenceLedger, "challenge-modulation", 0.35);
   const emotionLayer = buildEmotionDecisionLayer({ ...stateVector, recovery, challengeModulation, evidenceConfidence: evidenceLedger.quality.confidence, evidenceIds: evidenceLedger.supporting.map((entry) => entry.id) });
-  const pairBias = emotionLayer.pairs.loadCapacity.balance * 0.08 + emotionLayer.pairs.opennessProtection.balance * 0.05 + emotionLayer.pairs.activationRestoration.balance * 0.06;
+  const resonanceCoordinate = buildResonanceCoordinate({
+    ...stateVector,
+    recovery,
+    stress: emotionLayer.emotions.stress.score,
+    mentalEffort: emotionLayer.emotions.mentalEffort.score,
+    evidenceConfidence: evidenceLedger.quality.confidence,
+  });
   const alternatives = PATTERNS.map((pattern) => {
-    let score = compatibility(stateVector, pattern.target);
-    if (pattern.id === "overextended") score = clamp(score + Math.max(0, pairBias));
-    if (pattern.id === "protective") score = clamp(score + Math.max(0, -emotionLayer.pairs.opennessProtection.balance) * 0.08);
-    if (pattern.id === "recovering") score = clamp(score + Math.max(0, -emotionLayer.pairs.activationRestoration.balance) * 0.08);
-    if (pattern.id === "expressive") score = clamp(score + Math.max(0, emotionLayer.pairs.expressionReflection.balance) * 0.08);
-    if (pattern.id === "purposeful") score = clamp(score + Math.max(0, emotionLayer.pairs.certaintyFlexibility.balance) * 0.06);
-    return { id: pattern.id, name: pattern.name, compatibility: round(score), supportingEvidence: [...evidenceLedger.supporting.map((entry) => entry.id), ...Object.keys(emotionLayer.emotions).map((id) => `emotion:${id}`), ...Object.keys(emotionLayer.pairs).map((id) => `pair:${id}`)], contradictoryEvidence: evidenceLedger.contradictory.map((entry) => entry.id), missingEvidence: evidenceLedger.missing.map((entry) => entry.id) };
-  }).sort((a, b) => b.compatibility - a.compatibility);
+    const coordinateScore = coordinateCompatibility(resonanceCoordinate, pattern.coordinate);
+    const vectorScore = stateCompatibility(stateVector, pattern.target);
+    let score = coordinateScore * 0.85 + vectorScore * 0.15;
+    if (pattern.id === "protective") score += Math.max(0, -emotionLayer.pairs.opennessProtection.balance) * 0.025;
+    if (pattern.id === "recovering") score += Math.max(0, -emotionLayer.pairs.activationRestoration.balance) * 0.025;
+    if (pattern.id === "expressive") score += Math.max(0, emotionLayer.pairs.expressionReflection.balance) * 0.025;
+    if (pattern.id === "purposeful") score += Math.max(0, emotionLayer.pairs.certaintyFlexibility.balance) * 0.02;
+    const distance = Math.sqrt((resonanceCoordinate.x - pattern.coordinate.x) ** 2 + (resonanceCoordinate.y - pattern.coordinate.y) ** 2);
+    return {
+      id: pattern.id,
+      name: pattern.name,
+      compatibility: round(score),
+      coordinateCompatibility: coordinateScore,
+      stateCompatibility: vectorScore,
+      distance: Number(distance.toFixed(3)),
+      supportingEvidence: [...evidenceLedger.supporting.map((entry) => entry.id), "resonance:four-cores", "resonance:xy-coordinate", ...Object.keys(emotionLayer.emotions).map((id) => `emotion:${id}`), ...Object.keys(emotionLayer.pairs).map((id) => `pair:${id}`)],
+      contradictoryEvidence: evidenceLedger.contradictory.map((entry) => entry.id),
+      missingEvidence: evidenceLedger.missing.map((entry) => entry.id),
+    };
+  }).sort((a, b) => b.compatibility - a.compatibility || a.distance - b.distance);
   const selected = alternatives[0], family = selected.id, displayName = selected.name;
-  const confidence = round(mean([evidenceLedger.quality.confidence, mean(Object.values(dimensions).map((item) => item.confidence)), selected.compatibility, emotionLayer.style.confidence]) - evidenceLedger.missing.length * 0.02);
+  const confidence = round(mean([evidenceLedger.quality.confidence, mean(Object.values(dimensions).map((item) => item.confidence)), selected.coordinateCompatibility, resonanceCoordinate.confidence, emotionLayer.style.confidence]) - evidenceLedger.missing.length * 0.02);
   const subject = scan.scanMeta?.subject, subjectId = subject?.subjectId ?? null, identityConfidence = subject?.identityConfidence ?? 0;
   const comparisonAvailable = Boolean(subjectId && subject?.historyEligible === true && identityConfidence >= 0.7);
-  const rejected: Array<{ id: string; name: string; reasons: string[] }> = alternatives.slice(1, 5).map((candidate) => ({ id: candidate.id, name: candidate.name, reasons: [`Compatibility ${candidate.compatibility} ranked below selected compatibility ${selected.compatibility}.`] }));
-  rejected.push(...legacyCandidates.slice(0, 3).map((candidate) => ({ id: `legacy:${candidate.id}`, name: candidate.name, reasons: [`Legacy profile score ${candidate.confidence.toFixed(3)} is retained for audit only and cannot override the canonical decision.`] })));
+  const rejected: Array<{ id: string; name: string; reasons: string[] }> = alternatives.slice(1, 5).map((candidate) => ({ id: candidate.id, name: candidate.name, reasons: [`Coordinate distance ${candidate.distance} ranked behind selected distance ${selected.distance}; combined compatibility ${candidate.compatibility} versus ${selected.compatibility}.`] }));
+  rejected.push(...legacyCandidates.slice(0, 3).map((candidate) => ({ id: `legacy:${candidate.id}`, name: candidate.name, reasons: [`Legacy profile score ${candidate.confidence.toFixed(3)} is retained for audit only and cannot override the canonical coordinate decision.`] })));
   return {
-    family, dimensions, evidenceLedger, stateVector, emotionLayer,
-    patternSignature: `${(Object.keys(dimensions) as DimensionKey[]).map((key) => `${key}:${dimensions[key].state}`).join("+")}+style:${emotionLayer.style.id}`,
+    family, dimensions, evidenceLedger, stateVector, emotionLayer, resonanceCoordinate,
+    patternSignature: `coordinate:${resonanceCoordinate.x},${resonanceCoordinate.y}+quadrant:${resonanceCoordinate.quadrant}+${(Object.keys(dimensions) as DimensionKey[]).map((key) => `${key}:${dimensions[key].state}`).join("+")}+style:${emotionLayer.style.id}`,
     displayName, confidence,
-    interpretationLimits: [...(!evidenceLedger.quality.usable ? ["Capture quality limits the strength of this interpretation."] : []), ...(evidenceLedger.missing.some((entry) => entry.id === "recovery-evidence-missing") ? ["Recovery is not described because accepted three-prompt evidence was unavailable."] : []), "Emotion scores are derived evidence dimensions, not direct measurements or diagnoses.", "The pattern describes measured signal relationships, not a diagnosis or fixed identity."],
-    decisionLedger: { selected: `${displayName} from ${family} family with compatibility ${selected.compatibility}; emotion style ${emotionLayer.style.id}`, rejected, alternatives },
+    interpretationLimits: [...(!evidenceLedger.quality.usable ? ["Capture quality limits the strength of this interpretation."] : []), ...(evidenceLedger.missing.some((entry) => entry.id === "recovery-evidence-missing") ? ["Recovery is not described because accepted three-prompt evidence was unavailable."] : []), "Emotion scores and the resonance coordinate are derived evidence dimensions, not direct measurements or diagnoses.", "The pattern describes measured signal relationships, not a diagnosis or fixed identity."],
+    decisionLedger: { selected: `${displayName} from ${family} territory at coordinate (${resonanceCoordinate.x}, ${resonanceCoordinate.y}); distance ${selected.distance}; compatibility ${selected.compatibility}; emotion style ${emotionLayer.style.id}`, rejected, alternatives },
     baseline: { subjectId, comparisonAvailable, identityConfidence, deviationScore: null, changedDimensions: [] },
   };
 }
