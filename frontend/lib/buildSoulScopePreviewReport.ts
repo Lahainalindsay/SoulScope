@@ -13,18 +13,7 @@ export type SoulScopePreviewReport = SoulScopeReport & {
   resonanceNarrative: ResonanceNarrative;
 };
 
-/**
- * Preview report pipeline.
- *
- * Measured component states remain the source of the narrative. The canonical
- * coordinate result is retained as territory context and can no longer replace
- * the aggregate state expressed by the component evidence.
- */
-export function buildSoulScopePreviewReport(
-  scan: VoiceAnalysisResult,
-  options: BuildSoulScopeReportOptions = {},
-): SoulScopePreviewReport {
-  const report = buildSoulScopeReport(scan, options);
+export function applyResonanceNarrative(report: SoulScopeReport): SoulScopePreviewReport {
   const resonanceNarrative = buildResonanceNarrative(
     report.domainResults,
     report.canonicalPattern,
@@ -58,4 +47,16 @@ export function buildSoulScopePreviewReport(
         : resonanceNarrative.worthNoticing,
     })),
   };
+}
+
+/**
+ * Evidence-weighted report pipeline. The coordinate result remains useful as a
+ * territory marker, but the final title and story emerge from the complete
+ * component aggregate.
+ */
+export function buildSoulScopePreviewReport(
+  scan: VoiceAnalysisResult,
+  options: BuildSoulScopeReportOptions = {},
+): SoulScopePreviewReport {
+  return applyResonanceNarrative(buildSoulScopeReport(scan, options));
 }
