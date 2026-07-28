@@ -57,8 +57,6 @@ export default function ResonanceResultsDashboard({
       <section className={styles.signatureHero} aria-label="Your Resonance Signature">
         <div className={styles.signatureCopy}>
           <p className={styles.eyebrow}>Your Resonance Signature</p>
-          <h1 className={styles.signatureTitle}>This is how this moment took shape.</h1>
-          <p>Created from the patterns present across this scan.</p>
         </div>
         <div className={styles.signatureFrame}>
           <ResonanceSignature
@@ -73,7 +71,6 @@ export default function ResonanceResultsDashboard({
         <p className={styles.eyebrow}>Your Reflection</p>
         <h2 className={styles.patternName}>{canonical.canonicalDisplayName}</h2>
         <p className={styles.reflection}>{report.presentation.summary}</p>
-        <p className={styles.patternTheme}>{canonical.summary}</p>
       </section>
 
       <HumanReflectionOverview report={report} />
