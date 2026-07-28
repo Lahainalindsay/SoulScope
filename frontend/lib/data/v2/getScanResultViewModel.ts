@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { buildSoulScopeReport, type SoulScopeReport } from "../../buildSoulScopeReport";
+import { buildSoulScopeReport } from "../../buildSoulScopeReport";
+import { applyResonanceNarrative, type SoulScopePreviewReport } from "../../buildSoulScopePreviewReport";
 import { buildLongitudinalAnalysis, type LongitudinalAnalysis, type LongitudinalScanSnapshot } from "../../longitudinalIntelligence";
 import { personalizeReportWithHistory } from "../../personalizeReflectionWithHistory";
 import type { ScanWithCompleteness } from "../../partialScan";
@@ -33,7 +34,7 @@ function parseRawResult(value: ScanSessionRow["raw_result"]): ScanWithCompletene
 export interface ScanResultViewModel {
   session: ScanSessionRow;
   scan: ScanWithCompleteness;
-  report: SoulScopeReport;
+  report: SoulScopePreviewReport;
   selectedPreference: ScanReflectionPreferenceRow | null;
   narrativePreference: UserNarrativePreferenceRow | null;
   observations: ObservationResultRow[];
@@ -73,6 +74,7 @@ export async function getScanResultViewModel(client: SupabaseClient, scanId: str
   };
   const longitudinal = buildLongitudinalAnalysis(current, history);
   const hydrated = hydrateReportFromV2(buildSoulScopeReport(scan, { scanId }), { patterns, reflections, domains, diagnostics });
-  const report = personalizeReportWithHistory(hydrated, longitudinal);
+  const personalized = personalizeReportWithHistory(hydrated, longitudinal);
+  const report = applyResonanceNarrative(personalized);
   return { session, scan, report, selectedPreference, narrativePreference, observations, evidence: includeEvidence ? allEvidence : [], baselines, longitudinal };
 }
