@@ -5,46 +5,34 @@ import test from "node:test";
 
 const read = (relativePath: string) => fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
 
-test("homepage opens as a minimal instrument landing page", () => {
+test("homepage opens with the current clarity-led instrument landing page", () => {
   const source = read("pages/index.tsx");
-  const eyebrowIndex = source.indexOf("A new instrument for self-reflection");
-  const soulIndex = source.indexOf(">Soul<");
-  const scopeIndex = source.indexOf(">Scope<");
-  const titleIndex = source.indexOf(">SoulScope<");
-  const taglineIndex = source.indexOf("A private instrument for self-awareness.");
 
-  assert.ok(eyebrowIndex >= 0);
-  assert.ok(soulIndex > eyebrowIndex);
-  assert.ok(titleIndex > soulIndex);
-  assert.ok(scopeIndex > titleIndex);
-  assert.ok(taglineIndex > titleIndex);
-  assert.match(source, />noun</);
-  assert.match(source, /<h1[^>]*className=\{styles\.heroHeadline\}>SoulScope<\/h1>/);
-  assert.doesNotMatch(source, /Clarity comes from within\./);
+  assert.match(source, /Clarity comes from within/);
+  assert.match(source, /The way you express yourself naturally changes as you move through life\./);
+  assert.match(source, /unique Resonance Signature for every scan/);
+  assert.match(source, /personal Resonance Timeline/);
+  assert.match(source, /Begin Your Resonance Scan/);
+  assert.match(source, /How SoulScope Works/);
   assert.doesNotMatch(source, /Observe your inner world\./);
-  assert.doesNotMatch(source, /Your inner experience\./);
-  assert.doesNotMatch(source, /A way of seeing\./);
   assert.doesNotMatch(source, /The inner world of a person/);
-  assert.doesNotMatch(source, /An instrument used to observe, examine/);
 });
 
-test("homepage no longer renders an illustrative Resonance Signature", () => {
+test("homepage does not render the illustrative Resonance Signature component", () => {
+  const source = read("pages/index.tsx");
+
+  assert.doesNotMatch(source, /<ResonanceSignature/);
+  assert.doesNotMatch(source, /DEMO_SIGNATURE_DATA/);
+});
+
+test("homepage hero remains compact and action-focused", () => {
   const source = read("pages/index.tsx");
   const styles = read("styles/Home.module.css");
 
-  assert.doesNotMatch(source, /ResonanceSignature/);
-  assert.doesNotMatch(source, /DEMO_SIGNATURE_DATA/);
-  assert.doesNotMatch(source, /illustrative SoulScope signature/i);
-  assert.doesNotMatch(styles, /heroVisual|illustrativeLabel|signatureFrame/);
-});
-
-test("homepage definition layout keeps dictionary terms with the title", () => {
-  const styles = read("styles/Home.module.css");
-
-  assert.match(styles, /\.heroIdentity/);
-  assert.match(styles, /grid-template-columns:\s*minmax\(82px,\s*max-content\)\s+minmax\(0,\s*max-content\)\s+minmax\(82px,\s*max-content\)/);
-  assert.match(styles, /\.dictionaryTerm small/);
-  assert.match(styles, /@media\s*\(max-width:\s*700px\)/);
+  assert.match(source, /className=\{styles\.heroHeadline\}/);
+  assert.match(source, /className=\{styles\.heroActions\}/);
+  assert.match(styles, /\.heroHeadline/);
+  assert.match(styles, /\.heroActions/);
 });
 
 test("How It Works explains the illustrative Resonance Signature in the signature section", () => {
