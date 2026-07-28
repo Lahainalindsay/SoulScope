@@ -17,7 +17,7 @@ const steps = [
   },
   {
     title: "Reflect",
-    description: "Receive a Resonance Signature, a clear Reflection, and something meaningful to notice.",
+    description: "Receive a Resonance Signature, a current pattern, and a clear Reflection.",
   },
 ];
 
@@ -47,8 +47,16 @@ export default function HowItWorks() {
         <main className={styles.shell}>
           <section className={styles.hero}>
             <p className={styles.eyebrow}>How It Works</p>
-            <h1 className={styles.title}>A clearer way to notice change.</h1>
-            <p className={styles.lead}>SoulScope listens for subtle patterns in your voice and expression and organizes them into a personal Resonance Signature and Reflection.</p>
+            <div className={styles.frameCard}>
+              <p className={styles.sectionEyebrow}>Soul</p>
+              <p className={styles.frameText}>Your inner world: the felt, expressive, and changing experience within you.</p>
+              <p className={styles.sectionEyebrow}>Scope</p>
+              <p className={styles.frameText}>An instrument for observing something more clearly.</p>
+            </div>
+            <h1 className={styles.title}>Observe your inner world.</h1>
+            <p className={styles.lead}>The way you express yourself changes as you move through life.</p>
+            <p className={styles.lead}>SoulScope is an instrument designed to notice the subtle patterns in your voice and expression, then organize them into a clear reflection of what may be present within you in that moment.</p>
+            <p className={styles.lead}>Your voice. Your pattern. Your signature.</p>
             <div className={styles.actions}>
               <Link href="/scan" className={styles.primaryButton}>Begin Your Resonance Scan</Link>
             </div>
@@ -67,6 +75,14 @@ export default function HowItWorks() {
             <p className={styles.sectionEyebrow}>What SoulScope listens for</p>
             <h2 className={styles.sectionTitle}>The scan begins with patterns already present.</h2>
             <p className={styles.frameText}>Your answers provide context. Your voice provides measurable rhythm, timing, steadiness, and expression signals.</p>
+          </section>
+
+          <section className={styles.frameCard}>
+            <p className={styles.sectionEyebrow}>What You Receive</p>
+            <h2 className={styles.sectionTitle}>A personal profile for observing change over time.</h2>
+            <p className={styles.frameText}>
+              Your personal profile page brings together your scan history so you can observe how your energy and expression change over time. Emotional daily check-ins and journal entries add context to your scans, help you remember how you were feeling, and create a clearer record of what was happening in your life. Together, these tools help you track your emotions and inner energy in an observable, reflective way.
+            </p>
           </section>
 
           <section className={styles.frameCard}>
@@ -89,6 +105,14 @@ export default function HowItWorks() {
                 your own scan.
               </figcaption>
             </figure>
+          </section>
+
+          <section className={styles.frameCard}>
+            <p className={styles.sectionEyebrow}>Current Resonance Pattern</p>
+            <h2 className={styles.sectionTitle}>A clear reflection of this moment.</h2>
+            <p className={styles.frameText}>
+              Your current pattern brings the strongest relationships in your scan into one readable result. It gives you language for what may be present now and a reference point you can compare with future scans.
+            </p>
           </section>
 
           <section className={styles.frameCard}>
