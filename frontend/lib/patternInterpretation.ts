@@ -120,7 +120,10 @@ const PATTERNS: Array<{ id: PatternFamily; name: string; target: Partial<StateVe
 ];
 
 const clamp = (value: number, min = 0, max = 1) => Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : min;
-const mean = (values: number[]) => values.length ? values.filter(Number.isFinite).reduce((sum, value) => sum + value, 0) / values.filter(Number.isFinite).length : 0;
+const mean = (values: number[]) => {
+  const valid = values.filter(Number.isFinite);
+  return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : 0;
+};
 const normalize = (value: number, low: number, high: number) => clamp((value - low) / Math.max(0.0001, high - low));
 const round = (value: number) => Number(clamp(value).toFixed(3));
 function addEvidence(ledger: EvidenceLedger, entry: EvidenceEntry) { ledger[entry.polarity].push({ ...entry, value: round(entry.value), confidence: round(entry.confidence) }); }
@@ -234,7 +237,7 @@ export function buildDynamicPatternResult(scan: VoiceAnalysisResult, domains: Us
   const confidence = round(mean([evidenceLedger.quality.confidence, mean(Object.values(dimensions).map((item) => item.confidence)), selected.compatibility, emotionLayer.style.confidence]) - evidenceLedger.missing.length * 0.02);
   const subject = scan.scanMeta?.subject, subjectId = subject?.subjectId ?? null, identityConfidence = subject?.identityConfidence ?? 0;
   const comparisonAvailable = Boolean(subjectId && subject?.historyEligible === true && identityConfidence >= 0.7);
-  const rejected = alternatives.slice(1, 5).map((candidate) => ({ id: candidate.id, name: candidate.name, reasons: [`Compatibility ${candidate.compatibility} ranked below selected compatibility ${selected.compatibility}.`] }));
+  const rejected: Array<{ id: string; name: string; reasons: string[] }> = alternatives.slice(1, 5).map((candidate) => ({ id: candidate.id, name: candidate.name, reasons: [`Compatibility ${candidate.compatibility} ranked below selected compatibility ${selected.compatibility}.`] }));
   rejected.push(...legacyCandidates.slice(0, 3).map((candidate) => ({ id: `legacy:${candidate.id}`, name: candidate.name, reasons: [`Legacy profile score ${candidate.confidence.toFixed(3)} is retained for audit only and cannot override the canonical decision.`] })));
   return {
     family, dimensions, evidenceLedger, stateVector, emotionLayer,
