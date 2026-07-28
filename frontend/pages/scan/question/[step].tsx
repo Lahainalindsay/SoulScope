@@ -1,7 +1,6 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import CymaticSigil from "../../../components/CymaticSigil";
 import FaceReader, { type FaceReading } from "../../../components/FaceReader";
 import Recorder, { type RecorderHandle, type RecorderSignalSample } from "../../../components/Recorder";
 import {
@@ -105,8 +104,6 @@ export default function GuidedScanQuestionPage() {
 
   useEffect(() => {
     if (!router.isReady || !question) return;
-    // Render's free service may be asleep. Wake it while the user is recording so
-    // the first acoustic upload does not spend its request window on a cold start.
     void fetch(BACKEND_WARMUP_URL, { cache: "no-store", keepalive: true }).catch((warmupError) => {
       console.info("Acoustic backend warmup is still pending", warmupError);
     });
@@ -161,7 +158,6 @@ export default function GuidedScanQuestionPage() {
 
   if (!question) return null;
 
-  const orbScale = 1 + Math.max(0.02, (liveSample?.rms ?? 0.08) * 0.18);
   const stepLabel = `${question.rangeLabel} · Prompt ${step} of ${GUIDED_SCAN_QUESTIONS.length}`;
   const progressPercent = Math.round((step / GUIDED_SCAN_QUESTIONS.length) * 100);
   const remainingSeconds = isRecording
@@ -181,8 +177,12 @@ export default function GuidedScanQuestionPage() {
           <div className={styles.header}>
             <div>
               <p className={styles.eyebrow}>{stepLabel}</p>
-              <h1 className={styles.title}>Speak naturally. There is no perfect answer.</h1>
-              <p className={styles.subtitle}>Keep speaking until the 30-second timer ends. A 10-second pause separates each prompt.</p>
+              <h1
+                className={styles.title}
+                style={{ fontSize: "clamp(28px, 4.2vw, 48px)", lineHeight: 1.08 }}
+              >
+                {question.prompt}
+              </h1>
             </div>
             <div className={`${styles.statusPill} ${signalClass(liveSample?.dbfs ?? -120)}`}>{signalText(liveSample?.dbfs ?? -120)}</div>
           </div>
@@ -195,9 +195,6 @@ export default function GuidedScanQuestionPage() {
             <section className={styles.heroCard}>
               <div className={styles.heroInner}>
                 <div className={styles.recordStage}>
-                  <p className={styles.promptText}>{question.prompt}</p>
-                  <p className={styles.rationale}>{question.rationale}</p>
-
                   <div className={styles.scanStatusRow}>
                     <div className={styles.liveBadge}><span className={isRecording ? styles.liveDot : styles.idleDot} />{isRecording ? "Recording" : isSaving ? "Saving response" : hasCompletedRecording ? "Response captured" : "Ready"}</div>
                     <div className={styles.timeBadge}>{isRecording ? `${remainingSeconds}s left` : `${recordingDurationSeconds}s`}</div>
@@ -205,22 +202,7 @@ export default function GuidedScanQuestionPage() {
 
                   <div className={styles.cameraGrid}>
                     <div className={styles.cameraPanel}>
-                      <div className={styles.cameraHeader}>
-                        <div>
-                          <p className={styles.sectionLabel}>Camera — optional</p>
-                          <p className={styles.cameraNote}>When enabled, SoulScope may observe broad changes in facial movement during the scan.</p>
-                        </div>
-                      </div>
                       <FaceReader active={router.isReady} tracking={isRecording} calibrating={isCalibrating} onMetricsChange={setCameraMetrics} onSummaryChange={handleCameraSummaryChange} onCalibrationComplete={handleCalibrationComplete} />
-                    </div>
-                  </div>
-
-                  <div className={styles.orbShell}>
-                    <div className={styles.orbGlow} />
-                    <div className={styles.orbFrame}>
-                      <div className={styles.orbMotion} style={{ transform: `scale(${orbScale})` }}>
-                        <CymaticSigil amplitude={Math.max(0.08, liveSample?.rms ?? 0.08)} className="" />
-                      </div>
                     </div>
                   </div>
 
