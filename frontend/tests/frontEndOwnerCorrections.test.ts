@@ -112,13 +112,18 @@ test("scan intro lists the three continuous speech prompts inside the second pre
   assert.doesNotMatch(protocol, /Hold a comfortable ah sound/);
 });
 
-test("guided scan question timing uses thirty seconds with ten seconds between prompts", () => {
+test("guided scan question pages keep timing while using the prompt as the page title", () => {
   const source = read("pages/scan/question/[step].tsx");
 
   assert.match(source, /const AUTO_START_DELAY_MS = 10000/);
-  assert.match(source, /Keep speaking until the 30-second timer ends/);
+  assert.match(source, /className=\{styles\.title\}/);
+  assert.match(source, /\{question\.prompt\}/);
+  assert.match(source, /clamp\(28px, 4\.2vw, 48px\)/);
   assert.match(source, /Keep speaking continuously for \$\{recordingDurationSeconds\} seconds\./);
   assert.match(source, /\$\{remainingSeconds\}s left/);
+  assert.doesNotMatch(source, /Speak naturally\. There is no perfect answer\./);
+  assert.doesNotMatch(source, /Keep speaking until the 30-second timer ends/);
+  assert.doesNotMatch(source, /question\.rationale|CymaticSigil|Camera — optional|broad changes in facial movement/);
 });
 
 test("scan intro numbered preparation layout keeps a real text column on narrow screens", () => {
