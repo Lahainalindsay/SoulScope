@@ -6,6 +6,7 @@ export type GuidedScanQuestion = {
   rationale: string;
   durationMs: number;
   captureKind: "sustained_vowel" | "guided_speech";
+  interpretationRole: "reference_comparison" | "challenge" | "hopeful";
 };
 
 export type ResearchReference = {
@@ -18,6 +19,7 @@ export type ResearchReference = {
 export const SCAN_OVERVIEW_LINES = [
   "Answer three guided prompts, each recorded for 30 seconds.",
   "Speak continuously for the full recording window. There are no right answers.",
+  "The first response is compared internally with your Reference Signature for measurement and speaker continuity.",
   "You will have 10 seconds to settle between prompts.",
   "SoulScope observes patterns in timing, steadiness, rhythm, energy, and expression.",
   "Your reflection is for self-understanding, not diagnosis.",
@@ -25,13 +27,14 @@ export const SCAN_OVERVIEW_LINES = [
 
 export const GUIDED_SCAN_QUESTIONS: GuidedScanQuestion[] = [
   {
-    id: "open_self_intro",
+    id: "current_self_expression",
     title: "Prompt 1",
-    rangeLabel: "About you",
+    rangeLabel: "Your voice today",
     prompt: "Please tell me about yourself, whatever comes to mind.",
-    rationale: "Keep speaking for the full 30 seconds in your normal voice.",
+    rationale: "Speak naturally for the full 30 seconds. This response gives SoulScope a current comparison point.",
     durationMs: 30000,
     captureKind: "guided_speech",
+    interpretationRole: "reference_comparison",
   },
   {
     id: "current_weight",
@@ -41,6 +44,7 @@ export const GUIDED_SCAN_QUESTIONS: GuidedScanQuestion[] = [
     rationale: "Share only what feels manageable, and keep speaking until the timer ends.",
     durationMs: 30000,
     captureKind: "guided_speech",
+    interpretationRole: "challenge",
   },
   {
     id: "future_hope",
@@ -50,6 +54,7 @@ export const GUIDED_SCAN_QUESTIONS: GuidedScanQuestion[] = [
     rationale: "Close with a future-oriented response and keep speaking for the full 30 seconds.",
     durationMs: 30000,
     captureKind: "guided_speech",
+    interpretationRole: "hopeful",
   },
 ];
 
