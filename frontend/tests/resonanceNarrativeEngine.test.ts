@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { CanonicalPatternResult } from "../lib/canonicalPattern";
-import { buildResonanceNarrative } from "../lib/resonanceNarrativeEngineV2";
+import { buildResonanceNarrative } from "../lib/resonanceNarrativeEngineV3";
 import type { UserResultDomain, UserResultDomainName } from "../lib/systemDimensions";
 
 function domain(title: UserResultDomainName, score: number): UserResultDomain {
@@ -120,18 +120,21 @@ const suppliedScanDomains: UserResultDomain[] = [
   domain("Regulation", 34),
 ];
 
-test("builds the title from the complete component state rather than copying the coordinate territory", () => {
+test("builds named pair states before the final pattern", () => {
   const result = buildResonanceNarrative(adaptiveDomains, canonical());
 
   assert.equal(result.generatedPattern.title, "The Adaptive Integrator");
   assert.equal(result.generatedPattern.territory, "The Adaptive Integrator");
   assert.match(result.generatedPattern.fingerprintCode, /^[A-Z0-9]{7}$/);
   assert.equal(result.components.length, adaptiveDomains.length);
-  assert.ok(result.relationships.some((item) => item.id === "regulated-adaptability"));
-  assert.ok(result.relationships.some((item) => item.id === "load-supported-by-recovery"));
+  assert.ok(result.pairStates.some((item) => item.id === "structured-processing"));
+  assert.ok(result.pairStates.some((item) => item.id === "purposeful-focus"));
+  assert.ok(result.pairStates.some((item) => item.id === "restored-capacity"));
+  assert.ok(result.higherOrderStates.some((item) => item.id === "directed-complexity"));
+  assert.equal(result.meaningGraph.dominantNodeId !== null, true);
 });
 
-test("identifies the supplied scan as a steady carrier with adaptive integration as context", () => {
+test("identifies the supplied scan as a steady carrier while preserving relationship meaning", () => {
   const scanCanonical = canonical({
     confidence: 0.621,
     stateVector: {
@@ -169,11 +172,11 @@ test("identifies the supplied scan as a steady carrier with adaptive integration
   assert.equal(result.generatedPattern.confidenceLabel, "Developing");
   assert.equal(result.generatedPattern.decisive, false);
   assert.ok(result.generatedPattern.closestTerritories.includes("overextended"));
-  assert.ok(result.relationships.some((item) => item.id === "effortful-continuation"));
-  assert.match(result.introduction, /maintaining function|recovery is not keeping pace/i);
+  assert.ok(result.pairStates.some((item) => item.id === "narrowing-reserve" || item.id === "reduced-reserve" || item.id === "sustained-output"));
+  assert.ok(result.introduction.length > 100);
 });
 
-test("every component and relationship retains verifiable source references", () => {
+test("every relationship node retains score, confidence, meaning, evidence, and alternatives", () => {
   const result = buildResonanceNarrative(adaptiveDomains, canonical());
   for (const component of result.components) {
     assert.equal(component.evidence.domain, component.domain);
@@ -181,9 +184,31 @@ test("every component and relationship retains verifiable source references", ()
     assert.ok(component.evidence.signalSources.length > 0);
   }
   for (const item of result.relationships) {
-    assert.ok(item.evidence.length >= 2);
+    assert.ok(item.title.length > 0);
+    assert.ok(item.meaning.length > 30);
+    assert.ok(item.score >= 0 && item.score <= 1);
     assert.ok(item.confidence >= 0 && item.confidence <= 1);
+    assert.ok(item.evidence.length >= 2);
   }
+});
+
+test("preserves a near tie as its own blended state instead of forcing a winner", () => {
+  const result = buildResonanceNarrative([
+    domain("Energy & Vitality", 55),
+    domain("Recovery & Restoration", 55),
+    domain("Communication & Clarity", 50),
+    domain("Emotional Expression", 55),
+    domain("Connection & Support", 55),
+    domain("Focus & Mental Load", 90),
+    domain("Direction & Adaptability", 50),
+    domain("Regulation", 55),
+  ], canonical());
+
+  const blended = result.pairStates.find((item) => item.id === "active-reorganization");
+  assert.ok(blended);
+  assert.equal(blended.resultType, "blended");
+  assert.ok(blended.alternatives.length >= 2);
+  assert.match(blended.meaning, /organized effectively|competing for space/i);
 });
 
 test("changes the fingerprint when any component band changes", () => {
