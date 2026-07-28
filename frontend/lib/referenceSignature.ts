@@ -72,7 +72,7 @@ export function buildReferenceSignature(
     source: {
       promptId: REFERENCE_SIGNATURE_PROMPT.id,
       durationMs,
-      engineVersion: analysis.analysisDebug?.engineVersion ?? "soulscope-canonical-acoustic-v1",
+      engineVersion: "soulscope-canonical-acoustic-v1",
     },
   };
 }
