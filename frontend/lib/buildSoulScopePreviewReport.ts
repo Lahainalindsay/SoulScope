@@ -6,7 +6,7 @@ import {
 import {
   buildResonanceNarrative,
   type ResonanceNarrative,
-} from "./resonanceNarrativeEngineV2";
+} from "./resonanceNarrativeEngineV3";
 import type { VoiceAnalysisResult } from "./voiceSpectrum";
 
 export type SoulScopePreviewReport = SoulScopeReport & {
@@ -50,9 +50,10 @@ export function applyResonanceNarrative(report: SoulScopeReport): SoulScopePrevi
 }
 
 /**
- * Evidence-weighted report pipeline. The coordinate result remains useful as a
- * territory marker, but the final title and story emerge from the complete
- * component aggregate.
+ * Evidence-weighted report pipeline. Raw domains first become named pair states,
+ * pair states become higher-order meaning nodes, and the strongest supported
+ * nodes provide the human storyline. The user-facing pattern title remains a
+ * replaceable presentation layer while the meaning graph stays stable.
  */
 export function buildSoulScopePreviewReport(
   scan: VoiceAnalysisResult,
