@@ -68,7 +68,7 @@ export default function ResonanceResultsDashboard({
       </section>
 
       <section className={styles.reflectionPanel}>
-        <p className={styles.eyebrow}>Your Reflection</p>
+        <p className={styles.eyebrow}>Your Pattern</p>
         <h2 className={styles.patternName}>{canonical.canonicalDisplayName}</h2>
         <p className={styles.reflection}>{report.presentation.summary}</p>
       </section>
