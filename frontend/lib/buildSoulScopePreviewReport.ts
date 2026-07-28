@@ -6,7 +6,7 @@ import {
 import {
   buildResonanceNarrative,
   type ResonanceNarrative,
-} from "./resonanceNarrativeEngine";
+} from "./resonanceNarrativeEngineV2";
 import type { VoiceAnalysisResult } from "./voiceSpectrum";
 
 export type SoulScopePreviewReport = SoulScopeReport & {
@@ -14,11 +14,11 @@ export type SoulScopePreviewReport = SoulScopeReport & {
 };
 
 /**
- * Preview-only report pipeline.
+ * Preview report pipeline.
  *
- * The production report remains untouched on main. This builder treats measured
- * component states as the source of the narrative, preserves a complete evidence
- * ledger, and uses the canonical coordinate result only as the broader territory.
+ * Measured component states remain the source of the narrative. The canonical
+ * coordinate result is retained as territory context and can no longer replace
+ * the aggregate state expressed by the component evidence.
  */
 export function buildSoulScopePreviewReport(
   scan: VoiceAnalysisResult,
@@ -45,7 +45,8 @@ export function buildSoulScopePreviewReport(
         .filter((component) => component.orientation === "resource")
         .slice(0, 3)
         .map((component) => `${component.domain}: ${component.band}`),
-      whatNeedsAttention: resonanceNarrative.worthNoticing,
+      whatNeedsAttention: resonanceNarrative.reflectionQuestion,
+      confidence: resonanceNarrative.generatedPattern.confidence,
     },
     storyCandidates: report.storyCandidates.map((candidate, index) => ({
       ...candidate,
