@@ -8,29 +8,22 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>SoulScope — A private instrument for self-awareness</title>
+        <title>SoulScope — Observe Your Inner World</title>
         <meta
           name="description"
-          content="SoulScope is a private instrument for self-awareness."
+          content="SoulScope is an instrument designed to notice subtle patterns in your voice and expression and organize them into a clear reflection."
         />
       </Head>
 
       <main className={styles.page}>
         <section className={styles.productIntro}>
           <div className={styles.productIntroInner}>
-            <p className={styles.heroEyebrow}>A new instrument for self-reflection</p>
-            <div className={styles.heroIdentity} aria-label="SoulScope definition">
-              <div className={styles.dictionaryTerm}>
-                <span>Soul</span>
-                <small>noun</small>
-              </div>
-              <h1 className={styles.heroHeadline}>SoulScope</h1>
-              <div className={styles.dictionaryTerm}>
-                <span>Scope</span>
-                <small>noun</small>
-              </div>
-            </div>
-            <p className={styles.heroBody}>A private instrument for self-awareness.</p>
+            <h1 className={styles.heroHeadline}>OBSERVE YOUR INNER WORLD</h1>
+            <p className={styles.heroBody}>The way you express yourself changes as you move through life.</p>
+            <p className={styles.heroBody}>
+              SoulScope is an instrument designed to notice the subtle patterns in your voice and expression, then organize them into a clear reflection of what may be present within you in that moment.
+            </p>
+            <p className={styles.heroEyebrow}>Your voice. Your pattern. Your signature.</p>
             <div className={styles.heroActions}>
               <Link href={START_SCAN_LOGIN} className={styles.primaryCta}>Begin Your Resonance Scan</Link>
               <Link href="/how-it-works" className={styles.secondaryCta}>How SoulScope Works</Link>
