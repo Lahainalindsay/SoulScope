@@ -17,13 +17,22 @@ export default function HomePage() {
 
       <main className={styles.page}>
         <section className={styles.productIntro}>
-          <div className={styles.productIntroInner}>
+          <div
+            className={styles.productIntroInner}
+            style={{
+              boxSizing: "border-box",
+              paddingLeft: "clamp(24px, 6vw, 72px)",
+              paddingRight: "clamp(24px, 6vw, 72px)",
+            }}
+          >
             <h1
               className={styles.heroHeadline}
               style={{
-                fontSize: "clamp(1.35rem, 5vw, 4.2rem)",
-                lineHeight: 1,
-                whiteSpace: "nowrap",
+                fontSize: "clamp(1.0125rem, 3.75vw, 3.15rem)",
+                lineHeight: 1.08,
+                maxWidth: "15ch",
+                whiteSpace: "normal",
+                overflowWrap: "normal",
               }}
             >
               Clarity comes from within
