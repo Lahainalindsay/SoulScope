@@ -1,21 +1,18 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import FaceReader, { type FaceReading } from "../../../components/FaceReader";
 import Recorder, { type RecorderHandle, type RecorderSignalSample } from "../../../components/Recorder";
 import {
   ensureGuidedScanSession,
   getGuidedScanProgress,
   saveGuidedScanAnswer,
-  saveGuidedScanCameraBaseline,
-  saveGuidedScanCameraCapture,
 } from "../../../lib/guidedScanSession";
 import { GUIDED_SCAN_QUESTIONS } from "../../../lib/scanProtocol";
 import styles from "./GuidedScanQuestion.module.css";
 
 type PendingAction = "next" | "finish" | null;
 const AUTO_START_DELAY_MS = 10000;
-const CAMERA_BASELINE_MS = 3000;
+const FIRST_PROMPT_SETTLE_MS = 3000;
 const BACKEND_WARMUP_URL = "/backend-api/openapi.json";
 
 function signalClass(dbfs: number) {
@@ -35,12 +32,10 @@ export default function GuidedScanQuestionPage() {
   const recorderRef = useRef<RecorderHandle | null>(null);
   const recordingStartedAtRef = useRef<number>(0);
   const pendingActionRef = useRef<PendingAction>(null);
-  const cameraSummaryRef = useRef<FaceReading | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [liveSample, setLiveSample] = useState<RecorderSignalSample | null>(null);
-  const [, setCameraMetrics] = useState<FaceReading | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [hasCompletedRecording, setHasCompletedRecording] = useState(false);
   const [isAutoStarting, setIsAutoStarting] = useState(true);
@@ -55,18 +50,8 @@ export default function GuidedScanQuestionPage() {
   const questionIndex = step - 1;
   const question = GUIDED_SCAN_QUESTIONS[questionIndex];
   const isLastQuestion = questionIndex === GUIDED_SCAN_QUESTIONS.length - 1;
-  const isCalibrating = step === 1 && !isRecording && isAutoStarting;
   const recordingDurationMs = question?.durationMs ?? 10000;
   const recordingDurationSeconds = Math.max(1, Math.round(recordingDurationMs / 1000));
-
-  const handleCameraSummaryChange = (reading: FaceReading | null) => {
-    cameraSummaryRef.current = reading;
-  };
-
-  const handleCalibrationComplete = (reading: FaceReading | null) => {
-    if (!reading || step !== 1) return;
-    saveGuidedScanCameraBaseline(reading);
-  };
 
   useEffect(() => {
     pendingActionRef.current = null;
@@ -75,8 +60,6 @@ export default function GuidedScanQuestionPage() {
     setError(null);
     setElapsedSeconds(0);
     setLiveSample(null);
-    setCameraMetrics(null);
-    cameraSummaryRef.current = null;
     setHasCompletedRecording(false);
     setIsAutoStarting(true);
     setIsSaving(false);
@@ -119,7 +102,7 @@ export default function GuidedScanQuestionPage() {
       setError(null);
       setIsAutoStarting(false);
       recorderRef.current?.start();
-    }, step === 1 ? CAMERA_BASELINE_MS : AUTO_START_DELAY_MS);
+    }, step === 1 ? FIRST_PROMPT_SETTLE_MS : AUTO_START_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [isLastQuestion, question, router.isReady, step]);
 
@@ -132,9 +115,6 @@ export default function GuidedScanQuestionPage() {
 
     try {
       await saveGuidedScanAnswer(questionIndex, blob, durationMs);
-      if (cameraSummaryRef.current) {
-        saveGuidedScanCameraCapture(questionIndex, cameraSummaryRef.current);
-      }
       setHasCompletedRecording(true);
     } catch (saveError) {
       console.error("Failed to persist guided scan answer", saveError);
@@ -198,12 +178,6 @@ export default function GuidedScanQuestionPage() {
                   <div className={styles.scanStatusRow}>
                     <div className={styles.liveBadge}><span className={isRecording ? styles.liveDot : styles.idleDot} />{isRecording ? "Recording" : isSaving ? "Saving response" : hasCompletedRecording ? "Response captured" : "Ready"}</div>
                     <div className={styles.timeBadge}>{isRecording ? `${remainingSeconds}s left` : `${recordingDurationSeconds}s`}</div>
-                  </div>
-
-                  <div className={styles.cameraGrid}>
-                    <div className={styles.cameraPanel}>
-                      <FaceReader active={router.isReady} tracking={isRecording} calibrating={isCalibrating} onMetricsChange={setCameraMetrics} onSummaryChange={handleCameraSummaryChange} onCalibrationComplete={handleCalibrationComplete} />
-                    </div>
                   </div>
 
                   <p className={styles.ctaHint}>
