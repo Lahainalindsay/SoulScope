@@ -126,6 +126,15 @@ test("guided scan question pages keep timing while using the prompt as the page 
   assert.doesNotMatch(source, /question\.rationale|CymaticSigil|Camera — optional|broad changes in facial movement/);
 });
 
+test("standalone Reference Signature calibration renders a live recording countdown", () => {
+  const source = read("pages/baseline.tsx");
+
+  assert.match(source, /role="timer"/);
+  assert.match(source, /\{remainingSeconds\}s left/);
+  assert.match(source, /Recording · \$\{remainingSeconds\}s/);
+  assert.match(source, /onRecordingStateChange=\{handleRecordingStateChange\}/);
+});
+
 test("scan intro numbered preparation layout keeps a real text column on narrow screens", () => {
   const styles = read("pages/scan/ScanIntro.module.css");
 
