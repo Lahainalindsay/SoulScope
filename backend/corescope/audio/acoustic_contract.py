@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
+from corescope.engine.contracts import EngineVersions, EvidenceLedger
 
 
 CaptureKind = Literal[
@@ -74,4 +75,6 @@ class AcousticAnalysisResponse(BaseModel):
     features: List[AcousticFeatureMeasurement] = Field(default_factory=list)
     vad_segments: List[VadSegment] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    evidence_ledger: Optional[EvidenceLedger] = None
+    engine_versions: Optional[EngineVersions] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

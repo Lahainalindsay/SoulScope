@@ -159,7 +159,7 @@ function hasMaterialSecondarySupport(candidate: CanonicalFamilyCandidate | undef
   if (!candidate || candidate.disqualified || candidate.score < MIN_SECONDARY_SCORE) return false;
   const supporting = dynamic.evidenceLedger.supporting;
   if (candidate.family === "protective") {
-    return atlasSubpattern(atlasResult, "protective-expression") >= 0.72 || evidenceValue(supporting, "vocal-facial-divergence") >= 0.45;
+    return atlasSubpattern(atlasResult, "protective-expression") >= 0.72;
   }
   if (candidate.family === "purposeful") {
     return atlasSubpattern(atlasResult, "focused-direction") >= 0.74 && dynamic.stateVector.capacity <= 0.52;
@@ -199,7 +199,6 @@ function buildCandidate(
   const coherence = evidenceValue(supporting, "activation-with-coherence");
   const escalation = evidenceValue(supporting, "cross-prompt-escalation");
   const slowRecovery = evidenceValue(supporting, "slow-recovery");
-  const divergence = evidenceValue(supporting, "vocal-facial-divergence");
   const recoveryGap = atlasSubpattern(atlasResult, "recovery-gap");
   const quietOverload = atlasSubpattern(atlasResult, "quiet-overload");
   const protectiveExpression = atlasSubpattern(atlasResult, "protective-expression");
@@ -218,7 +217,7 @@ function buildCandidate(
   } else if (family === "grounded") {
     score = vector.capacity * 0.28 + vector.regulation * 0.28 + vector.organization * 0.18 + vector.direction * 0.12 + settledPresence * 0.12 + coherence * 0.06 + atlasContribution
       - fragmentation * 0.2 - slowRecovery * 0.18 - quietOverload * 0.16 - recoveryGap * 0.12;
-    supportIds.push("activation-with-coherence", "vocal-facial-congruence");
+    supportIds.push("activation-with-coherence");
     if (vector.capacity < GROUNDED_MIN_CAPACITY) gates.push(`Capacity ${vector.capacity.toFixed(2)} is below the grounded minimum ${GROUNDED_MIN_CAPACITY}.`);
     if (vector.regulation < GROUNDED_MIN_REGULATION) gates.push(`Regulation ${vector.regulation.toFixed(2)} is below the grounded minimum ${GROUNDED_MIN_REGULATION}.`);
     if (recoveryGap >= 0.58) gates.push("Recovery gap is too pronounced for a plain grounded result.");
@@ -227,9 +226,9 @@ function buildCandidate(
     if (fragmentation >= 0.55) gates.push("Fragmentation materially contradicts grounded coherence.");
     contradictionIds.push("high-activation", "activation-with-fragmentation", "cross-prompt-escalation", "slow-recovery");
   } else if (family === "protective") {
-    score = (1 - vector.relationalOrientation) * 0.26 + (1 - vector.expression) * 0.12 + protectiveExpression * 0.38 + divergence * 0.18 + (1 - vector.capacity) * 0.1 + atlasContribution;
-    supportIds.push("vocal-facial-divergence", "slow-recovery");
-    if (lowCapture && protectiveExpression < 0.5 && divergence < 0.24) gates.push("Protective expression cannot be inferred from limited capture alone.");
+    score = (1 - vector.relationalOrientation) * 0.3 + (1 - vector.expression) * 0.16 + protectiveExpression * 0.34 + (1 - vector.capacity) * 0.12 + atlasContribution;
+    supportIds.push("slow-recovery");
+    if (lowCapture && protectiveExpression < 0.5) gates.push("Protective expression cannot be inferred from limited capture alone.");
   } else if (family === "activated") {
     score = vector.activation * 0.32 + highActivation * 0.2 + escalation * 0.18 + fragmentation * 0.12 + coherence * 0.16 + (1 - vector.capacity) * 0.1 + atlasContribution;
     supportIds.push("high-activation", "cross-prompt-escalation");
@@ -249,7 +248,7 @@ function buildCandidate(
     if (vector.capacity < PURPOSEFUL_MIN_CAPACITY) gates.push(`Capacity ${vector.capacity.toFixed(2)} is too low for a plain purposeful result.`);
   } else if (family === "expressive") {
     score = vector.expression * 0.34 + atlasSubpattern(atlasResult, "emotional-fluidity") * 0.24 + vector.relationalOrientation * 0.12 + coherence * 0.08 + atlasContribution - protectiveExpression * 0.12;
-    supportIds.push("high-activation", "vocal-facial-congruence");
+    supportIds.push("high-activation", "activation-with-coherence");
     if (protectiveExpression >= 0.62) gates.push("Protective restraint must be preserved rather than overwritten by an open expression name.");
   } else if (family === "reflective") {
     score = atlasSubpattern(atlasResult, "internal-processing") * 0.32 + (atlasInput["cognitive-searching"] ?? 0) * 0.18 + (1 - vector.direction) * 0.1 + (1 - vector.organization) * 0.1 + atlasContribution;
@@ -355,25 +354,28 @@ export function resolveCanonicalPattern(
     poorEvidence,
   });
   const organizingQuality = matrixResolution.organizingQuality;
-  const nameSource = poorEvidence ? "limited-evidence" : matrixResolution.entry ? "naming-matrix" : "fallback";
-  const name = poorEvidence
-    ? "A Limited Reflection"
+  const shouldAbstain = poorEvidence || mode === "ambiguous";
+  const nameSource = shouldAbstain ? "limited-evidence" : matrixResolution.entry ? "naming-matrix" : "fallback";
+  const name = shouldAbstain
+    ? "Unresolved"
     : matrixResolution.entry?.displayName ?? fallbackDisplayName(primaryFamily, secondaryFamily, args.dynamicPattern);
-  const signature = poorEvidence
-    ? "limited:evidence"
+  const signature = shouldAbstain
+    ? poorEvidence ? "unresolved:insufficient-evidence" : "unresolved:ambiguous-candidates"
     : matrixResolution.entry?.signature ?? buildSignature(primaryFamily, secondaryFamily, args.dynamicPattern);
-  const content = poorEvidence
+  const content = shouldAbstain
     ? {
-        summary: "This reflection is intentionally broad because the captured signals were not strong enough for a precise pattern name.",
+        summary: poorEvidence
+          ? "The available evidence was not strong enough for a supported pattern conclusion."
+          : "Multiple patterns remained equally plausible, so SoulScope preserved the uncertainty.",
         explanation: [
-          "Capture quality limits how specifically SoulScope can describe this scan.",
-          "The result remains bounded to what was measurable and does not infer a stable identity.",
+          "This scan remains unresolved instead of substituting a neutral or balanced result.",
+          "A clearer sample or stronger separation between candidates is needed before a pattern can be published.",
         ] as [string, string],
         dailyLife: [
           "The scan may need another recording before the pattern becomes clear.",
           "Some signals were present, but the available evidence was limited.",
           "A quieter environment may improve the next scan.",
-          "The current result should be read as broad context only.",
+          "No pattern identity was assigned from the uncertain evidence.",
         ] as [string, string, string, string],
         supportLines: [
           "Try again when recording conditions are clearer.",

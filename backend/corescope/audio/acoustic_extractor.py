@@ -24,6 +24,8 @@ from .acoustic_contract import (
     QualityLevel,
     VadSegment,
 )
+from corescope.engine.evidence import build_acoustic_evidence_ledger
+from corescope.engine.versions import CURRENT_ENGINE_VERSIONS
 
 
 TARGET_SAMPLE_RATE = 16000
@@ -485,6 +487,11 @@ def analyze_canonical_audio(
         _measurement(feature_id, _safe_float(value), source_capture_id, capture_kind, decoded.duration_ms, quality, confidence, parameters, device_metadata)
         for feature_id, value in sorted(feature_values.items())
     ]
+    evidence_ledger = build_acoustic_evidence_ledger(
+        scan_id=scan_id,
+        source_capture_id=source_capture_id,
+        measurements=features,
+    )
     return AcousticAnalysisResponse(
         scan_id=scan_id,
         user_id=user_id,
@@ -500,6 +507,8 @@ def analyze_canonical_audio(
         quality=quality,
         confidence=confidence,
         features=features,
+        evidence_ledger=evidence_ledger,
+        engine_versions=CURRENT_ENGINE_VERSIONS,
         vad_segments=vad_segments,
         metadata={
             "vad": vad_stats,

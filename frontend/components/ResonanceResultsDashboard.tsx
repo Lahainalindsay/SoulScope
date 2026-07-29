@@ -35,6 +35,7 @@ export default function ResonanceResultsDashboard({
 }: ResonanceResultsDashboardProps) {
   const orderedCandidates = orderStoryCandidates(report.storyCandidates, narrativePreference);
   const atlas = report.atlas;
+  const canonicalResult = report.canonicalResult;
   const canonical = report.canonicalPattern;
   const [accuracy, setAccuracy] = useState("");
   const [lengthPreference, setLengthPreference] = useState("");
@@ -60,17 +61,17 @@ export default function ResonanceResultsDashboard({
         </div>
         <div className={styles.signatureFrame}>
           <ResonanceSignature
-            data={atlas.signature.data}
-            visualState={atlas.signature.visualState}
-            label={`Visual Resonance Signature representing the pattern relationships in this scan: ${canonical.canonicalDisplayName}`}
+            data={canonicalResult.resonanceSignature.data}
+            visualState={canonicalResult.resonanceSignature.visualState}
+            label={`Visual Resonance Signature representing the pattern relationships in this scan: ${canonicalResult.pattern.displayName}`}
           />
         </div>
       </section>
 
       <section className={styles.reflectionPanel}>
         <p className={styles.eyebrow}>Your Pattern</p>
-        <h2 className={styles.patternName}>{canonical.canonicalDisplayName}</h2>
-        <p className={styles.reflection}>{report.presentation.summary}</p>
+        <h2 className={styles.patternName}>{canonicalResult.pattern.displayName}</h2>
+        <p className={styles.reflection}>{canonicalResult.narrative.introduction}</p>
       </section>
 
       <HumanReflectionOverview report={report} />

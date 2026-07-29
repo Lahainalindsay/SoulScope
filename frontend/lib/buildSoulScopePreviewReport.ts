@@ -3,10 +3,7 @@ import {
   type BuildSoulScopeReportOptions,
   type SoulScopeReport,
 } from "./buildSoulScopeReport";
-import {
-  buildResonanceNarrative,
-  type ResonanceNarrative,
-} from "./resonanceNarrativeEngineV3";
+import { type ResonanceNarrative } from "./resonanceNarrativeEngineV3";
 import type { VoiceAnalysisResult } from "./voiceSpectrum";
 
 export type SoulScopePreviewReport = SoulScopeReport & {
@@ -14,11 +11,7 @@ export type SoulScopePreviewReport = SoulScopeReport & {
 };
 
 export function applyResonanceNarrative(report: SoulScopeReport): SoulScopePreviewReport {
-  const resonanceNarrative = buildResonanceNarrative(
-    report.domainResults,
-    report.canonicalPattern,
-    report.scanCompleteness,
-  );
+  const resonanceNarrative = report.canonicalResult.narrative;
 
   return {
     ...report,

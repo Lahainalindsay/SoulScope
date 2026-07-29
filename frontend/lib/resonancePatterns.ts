@@ -22,7 +22,6 @@ type PatternContext = {
   domainResults: UserResultDomain[];
   noteEnergies: NoteEnergyResult[];
   voiceDynamics?: VoiceAnalysisResult["voiceDynamics"];
-  hasCamera: boolean;
 };
 
 export type PatternDefinition = {
@@ -49,8 +48,6 @@ export type PatternMatch = {
   confidence: number;
 };
 
-type CameraSignal = NonNullable<NonNullable<VoiceAnalysisResult["protocolNotes"]>["camera"]>;
-
 export type SoulScopeReport = {
   primaryPattern: PatternMatch;
   supportingPattern?: PatternMatch;
@@ -67,14 +64,6 @@ export type SoulScopeReport = {
       system: string;
     }>;
     dimensions: SystemDimension[];
-    hasCamera: boolean;
-    camera?: CameraSignal;
-    cameraBaseline?: CameraSignal;
-    promptCameras?: Array<{
-      id: string;
-      title: string;
-      camera: CameraSignal;
-    }>;
     pauseCount: number;
     captureQuality?: NonNullable<VoiceAnalysisResult["voiceDynamics"]>["captureQuality"];
   };
@@ -284,28 +273,22 @@ const PATTERN_LIBRARY: PatternDefinition[] = [
       "Feeling expressive on the surface while tightening underneath",
     ],
     supportiveFactors: ["Responsiveness", "Emotional contact is still present"],
-    whatIsWorkingHardest: ["Emotional safety", "Facial and vocal regulation under deeper prompts"],
+    whatIsWorkingHardest: ["Emotional safety", "Vocal regulation under deeper prompts"],
     whatNeedsAttention: "Safety and pacing matter more here than pushing for more exposure.",
     match: (scan, context) => {
-      const camera = scan.protocolNotes?.camera;
+      void scan;
       const { domainResults } = context;
       const expression = getDomain(domainResults, "Emotional Expression");
       const connection = getDomain(domainResults, "Connection & Support");
       const communication = getDomain(domainResults, "Communication & Clarity");
       const emotionalNotes = noteIntensity(context.noteEnergies, ["C#", "F", "G"]);
       let score = 0;
-      if (camera) {
-        if (camera.facialTension >= 0.62) score += 0.22;
-        if (camera.eyeOpenness <= 0.38) score += 0.18;
-        if (camera.blinkRatePerMin >= 24) score += 0.12;
-      }
       if (expression?.functionalState === "Working Hard" || expression?.functionalState === "Under Pressure") score += 0.08;
       if (connection?.functionalState === "Asking for Support" || connection?.functionalState === "Less Accessible") score += 0.06;
       if (communication?.functionalState === "Working Hard" || communication?.functionalState === "Under Pressure") score += 0.05;
       if (hasUnderactive(scan, ["G"])) score += 0.08;
       if (hasOveractive(scan, ["F#", "C#"])) score += 0.12;
       if (emotionalNotes >= 30) score += 0.08;
-      if (context.hasCamera) score += 0.04;
       return clampScore(score);
     },
   },
@@ -429,7 +412,6 @@ function rankPatterns(scan: VoiceAnalysisResult) {
     domainResults,
     noteEnergies: scan.noteEnergies ?? [],
     voiceDynamics: scan.voiceDynamics,
-    hasCamera: Boolean(scan.protocolNotes?.camera),
   };
 
   return PATTERN_LIBRARY.map((pattern) => ({
@@ -631,16 +613,6 @@ export function buildSoulScopeReport(scan: VoiceAnalysisResult): SoulScopeReport
       noteEnergies: scan.noteEnergies ?? [],
       topNotes: topSignals(scan),
       dimensions,
-      hasCamera: Boolean(scan.protocolNotes?.camera),
-      camera: scan.protocolNotes?.camera,
-      cameraBaseline: scan.protocolNotes?.cameraBaseline,
-      promptCameras: scan.protocolNotes?.prompts
-        ?.filter((prompt): prompt is typeof prompt & { camera: CameraSignal } => Boolean(prompt.camera))
-        .map((prompt) => ({
-          id: prompt.id,
-          title: prompt.title,
-          camera: prompt.camera,
-        })),
       pauseCount: scan.voiceDynamics?.pauseCount ?? 0,
       captureQuality: scan.voiceDynamics?.captureQuality,
     },

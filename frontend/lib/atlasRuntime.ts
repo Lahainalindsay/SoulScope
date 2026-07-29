@@ -46,20 +46,6 @@ function average(values: number[]) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 }
 
-function cameraPromptChange(scan: VoiceAnalysisResult) {
-  const prompts = (scan.protocolNotes?.prompts ?? []).map((prompt) => prompt.camera).filter(Boolean);
-  if (prompts.length < 2) return null;
-  const first = prompts[0]!;
-  const last = prompts[prompts.length - 1]!;
-  const tensionRise = clamp((last.facialTension - first.facialTension + 0.25) / 0.5);
-  const opennessShift = clamp(Math.abs(last.eyeOpenness - first.eyeOpenness) * 2.5);
-  const blinkShift = clamp(Math.abs(last.blinkRatePerMin - first.blinkRatePerMin) / 18);
-  return {
-    restraint: clamp(tensionRise * 0.7 + (1 - opennessShift) * 0.3),
-    flexibility: clamp(opennessShift * 0.55 + blinkShift * 0.25 + (1 - tensionRise) * 0.2),
-  };
-}
-
 function baselineChange(baseline: BaselineComparison, dimension: string) {
   return baseline.changes.find((change) => change.dimension === dimension);
 }
@@ -101,19 +87,17 @@ export function buildAtlasEvidenceInput(
     norm(dynamics?.harmonicRichness, 0.1, 0.9),
   ]);
   const quality = dynamics?.captureQuality === "good" ? 1 : dynamics?.captureQuality === "fair" ? 0.72 : 0.42;
-  const camera = cameraPromptChange(scan);
   const vocalContainment = 1 - vocalVariation * 0.35;
 
   const effort = average([demand(energy), demand(focus), demand(direction), 1 - timingContinuity * 0.45]);
   const recoveryGap = average([demand(recovery), effort * 0.72, 1 - availability(recovery)]);
   const searching = average([demand(focus), pauseLoad, 1 - availability(communication) * 0.45]);
   const steadiness = average([availability(regulation), vocalCoherence, timingContinuity]);
-  const expressive = average([availability(expression), availability(communication), vocalVariation, ...(camera ? [camera.flexibility] : [])]);
+  const expressive = average([availability(expression), availability(communication), vocalVariation]);
   const protectiveDemand = average([demand(expression), demand(connection)]);
   const protective = clamp(
     protectiveDemand * 0.66
       + vocalContainment * 0.18
-      + (camera ? camera.restraint * 0.16 : 0)
   );
   const adaptive = average([availability(direction), availability(regulation), timingContinuity, expressive * 0.45]);
   const fragmentation = average([demand(focus), 1 - vocalCoherence, 1 - timingContinuity, pauseLoad * 0.55]);

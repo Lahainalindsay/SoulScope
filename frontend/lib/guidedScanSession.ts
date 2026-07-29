@@ -10,26 +10,6 @@ export type GuidedScanAnswer = {
   captureKind: "sustained_vowel" | "guided_speech";
 };
 
-export type GuidedScanCameraCapture = {
-  questionId: string;
-  title: string;
-  blinkRatePerMin: number;
-  facialTension: number;
-  eyeDilationProxy: number;
-  eyeOpenness: number;
-  trackingConfidence: number;
-  framesAnalyzed: number;
-};
-
-export type GuidedScanCameraBaseline = {
-  blinkRatePerMin: number;
-  facialTension: number;
-  eyeDilationProxy: number;
-  eyeOpenness: number;
-  trackingConfidence: number;
-  framesAnalyzed: number;
-};
-
 export type GuidedScanSubject = {
   subjectId: string | null;
   subjectLabel: string;
@@ -47,24 +27,41 @@ type GuidedScanSessionState = {
   startedAt: string | null;
   subject: GuidedScanSubject | null;
   answers: GuidedScanAnswerRecord[];
-  cameraCaptures: GuidedScanCameraCapture[];
-  cameraBaseline: GuidedScanCameraBaseline | null;
 };
 
 const STORAGE_KEY = "soulscope.guidedScanSession";
 const DB_NAME = "soulscope-guided-scan";
 const DB_VERSION = 1;
 const AUDIO_STORE = "audio-blobs";
+const STORAGE_OPERATION_TIMEOUT_MS = 2500;
 
 let state: GuidedScanSessionState = {
   startedAt: null,
   subject: null,
   answers: [],
-  cameraCaptures: [],
-  cameraBaseline: null,
 };
 
 let dbPromise: Promise<IDBDatabase> | null = null;
+const sessionBlobs = new Map<string, Blob>();
+
+function withStorageTimeout<T>(operation: Promise<T>, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(
+      () => reject(new Error(`${label} timed out after ${STORAGE_OPERATION_TIMEOUT_MS}ms.`)),
+      STORAGE_OPERATION_TIMEOUT_MS,
+    );
+    operation.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
 
 function shouldDebugScan() {
   return typeof window !== "undefined" && window.localStorage.getItem("soulscope.debugScan") !== "0";
@@ -203,33 +200,6 @@ function hydrateState() {
               )
           )
         : [],
-      cameraCaptures: Array.isArray(parsed.cameraCaptures)
-        ? parsed.cameraCaptures.filter(
-            (capture): capture is GuidedScanCameraCapture =>
-              Boolean(
-                capture &&
-                  typeof capture.questionId === "string" &&
-                  typeof capture.title === "string" &&
-                  typeof capture.blinkRatePerMin === "number" &&
-                  typeof capture.facialTension === "number" &&
-                  typeof capture.eyeDilationProxy === "number" &&
-                  typeof capture.eyeOpenness === "number" &&
-                  typeof capture.trackingConfidence === "number" &&
-                  typeof capture.framesAnalyzed === "number"
-              )
-          )
-        : [],
-      cameraBaseline:
-        parsed.cameraBaseline &&
-        typeof parsed.cameraBaseline === "object" &&
-        typeof parsed.cameraBaseline.blinkRatePerMin === "number" &&
-        typeof parsed.cameraBaseline.facialTension === "number" &&
-        typeof parsed.cameraBaseline.eyeDilationProxy === "number" &&
-        typeof parsed.cameraBaseline.eyeOpenness === "number" &&
-        typeof parsed.cameraBaseline.trackingConfidence === "number" &&
-        typeof parsed.cameraBaseline.framesAnalyzed === "number"
-          ? parsed.cameraBaseline
-          : null,
     };
   } catch {
     window.sessionStorage.removeItem(STORAGE_KEY);
@@ -237,12 +207,11 @@ function hydrateState() {
 }
 
 export function resetGuidedScanSession() {
+  sessionBlobs.clear();
   state = {
     startedAt: new Date().toISOString(),
     subject: null,
     answers: [],
-    cameraCaptures: [],
-    cameraBaseline: null,
   };
 
   if (typeof window !== "undefined") {
@@ -266,7 +235,8 @@ export async function getGuidedScanAnswers() {
   const answers = await Promise.all(
     state.answers.map(async (answer) => {
       try {
-        const blob = await readBlob(answer.blobKey);
+        const blob = sessionBlobs.get(answer.blobKey)
+          ?? await withStorageTimeout(readBlob(answer.blobKey), `Reading ${answer.questionId}`);
         if (!blob) return null;
         if (shouldDebugScan()) {
           console.info("[SoulScope scan] hydrated answer blob", {
@@ -318,16 +288,6 @@ export function setGuidedScanSubject(subject: GuidedScanSubject) {
   writeState();
 }
 
-export function getGuidedScanCameraCaptures() {
-  hydrateState();
-  return [...state.cameraCaptures];
-}
-
-export function getGuidedScanCameraBaseline() {
-  hydrateState();
-  return state.cameraBaseline;
-}
-
 export async function saveGuidedScanAnswer(stepIndex: number, blob: Blob, durationMs: number) {
   const question = GUIDED_SCAN_QUESTIONS[stepIndex];
   if (!question) {
@@ -335,7 +295,10 @@ export async function saveGuidedScanAnswer(stepIndex: number, blob: Blob, durati
   }
 
   const blobKey = getBlobKey(question.id);
-  await writeBlob(blobKey, blob);
+  // Keep the active recording synchronously available before attempting
+  // IndexedDB. Safari can leave an IDB transaction pending indefinitely; a
+  // durable-storage stall must never trap the guided workflow on "Saving…".
+  sessionBlobs.set(blobKey, blob);
   if (shouldDebugScan()) {
     console.info("[SoulScope scan] saved answer blob", {
       questionId: question.id,
@@ -364,36 +327,15 @@ export async function saveGuidedScanAnswer(stepIndex: number, blob: Blob, durati
   );
 
   writeState();
-}
 
-export function saveGuidedScanCameraCapture(
-  stepIndex: number,
-  capture: Omit<GuidedScanCameraCapture, "questionId" | "title">
-) {
-  const question = GUIDED_SCAN_QUESTIONS[stepIndex];
-  if (!question) {
-    throw new Error("Unknown guided scan step.");
+  try {
+    await withStorageTimeout(writeBlob(blobKey, blob), `Saving ${question.id}`);
+  } catch (error) {
+    // The in-memory copy remains authoritative for this uninterrupted guided
+    // session. A reload may require the user to repeat this prompt, but the
+    // current workflow can safely advance.
+    console.warn(`Guided scan audio is available for this session but was not written to browser storage.`, error);
   }
-
-  state.cameraCaptures = [
-    ...state.cameraCaptures.filter((entry) => entry.questionId !== question.id),
-    {
-      questionId: question.id,
-      title: question.title,
-      ...capture,
-    },
-  ].sort(
-    (a, b) =>
-      GUIDED_SCAN_QUESTIONS.findIndex((questionItem) => questionItem.id === a.questionId) -
-      GUIDED_SCAN_QUESTIONS.findIndex((questionItem) => questionItem.id === b.questionId)
-  );
-
-  writeState();
-}
-
-export function saveGuidedScanCameraBaseline(baseline: GuidedScanCameraBaseline) {
-  state.cameraBaseline = baseline;
-  writeState();
 }
 
 export async function clearGuidedScanAnswer(stepIndex: number) {
@@ -401,8 +343,8 @@ export async function clearGuidedScanAnswer(stepIndex: number) {
   if (!question) return;
 
   state.answers = state.answers.filter((answer) => answer.questionId !== question.id);
-  state.cameraCaptures = state.cameraCaptures.filter((capture) => capture.questionId !== question.id);
   writeState();
+  sessionBlobs.delete(getBlobKey(question.id));
 
   try {
     await deleteBlob(getBlobKey(question.id));

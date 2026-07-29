@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { buildCymaticReference } from "../../lib/cymatics";
 import {
-  getGuidedScanCameraBaseline,
-  getGuidedScanCameraCaptures,
   getGuidedScanAnswers,
   getGuidedScanStartedAt,
   getGuidedScanSubject,
@@ -19,6 +17,7 @@ import { persistCanonicalReport } from "../../lib/reportPersistence";
 import { buildScanCompleteness, isUsableAnalysis, type ScanCompleteness, type ScanWithCompleteness } from "../../lib/partialScan";
 import { LOCAL_SCAN_KEY, LOCAL_SCAN_LIST_KEY } from "../../lib/localSession";
 import { GUIDED_SCAN_QUESTIONS, RESEARCH_REFERENCES, SCAN_OVERVIEW_LINES, VALIDATION_NOTE } from "../../lib/scanProtocol";
+import { firstIncompleteGuidedScanStep } from "../../lib/guidedScanWorkflow";
 import styles from "./Analyzing.module.css";
 
 type SavedScanResult = ScanWithCompleteness & { id?: string; created_at?: string };
@@ -68,21 +67,6 @@ async function getReliableSession() {
   return refreshed.data.session;
 }
 
-function averageCameraMetrics(captures: ReturnType<typeof getGuidedScanCameraCaptures>) {
-  if (!captures.length) return null;
-  const totalFrames = captures.reduce((sum, capture) => sum + Math.max(1, capture.framesAnalyzed), 0);
-  const weightedAverage = (selector: (capture: (typeof captures)[number]) => number) =>
-    captures.reduce((sum, capture) => sum + selector(capture) * Math.max(1, capture.framesAnalyzed), 0) / totalFrames;
-  return {
-    blinkRatePerMin: Number(weightedAverage((capture) => capture.blinkRatePerMin).toFixed(1)),
-    facialTension: Number(weightedAverage((capture) => capture.facialTension).toFixed(3)),
-    eyeDilationProxy: Number(weightedAverage((capture) => capture.eyeDilationProxy).toFixed(3)),
-    eyeOpenness: Number(weightedAverage((capture) => capture.eyeOpenness).toFixed(3)),
-    trackingConfidence: Number(weightedAverage((capture) => capture.trackingConfidence).toFixed(3)),
-    framesAnalyzed: captures.reduce((sum, capture) => sum + capture.framesAnalyzed, 0),
-  };
-}
-
 function hardRetryMessage() {
   return {
     heading: "We need a clearer sample",
@@ -106,6 +90,7 @@ export default function ScanAnalyzingPage() {
   const [errorHeading, setErrorHeading] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState("Preparing your scan session");
   const [completeness, setCompleteness] = useState<ScanCompleteness | null>(null);
+  const [guidedWorkflowComplete, setGuidedWorkflowComplete] = useState(false);
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -113,17 +98,19 @@ export default function ScanAnalyzingPage() {
 
     const run = async () => {
       const answers = await getGuidedScanAnswers();
-      const cameraCaptures = getGuidedScanCameraCaptures();
-      const cameraBaseline = getGuidedScanCameraBaseline();
       const scanStartedAt = getGuidedScanStartedAt();
       const scanSubject = getGuidedScanSubject() ?? UNCONFIRMED_SUBJECT;
       const expectedRecordings = GUIDED_SCAN_QUESTIONS.length;
+      const firstIncompleteStep = firstIncompleteGuidedScanStep(
+        answers.map((answer) => answer.questionId),
+        GUIDED_SCAN_QUESTIONS.map((question) => question.id),
+      );
 
-      if (!answers.length) {
-        setErrorHeading(null);
-        setError(hardRetryMessage().body);
+      if (firstIncompleteStep !== null) {
+        void router.replace(`/scan/question/${firstIncompleteStep}`);
         return;
       }
+      setGuidedWorkflowComplete(true);
 
       let scanId: string | null = null;
 
@@ -246,12 +233,9 @@ export default function ScanAnalyzingPage() {
           cymaticReference: buildCymaticReference(merged.noteInterpretation?.primaryNote),
           protocolNotes: {
             overview: SCAN_OVERVIEW_LINES,
-            camera: averageCameraMetrics(cameraCaptures) ?? undefined,
-            cameraBaseline: cameraBaseline ?? undefined,
             prompts: GUIDED_SCAN_QUESTIONS.map((question) => {
               const answerIndex = answers.findIndex((answer) => answer.questionId === question.id);
               const analysis = answerIndex >= 0 ? promptAnalyses[answerIndex] : null;
-              const capture = answerIndex >= 0 ? cameraCaptures[answerIndex] : undefined;
               return {
                 id: question.id,
                 title: question.title,
@@ -260,14 +244,6 @@ export default function ScanAnalyzingPage() {
                 rationale: question.rationale,
                 durationMs: answerIndex >= 0 ? answers[answerIndex]?.durationMs : undefined,
                 captureKind: question.captureKind,
-                camera: capture ? {
-                  blinkRatePerMin: capture.blinkRatePerMin,
-                  facialTension: capture.facialTension,
-                  eyeDilationProxy: capture.eyeDilationProxy,
-                  eyeOpenness: capture.eyeOpenness,
-                  trackingConfidence: capture.trackingConfidence,
-                  framesAnalyzed: capture.framesAnalyzed,
-                } : undefined,
                 primaryNote: analysis?.noteInterpretation?.primaryNote,
                 noteScores: analysis?.noteEnergies?.map((entry) => ({ note: entry.note, score: entry.score })) ?? [],
               };
@@ -332,7 +308,11 @@ export default function ScanAnalyzingPage() {
   }, [router]);
 
   const failed = Boolean(error);
-  const heading = failed ? errorHeading ?? hardRetryMessage().heading : "Creating your Resonance Signature.";
+  const heading = failed
+    ? errorHeading ?? hardRetryMessage().heading
+    : guidedWorkflowComplete
+      ? "Creating your Resonance Signature."
+      : "Preparing your completed scan.";
   const lead = failed ? error : progressMessage;
 
   return (
