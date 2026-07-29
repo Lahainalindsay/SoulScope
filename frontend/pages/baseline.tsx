@@ -1,12 +1,17 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Recorder, { type RecorderHandle, type RecorderSignalSample } from "../components/Recorder";
 import { supabase } from "../lib/supabaseClient";
 import { createDefaultVoiceAnalysisProvider, type ConsentRecord } from "../lib/voiceAnalysisProvider";
 import { buildReferenceSignature, REFERENCE_SIGNATURE_PROMPT } from "../lib/referenceSignature";
 import { replaceActiveReferenceSignature } from "../lib/referenceSignatureRepository";
 import styles from "./scan/question/GuidedScanQuestion.module.css";
+
+const RECORDING_DURATION_SECONDS = Math.max(
+  1,
+  Math.round(REFERENCE_SIGNATURE_PROMPT.durationMs / 1000)
+);
 
 function signalText(dbfs: number) {
   if (dbfs < -58) return "Move closer or find quiet";
@@ -22,12 +27,37 @@ export default function BaselinePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [liveSample, setLiveSample] = useState<RecorderSignalSample | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(RECORDING_DURATION_SECONDS);
 
   const start = () => {
     setError(null);
-    startedAtRef.current = Date.now();
+    setRemainingSeconds(RECORDING_DURATION_SECONDS);
     recorderRef.current?.start();
   };
+
+  const handleRecordingStateChange = (recording: boolean) => {
+    if (recording) {
+      startedAtRef.current = Date.now();
+      setRemainingSeconds(RECORDING_DURATION_SECONDS);
+    }
+    setIsRecording(recording);
+  };
+
+  useEffect(() => {
+    if (!isRecording || !startedAtRef.current) return;
+
+    const updateCountdown = () => {
+      const elapsedMs = Date.now() - startedAtRef.current;
+      setRemainingSeconds(Math.max(
+        0,
+        Math.ceil((REFERENCE_SIGNATURE_PROMPT.durationMs - elapsedMs) / 1000)
+      ));
+    };
+
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 250);
+    return () => window.clearInterval(timer);
+  }, [isRecording]);
 
   const handleComplete = async (blob: Blob) => {
     const durationMs = Math.max(1, Date.now() - startedAtRef.current);
@@ -134,8 +164,13 @@ export default function BaselinePage() {
                   <p className={styles.eyebrow}>30 seconds · no result is created</p>
                   <h2 className={styles.title} style={{ fontSize: "clamp(25px, 4vw, 42px)" }}>{REFERENCE_SIGNATURE_PROMPT.prompt}</h2>
                   <p className={styles.ctaHint}>{REFERENCE_SIGNATURE_PROMPT.rationale}</p>
+                  {isRecording ? (
+                    <div className={styles.timeBadge} role="timer" aria-live="polite">
+                      {remainingSeconds}s left
+                    </div>
+                  ) : null}
                   <button type="button" onClick={start} disabled={isRecording || isSaving} className={styles.primaryButton}>
-                    {isSaving ? "Saving your signature" : isRecording ? "Recording" : "Begin 30-second recording"}
+                    {isSaving ? "Saving your signature" : isRecording ? `Recording · ${remainingSeconds}s` : "Begin 30-second recording"}
                   </button>
                   {error ? <p className={styles.errorText}>{error}</p> : null}
                 </div>
@@ -144,7 +179,7 @@ export default function BaselinePage() {
           </div>
         </div>
         <div style={{ display: "none" }}>
-          <Recorder ref={recorderRef} hideTrigger durationMs={REFERENCE_SIGNATURE_PROMPT.durationMs} onComplete={handleComplete} onRecordingStateChange={setIsRecording} onSignalSample={setLiveSample} />
+          <Recorder ref={recorderRef} hideTrigger durationMs={REFERENCE_SIGNATURE_PROMPT.durationMs} onComplete={handleComplete} onRecordingStateChange={handleRecordingStateChange} onSignalSample={setLiveSample} />
         </div>
       </div>
     </>
