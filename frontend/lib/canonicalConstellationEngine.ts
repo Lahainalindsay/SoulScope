@@ -137,6 +137,14 @@ const STATES: StateRegion[] = [
   { stateId: "EXP-012", constellation: "EXP", displayName: "Constrained Access", target: { "EXP-P1": 0.24, "EXP-P2": 0.28, "EXP-P3": 0.82, "EXP-P4": 0.34 }, requiredPoints: CONSTELLATION_POINTS.EXP },
 ];
 
+export const CANONICAL_STATE_DISPLAY_NAMES: Record<Exclude<CanonicalConstellationRegion, "unresolved">, string> = Object.fromEntries(
+  STATES.map((state) => [state.stateId, state.displayName]),
+) as Record<Exclude<CanonicalConstellationRegion, "unresolved">, string>;
+
+export function displayNameForCanonicalRegion(region: CanonicalConstellationRegion) {
+  return region === "unresolved" ? null : CANONICAL_STATE_DISPLAY_NAMES[region] ?? null;
+}
+
 function clamp(value: number, min = 0, max = 1) {
   return Math.max(min, Math.min(max, Number.isFinite(value) ? value : min));
 }

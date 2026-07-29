@@ -4,11 +4,10 @@ import styles from "./ResonanceResultsDashboard.module.css";
 
 export default function HumanReflectionOverview({ report }: { report: SoulScopeReport }) {
   const presentation = report.presentation;
-  const practices = report.canonicalPattern.supportLines;
+  const narrative = report.canonicalNarrative;
+  const practices = [narrative.gentleNextStep];
   const [reflection, setReflection] = useState("");
-  const reflectionLines = presentation.explanation
-    .filter((line) => !/this does not define who you are/i.test(line))
-    .slice(0, 3);
+  const reflectionLines = [narrative.reflection];
 
   return (
     <>
@@ -61,7 +60,7 @@ export default function HumanReflectionOverview({ report }: { report: SoulScopeR
       <section className={styles.patternStrip}>
         <article className={styles.patternCard}>
           <p className={styles.noteStatus}>Worth Noticing</p>
-          <p>{report.canonicalResult.narrative.worthNoticing}</p>
+          <p>{narrative.worthNoticing}</p>
         </article>
       </section>
     </>

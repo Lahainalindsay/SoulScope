@@ -4,8 +4,9 @@ import { buildContinuousConstellationGeometry } from "../lib/canonicalConstellat
 import { buildCanonicalDimensions } from "../lib/canonicalDimensionEngine";
 import { buildCrossConstellationInteractions } from "../lib/canonicalInteractionEngine";
 import { buildMeaningObjects } from "../lib/canonicalMeaningEngine";
+import { buildCanonicalNarrative } from "../lib/canonicalNarrativeEngine";
 import { buildCanonicalResonanceSignature } from "../lib/canonicalResonanceSignature";
-import type { CanonicalEvidenceRecord } from "../lib/canonicalResult";
+import type { CanonicalEvidenceRecord, CanonicalSoulScopeResult } from "../lib/canonicalResult";
 
 function evidence(featureId: string, value: number | null, confidence = 0.82): CanonicalEvidenceRecord {
   return {
@@ -114,4 +115,42 @@ test("canonical Resonance Signature is reproducible from Phase B result componen
   assert.ok(first.data.every((item) => item.id.startsWith("canonical:")));
   assert.ok(first.data.some((item) => item.id.startsWith("canonical:COG:point:COG-P")));
   assert.ok(first.data.some((item) => item.id === `canonical:COG:winner:${geometry.constellations.COG.winner}`));
+});
+
+test("canonical narrative translator hides boundary internals and state IDs", () => {
+  const dimensions = buildCanonicalDimensions(completeEvidence);
+  const geometry = buildContinuousConstellationGeometry(dimensions);
+  const interactions = buildCrossConstellationInteractions(dimensions, geometry);
+  const meaningObjects = buildMeaningObjects(dimensions, geometry, interactions);
+  const result = {
+    evidenceLedger: { immutable: true, records: completeEvidence },
+    phaseBDimensions: { immutable: true, version: "test", registryVersion: "test", records: dimensions },
+    phaseBConstellation: {
+      immutable: true,
+      geometry: {
+        ...geometry,
+        boundaryBlend: {
+          blendId: "blend:COG-017:COG-011",
+          primaryRegion: "COG-017",
+          secondaryRegion: "COG-011",
+          blend: 0.47,
+          transition: 0.9,
+          overlap: 0.82,
+          uncertainty: 0.31,
+          rationale: "internal",
+        },
+      },
+    },
+    phaseBInteractions: { immutable: true, version: "test", records: interactions },
+    meaningObjects: { immutable: true, version: "test", records: meaningObjects },
+    decisionLedger: { immutable: true, record: { outcome: "boundary_blend" } },
+  } as unknown as CanonicalSoulScopeResult;
+  const narrative = buildCanonicalNarrative(result);
+  const visible = Object.values(narrative).filter((value): value is string => typeof value === "string").join(" ");
+
+  assert.match(narrative.patternTitle, /Deliberate Builder|Open Architect/);
+  assert.doesNotMatch(narrative.patternTitle, /Boundary transition|boundary blend|COG-017|COG-011|meaning:/i);
+  assert.doesNotMatch(visible, /\b(?:COG|REG|CAP|EXP)-\d{3}\b|\bINT-\d{3}\b|meaning:[^\s]+|Boundary transition|boundary blend|strongest interaction|Preserve the transition|materially plausible/i);
+  assert.match(narrative.reflection, /held broadly|similarly supported/i);
+  assert.doesNotMatch(narrative.gentleNextStep, /try again|recording conditions were unclear|imprecise/i);
 });

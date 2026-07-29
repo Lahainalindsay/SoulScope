@@ -35,6 +35,7 @@ import {
   buildCanonicalSoulScopeResult,
   type CanonicalSoulScopeResult,
 } from "./canonicalResult";
+import { buildCanonicalNarrative, type CanonicalNarrative } from "./canonicalNarrativeEngine";
 
 export type SoulScopeReport = BaseSoulScopeReport & {
   patternExpression: PatternExpression;
@@ -51,6 +52,7 @@ export type SoulScopeReport = BaseSoulScopeReport & {
   };
   canonicalPattern: CanonicalPatternResult;
   canonicalResult: CanonicalSoulScopeResult;
+  canonicalNarrative: CanonicalNarrative;
 };
 
 export type BuildSoulScopeReportOptions = {
@@ -164,57 +166,60 @@ export function buildSoulScopeReport(
     narrative: resonanceNarrative,
     resonanceSignature: atlasSignature,
   });
+  const canonicalNarrative = buildCanonicalNarrative(canonicalResult);
   const resultIsUnresolved = canonicalResult.decisionLedger.record.outcome === "unresolved";
-  const publishedEvidenceLines = canonicalResult.decisionLedger.record.supportingEvidence.length
-    ? canonicalResult.decisionLedger.record.supportingEvidence.slice(0, limited ? 2 : 4).map((id) => `Evidence ledger: ${id}`)
+  const publishedEvidenceLines = canonicalResult.phaseBDimensions.records.some((dimension) => dimension.evidenceCoverage > 0)
+    ? canonicalResult.phaseBDimensions.records
+        .filter((dimension) => dimension.evidenceCoverage > 0)
+        .sort((left, right) => right.confidence - left.confidence)
+        .slice(0, limited ? 2 : 4)
+        .map((dimension) => `${dimension.label} carried usable evidence with ${dimension.confidence >= 0.72 ? "strong" : dimension.confidence >= 0.48 ? "moderate" : "developing"} confidence.`)
     : canonicalResult.decisionLedger.record.missingEvidence.length
-      ? ["Missing evidence preserved in the decision ledger."]
-      : ["The canonical pipeline preserved the current uncertainty."];
+      ? ["Some evidence was unavailable, so the reflection stays broad."]
+      : ["The reflection preserves uncertainty where the signal is less settled."];
 
   const patternExpression: PatternExpression = {
     id: canonicalResult.pattern.id ?? "signals-still-resolving",
-    title: canonicalResult.pattern.displayName,
-    summary: canonicalResult.narrative.introduction,
+    title: canonicalNarrative.patternTitle,
+    summary: canonicalNarrative.reflection,
     matchedSignals: resultIsUnresolved
       ? canonicalResult.decisionLedger.record.missingEvidence.length
-        ? ["Missing evidence preserved in the decision ledger."]
-        : ["The decision ledger abstained instead of forcing a pattern."]
+        ? ["Some evidence was unavailable, so the reflection stays broad."]
+        : ["SoulScope is keeping the reflection broad instead of forcing a pattern."]
       : publishedEvidenceLines,
   };
 
   const modifiers = buildPatternModifiers(scan, domainResults).slice(0, limited ? 2 : 6);
   const presentation = {
     ...canonicalPresentation(canonicalPattern, atlasPresentation),
-    summary: canonicalResult.narrative.introduction,
+    summary: canonicalNarrative.patternSubtitle
+      ? `${canonicalNarrative.patternSubtitle} ${canonicalNarrative.reflection}`
+      : canonicalNarrative.reflection,
     explanation: [
-      canonicalResult.narrative.introduction,
-      canonicalResult.narrative.beneathTheSurface,
+      canonicalNarrative.reflection,
+      canonicalNarrative.uncertaintyNote ?? canonicalNarrative.worthNoticing,
     ],
     observedBullets: [
-      canonicalResult.narrative.worthNoticing,
-      resultIsUnresolved
-        ? "No unsupported pattern identity was assigned."
-        : canonicalResult.decisionLedger.record.publicationReason,
-      canonicalResult.pattern.sourceMeaningIds.length
-        ? `Meaning source: ${canonicalResult.pattern.sourceMeaningIds[0]}`
-        : "No Meaning Object was published.",
+      canonicalNarrative.worthNoticing,
+      canonicalNarrative.uncertaintyNote ?? "This reflection keeps uncertainty visible where the evidence is less settled.",
+      `Confidence: ${canonicalNarrative.confidenceLabel}.`,
     ],
     dailyLife: resultIsUnresolved
       ? [
-          canonicalResult.narrative.worthNoticing,
+          canonicalNarrative.howThisMayShowUp,
           "Some signals were present, but the available evidence was limited.",
-          "A clearer sample may be needed before the pattern becomes reliable.",
+          canonicalNarrative.gentleNextStep,
           "This result preserves uncertainty instead of substituting a neutral pattern.",
         ]
       : [
-          canonicalResult.narrative.beneathTheSurface,
-          canonicalResult.narrative.strengthToday,
-          canonicalResult.narrative.worthNoticing,
-          canonicalResult.decisionLedger.record.publicationReason,
+          canonicalNarrative.howThisMayShowUp,
+          canonicalNarrative.worthNoticing,
+          canonicalNarrative.gentleNextStep,
+          canonicalNarrative.uncertaintyNote ?? "The reflection should stay connected to the conditions of this scan.",
         ],
     reflectionQuestion: resultIsUnresolved
       ? "What feels most worth noticing before you scan again?"
-      : canonicalResult.meaningObjects.records[0]?.reflection_direction ?? "What part of this supported pattern feels most useful to notice?",
+      : canonicalNarrative.gentleNextStep,
     longitudinalMessage: "No longitudinal change claim was published from this scan.",
   } satisfies PatternPresentation;
   const storyCandidates = base.storyCandidates.map((candidate) => personalizeStoryCandidate(
@@ -226,20 +231,20 @@ export function buildSoulScopeReport(
   ));
   const canonicalPrimaryPattern: PatternMatch = {
     ...primaryPattern,
-    name: canonicalResult.pattern.displayName,
-    theme: canonicalResult.narrative.introduction,
-    explanation: canonicalResult.narrative.beneathTheSurface,
+    name: canonicalNarrative.patternTitle,
+    theme: canonicalNarrative.reflection,
+    explanation: canonicalNarrative.uncertaintyNote ?? canonicalNarrative.worthNoticing,
     whatThisMayFeelLike: presentation.dailyLife,
     supportiveFactors: resultIsUnresolved
       ? [
-          canonicalResult.narrative.worthNoticing,
-          "A clearer recording can make the evidence path more complete.",
-          "The abstention is recorded in the decision ledger.",
+          canonicalNarrative.worthNoticing,
+          canonicalNarrative.gentleNextStep,
+          "Unknown parts of the scan are left open rather than filled in.",
         ]
       : [
-          canonicalResult.narrative.strengthToday,
-          canonicalResult.narrative.worthNoticing,
-          canonicalResult.decisionLedger.record.publicationReason,
+          canonicalNarrative.howThisMayShowUp,
+          canonicalNarrative.worthNoticing,
+          canonicalNarrative.gentleNextStep,
         ],
     whatIsWorkingHardest: canonicalResult.decisionLedger.record.supportingEvidence.length
       ? canonicalResult.decisionLedger.record.supportingEvidence.slice(0, 3).map((item) => item.replaceAll("-", " "))
@@ -260,6 +265,7 @@ export function buildSoulScopeReport(
     presentation,
     canonicalPattern,
     canonicalResult,
+    canonicalNarrative,
     scanCompleteness: scanWithCompleteness.scanCompleteness,
     observationPipeline,
     vocalStateProfile,

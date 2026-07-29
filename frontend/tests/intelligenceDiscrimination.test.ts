@@ -107,7 +107,10 @@ test("materially different scans produce different evidence, observations, domai
   assert.notDeepEqual(signature(balancedPipeline.observations), signature(processingPipeline.observations));
   assert.notDeepEqual(signature(balancedPipeline.domains), signature(processingPipeline.domains));
   assert.notEqual(balancedReport.primaryPattern.id, processingReport.primaryPattern.id);
-  assert.notEqual(balancedReport.storyCandidates[0]?.summary, processingReport.storyCandidates[0]?.summary);
+  assert.notDeepEqual(
+    balancedReport.canonicalResult.phaseBDimensions.records.map((dimension) => [dimension.dimensionId, dimension.value]),
+    processingReport.canonicalResult.phaseBDimensions.records.map((dimension) => [dimension.dimensionId, dimension.value]),
+  );
 });
 
 test("similar broad load can still produce different pattern ordering", () => {
@@ -152,15 +155,30 @@ test("published report language does not reintroduce baseline or legacy reasonin
     ],
   });
   const published = [
+    report.canonicalNarrative.patternTitle,
+    report.canonicalNarrative.patternSubtitle ?? "",
+    report.canonicalNarrative.reflection,
+    report.canonicalNarrative.howThisMayShowUp,
+    report.canonicalNarrative.worthNoticing,
+    report.canonicalNarrative.gentleNextStep,
     report.patternExpression.summary,
+    report.patternExpression.title,
     ...report.patternExpression.matchedSignals,
+    report.primaryPattern.name,
+    report.primaryPattern.theme,
+    report.primaryPattern.explanation,
+    report.primaryPattern.whatNeedsAttention,
+    ...report.primaryPattern.supportiveFactors,
+    ...report.presentation.observedBullets,
+    ...report.presentation.dailyLife,
     ...report.storyCandidates.map((candidate) => candidate.summary),
   ].join(" ");
 
-  assert.equal(report.primaryPattern.name, report.canonicalResult.pattern.displayName);
-  assert.equal(report.patternExpression.title, report.canonicalResult.pattern.displayName);
+  assert.equal(report.primaryPattern.name, report.canonicalNarrative.patternTitle);
+  assert.equal(report.patternExpression.title, report.canonicalNarrative.patternTitle);
   assert.equal(/recent scans|recent baseline|usual baseline|baseline range|appears (higher|lower|lighter) than/i.test(published), false);
   assert.equal(/Current expression:|Current observations suggest|differentiating evidence/i.test(published), false);
+  assert.equal(/\b(?:COG|REG|CAP|EXP)-\d{3}\b|\bINT-\d{3}\b|meaning:[^\s]+|Boundary transition|boundary blend|strongest interaction|publicationReason|decision ledger|canonical pipeline/i.test(published), false);
 });
 
 test("fixture distribution does not collapse into one primary pattern", () => {

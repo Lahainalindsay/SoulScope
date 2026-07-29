@@ -12,32 +12,37 @@ export type SoulScopePreviewReport = SoulScopeReport & {
 
 export function applyResonanceNarrative(report: SoulScopeReport): SoulScopePreviewReport {
   const resonanceNarrative = report.canonicalResult.narrative;
+  const canonicalNarrative = report.canonicalNarrative;
 
   return {
     ...report,
     resonanceNarrative,
     primaryPattern: {
       ...report.primaryPattern,
-      name: resonanceNarrative.generatedPattern.title,
-      theme: resonanceNarrative.introduction,
-      explanation: resonanceNarrative.beneathTheSurface,
-      whatThisMayFeelLike: resonanceNarrative.howThisOftenFeels.slice(0, 4) as [string, string, string, string],
-      supportiveFactors: resonanceNarrative.whatOthersMayNotice.slice(0, 3) as [string, string, string],
+      name: canonicalNarrative.patternTitle,
+      theme: canonicalNarrative.reflection,
+      explanation: canonicalNarrative.uncertaintyNote ?? canonicalNarrative.worthNoticing,
+      whatThisMayFeelLike: report.presentation.dailyLife,
+      supportiveFactors: [
+        canonicalNarrative.howThisMayShowUp,
+        canonicalNarrative.worthNoticing,
+        canonicalNarrative.gentleNextStep,
+      ],
       whatIsWorkingHardest: resonanceNarrative.components
         .filter((component) => component.orientation === "resource")
         .slice(0, 3)
         .map((component) => `${component.domain}: ${component.band}`),
-      whatNeedsAttention: resonanceNarrative.reflectionQuestion,
-      confidence: resonanceNarrative.generatedPattern.confidence,
+      whatNeedsAttention: canonicalNarrative.gentleNextStep,
+      confidence: report.primaryPattern.confidence,
     },
     storyCandidates: report.storyCandidates.map((candidate, index) => ({
       ...candidate,
       title: index === 0 ? "Your resonance today" : candidate.title,
       summary: index === 0
-        ? resonanceNarrative.introduction
+        ? canonicalNarrative.reflection
         : index === 1
-        ? resonanceNarrative.strengthToday
-        : resonanceNarrative.worthNoticing,
+        ? canonicalNarrative.howThisMayShowUp
+        : canonicalNarrative.worthNoticing,
     })),
   };
 }
