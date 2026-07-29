@@ -52,6 +52,18 @@ const narrative = {
 } as unknown as ResonanceNarrative;
 
 function scanWithValue(value: number | null): VoiceAnalysisResult {
+  const featureIds = [
+    "voice.f0.median",
+    "voice.f0.range_semitones",
+    "voice.intensity.rms",
+    "voice.syllable_nuclei_rate",
+    "voice.phonation_time_ratio",
+    "voice.pitch_stability",
+    "voice.pitch_clarity",
+    "voice.pause.duration_mean",
+    "voice.spectral_flatness",
+    "voice.harmonic_richness",
+  ];
   return {
     scanMeta: { completedAt: "2026-07-29T00:00:00.000Z" },
     canonicalAcoustic: {
@@ -67,11 +79,11 @@ function scanWithValue(value: number | null): VoiceAnalysisResult {
       retentionPolicy: "private",
       vadSegments: [],
       metadata: {},
-      measurements: [{
-        feature_id: "voice.f0.median",
+      measurements: featureIds.map((featureId, index) => ({
+        feature_id: featureId,
         feature_version: "1.0.0",
-        value,
-        unit: "Hz",
+        value: value === null ? null : value + index,
+        unit: featureId === "voice.f0.median" ? "Hz" : "unit",
         method: "median",
         source_capture_id: "capture-1",
         capture_kind: "guided_speech",
@@ -85,7 +97,7 @@ function scanWithValue(value: number | null): VoiceAnalysisResult {
         parameters: {},
         device_metadata: {},
         created_at: "2026-07-29T00:00:00.000Z",
-      }],
+      })),
     },
   } as unknown as VoiceAnalysisResult;
 }
@@ -110,9 +122,17 @@ test("canonical result preserves measured provenance and is deeply immutable", (
   assert.equal(evidence.uncertainty, .2);
   assert.equal(evidence.extractorVersion, "extractor-v1");
   assert.equal(evidence.provenance.captureId, "capture-1");
-  assert.equal(result.decisionLedger.record.outcome, "canonical_state");
+  assert.notEqual(result.decisionLedger.record.outcome, "unresolved");
+  assert.equal(result.decisionLedger.record.selectedResult, result.meaningObjects.records[0]?.meaning_id);
+  assert.notEqual(result.decisionLedger.record.selectedResult, canonical.canonicalPatternSignature);
+  assert.ok(result.decisionLedger.record.rejectedAlternatives.some((item) => item.id.startsWith("compatibility:")));
+  assert.equal(result.phaseBDimensions.records.length, 16);
+  assert.ok(result.phaseBConstellation.geometry.coordinates.x >= 0);
+  assert.ok(result.meaningObjects.records.length >= 1);
+  assert.ok(result.resonanceSignature.data.every((item) => item.id.startsWith("canonical:")));
   assert.ok(Object.isFrozen(result));
   assert.ok(Object.isFrozen(result.evidenceLedger.records));
+  assert.ok(Object.isFrozen(result.phaseBDimensions.records));
   assert.ok(Object.isFrozen(evidence.provenance));
 });
 

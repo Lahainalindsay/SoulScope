@@ -7,7 +7,6 @@ import {
 } from "./resonancePatterns";
 import {
   buildBaselineComparison,
-  buildPatternExpression,
   buildPatternModifiers,
   type BaselineComparison,
   type PatternExpression,
@@ -23,11 +22,10 @@ import { buildObservationPipeline } from "./observationFramework/buildObservatio
 import type { ObservationPipelineResult } from "./observationFramework/types";
 import { USE_OBSERVATION_PIPELINE_V2 } from "./observationFramework/versions";
 import { discriminatePatternMatches } from "./patternDiscrimination";
-import { buildAtlasPresentation, buildAtlasRuntime, topAtlasEvidence } from "./atlasRuntime";
+import { buildAtlasPresentation, buildAtlasRuntime } from "./atlasRuntime";
 import { buildAtlasSignatureModel, type AtlasSignatureModel } from "./atlasSignature";
 import type { AtlasInput, AtlasResult } from "./patternAtlas";
 import {
-  canonicalPatternExpression,
   canonicalPresentation,
   resolveCanonicalPattern,
   type CanonicalPatternResult,
@@ -65,7 +63,6 @@ function personalizeStoryCandidate(
   presentation: PatternPresentation,
   modifiers: PatternModifier[],
   supportingName: string | undefined,
-  baseline: BaselineComparison,
   completeness?: ScanCompleteness,
 ): UserResultStoryCandidate {
   const resource = modifiers.find((modifier) => modifier.category === "resource")?.label;
@@ -94,13 +91,10 @@ function personalizeStoryCandidate(
       summary: `${presentation.explanation[0]} ${capacityLine} ${qualityLine}`.trim(),
     };
   }
-  const baselineLine = baseline.available
-    ? baseline.overallSummary ?? presentation.longitudinalMessage
-    : presentation.longitudinalMessage;
   return {
     ...candidate,
-    title: "What may be changing",
-    summary: `${presentation.explanation[1]} ${baselineLine} ${qualityLine}`.trim(),
+    title: "What may be worth noticing",
+    summary: `${presentation.explanation[1]} ${presentation.reflectionQuestion} ${qualityLine}`.trim(),
   };
 }
 
@@ -142,7 +136,6 @@ export function buildSoulScopeReport(
   const baselineComparison = buildBaselineComparison(domainResults, options.historicalDomainResults ?? []);
   const atlasRuntime = buildAtlasRuntime(scan, domainResults, baselineComparison);
   const atlasSignature = buildAtlasSignatureModel(atlasRuntime.input, atlasRuntime.result);
-  const atlasEvidence = topAtlasEvidence(atlasRuntime.input, limited ? 2 : 4);
   const atlasPresentation = buildAtlasPresentation(atlasRuntime.input, atlasRuntime.result, baselineComparison);
   const resolvedCanonicalPattern = resolveCanonicalPattern(
     {
@@ -171,39 +164,88 @@ export function buildSoulScopeReport(
     narrative: resonanceNarrative,
     resonanceSignature: atlasSignature,
   });
+  const resultIsUnresolved = canonicalResult.decisionLedger.record.outcome === "unresolved";
+  const publishedEvidenceLines = canonicalResult.decisionLedger.record.supportingEvidence.length
+    ? canonicalResult.decisionLedger.record.supportingEvidence.slice(0, limited ? 2 : 4).map((id) => `Evidence ledger: ${id}`)
+    : canonicalResult.decisionLedger.record.missingEvidence.length
+      ? ["Missing evidence preserved in the decision ledger."]
+      : ["The canonical pipeline preserved the current uncertainty."];
 
-  const patternExpression: PatternExpression = canonicalPatternExpression(
-    canonicalPattern,
-    atlasEvidence.map((evidence) => `${evidence.label} · ${Math.round(evidence.score * 100)}%`),
-  );
-
-  const legacyExpression = buildPatternExpression(primaryPattern.id, scan, domainResults);
-  if (!limited && legacyExpression.matchedSignals.length) {
-    patternExpression.matchedSignals.push(...legacyExpression.matchedSignals.slice(0, 2));
-  }
+  const patternExpression: PatternExpression = {
+    id: canonicalResult.pattern.id ?? "signals-still-resolving",
+    title: canonicalResult.pattern.displayName,
+    summary: canonicalResult.narrative.introduction,
+    matchedSignals: resultIsUnresolved
+      ? canonicalResult.decisionLedger.record.missingEvidence.length
+        ? ["Missing evidence preserved in the decision ledger."]
+        : ["The decision ledger abstained instead of forcing a pattern."]
+      : publishedEvidenceLines,
+  };
 
   const modifiers = buildPatternModifiers(scan, domainResults).slice(0, limited ? 2 : 6);
-  const presentation = canonicalPresentation(canonicalPattern, atlasPresentation);
+  const presentation = {
+    ...canonicalPresentation(canonicalPattern, atlasPresentation),
+    summary: canonicalResult.narrative.introduction,
+    explanation: [
+      canonicalResult.narrative.introduction,
+      canonicalResult.narrative.beneathTheSurface,
+    ],
+    observedBullets: [
+      canonicalResult.narrative.worthNoticing,
+      resultIsUnresolved
+        ? "No unsupported pattern identity was assigned."
+        : canonicalResult.decisionLedger.record.publicationReason,
+      canonicalResult.pattern.sourceMeaningIds.length
+        ? `Meaning source: ${canonicalResult.pattern.sourceMeaningIds[0]}`
+        : "No Meaning Object was published.",
+    ],
+    dailyLife: resultIsUnresolved
+      ? [
+          canonicalResult.narrative.worthNoticing,
+          "Some signals were present, but the available evidence was limited.",
+          "A clearer sample may be needed before the pattern becomes reliable.",
+          "This result preserves uncertainty instead of substituting a neutral pattern.",
+        ]
+      : [
+          canonicalResult.narrative.beneathTheSurface,
+          canonicalResult.narrative.strengthToday,
+          canonicalResult.narrative.worthNoticing,
+          canonicalResult.decisionLedger.record.publicationReason,
+        ],
+    reflectionQuestion: resultIsUnresolved
+      ? "What feels most worth noticing before you scan again?"
+      : canonicalResult.meaningObjects.records[0]?.reflection_direction ?? "What part of this supported pattern feels most useful to notice?",
+    longitudinalMessage: "No longitudinal change claim was published from this scan.",
+  } satisfies PatternPresentation;
   const storyCandidates = base.storyCandidates.map((candidate) => personalizeStoryCandidate(
     candidate,
     presentation,
     modifiers,
     canonicalPattern.secondaryFamily ? canonicalPattern.canonicalDisplayName : undefined,
-    baselineComparison,
     scanWithCompleteness.scanCompleteness,
   ));
   const canonicalPrimaryPattern: PatternMatch = {
     ...primaryPattern,
-    name: canonicalPattern.canonicalDisplayName,
-    theme: canonicalPattern.summary,
-    explanation: canonicalPattern.explanation[0],
-    whatThisMayFeelLike: canonicalPattern.dailyLife,
-    supportiveFactors: canonicalPattern.supportLines,
-    whatIsWorkingHardest: canonicalPattern.decisionLedger.supportingEvidence.length
-      ? canonicalPattern.decisionLedger.supportingEvidence.map((item) => item.replaceAll("-", " "))
+    name: canonicalResult.pattern.displayName,
+    theme: canonicalResult.narrative.introduction,
+    explanation: canonicalResult.narrative.beneathTheSurface,
+    whatThisMayFeelLike: presentation.dailyLife,
+    supportiveFactors: resultIsUnresolved
+      ? [
+          canonicalResult.narrative.worthNoticing,
+          "A clearer recording can make the evidence path more complete.",
+          "The abstention is recorded in the decision ledger.",
+        ]
+      : [
+          canonicalResult.narrative.strengthToday,
+          canonicalResult.narrative.worthNoticing,
+          canonicalResult.decisionLedger.record.publicationReason,
+        ],
+    whatIsWorkingHardest: canonicalResult.decisionLedger.record.supportingEvidence.length
+      ? canonicalResult.decisionLedger.record.supportingEvidence.slice(0, 3).map((item) => item.replaceAll("-", " "))
       : primaryPattern.whatIsWorkingHardest,
-    whatNeedsAttention: canonicalPattern.reflectionQuestion,
-    confidence: canonicalPattern.confidence,
+    whatNeedsAttention: presentation.reflectionQuestion,
+    confidence: canonicalResult.meaningObjects.records[0]?.confidence ?? 0,
   };
 
   return {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildSoulScopeReport } from "../lib/buildSoulScopeReport";
 import { buildObservationPipeline } from "../lib/observationFramework/buildObservationPipeline";
+import type { UserResultDomain } from "../lib/systemDimensions";
 import type { VoiceAnalysisResult } from "../lib/voiceSpectrum";
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -57,6 +58,39 @@ function fixture(kind: "balanced" | "processing" | "output" | "contained" | "dis
       lowPitchHz: 100, highPitchHz: 220, medianMidi: 50, dominantOctave: 3, clippingFrameRatio: 0.01, captureQuality: "good", captureRecommendation: "good", primaryNoteSource: "tracked-pitch",
       ...dynamics,
     },
+    canonicalAcoustic: {
+      schemaVersion: "1.0.0",
+      authoritative: true,
+      captureId: `fixture:${kind}`,
+      captureKind: "guided_speech",
+      extractor: "fixture-extractor",
+      extractorVersion: "fixture-extractor-v1",
+      quality: "good",
+      confidence: 0.82,
+      storagePath: null,
+      retentionPolicy: "private",
+      vadSegments: [],
+      metadata: {},
+      measurements: [{
+        feature_id: "voice.f0.median",
+        feature_version: "1.0.0",
+        value: kind === "processing" ? 122 : kind === "output" ? 176 : 148,
+        unit: "Hz",
+        method: "fixture",
+        source_capture_id: `fixture:${kind}`,
+        capture_kind: "guided_speech",
+        segment_start_ms: 0,
+        segment_end_ms: 30000,
+        quality: "good",
+        confidence: 0.82,
+        rejection_reason: null,
+        extractor: "fixture-extractor",
+        extractor_version: "fixture-extractor-v1",
+        parameters: {},
+        device_metadata: {},
+        created_at: "2026-07-29T00:00:00.000Z",
+      }],
+    },
   };
 }
 
@@ -100,6 +134,35 @@ test("partial scans retain variants and reduce confidence", () => {
   assert.equal(report.patternExpression.id, "signals-still-resolving");
 });
 
+test("published report language does not reintroduce baseline or legacy reasoning", () => {
+  const report = buildSoulScopeReport(fixture("balanced"), {
+    historicalDomainResults: [
+      [
+        reportHistoryDomain("Focus & Mental Load", 20),
+        reportHistoryDomain("Recovery & Restoration", 20),
+        reportHistoryDomain("Emotional Expression", 20),
+        reportHistoryDomain("Regulation", 20),
+      ],
+      [
+        reportHistoryDomain("Focus & Mental Load", 22),
+        reportHistoryDomain("Recovery & Restoration", 22),
+        reportHistoryDomain("Emotional Expression", 22),
+        reportHistoryDomain("Regulation", 22),
+      ],
+    ],
+  });
+  const published = [
+    report.patternExpression.summary,
+    ...report.patternExpression.matchedSignals,
+    ...report.storyCandidates.map((candidate) => candidate.summary),
+  ].join(" ");
+
+  assert.equal(report.primaryPattern.name, report.canonicalResult.pattern.displayName);
+  assert.equal(report.patternExpression.title, report.canonicalResult.pattern.displayName);
+  assert.equal(/recent scans|recent baseline|usual baseline|baseline range|appears (higher|lower|lighter) than/i.test(published), false);
+  assert.equal(/Current expression:|Current observations suggest|differentiating evidence/i.test(published), false);
+});
+
 test("fixture distribution does not collapse into one primary pattern", () => {
   const kinds = ["balanced", "processing", "output", "contained", "distributed"] as const;
   const patterns = kinds.map((kind) => buildSoulScopeReport(fixture(kind)).primaryPattern.id);
@@ -107,3 +170,17 @@ test("fixture distribution does not collapse into one primary pattern", () => {
   assert.ok(Object.keys(counts).length >= 3, `Expected at least three primary patterns, received ${JSON.stringify(counts)}`);
   assert.ok(Math.max(...Object.values(counts)) <= 3, `One pattern is selected too frequently: ${JSON.stringify(counts)}`);
 });
+
+function reportHistoryDomain(title: UserResultDomain["title"], score: number): UserResultDomain {
+  return {
+    title,
+    activityLevel: "Moderate" as const,
+    functionalState: "Readily Available" as const,
+    currentPattern: "Historical baseline fixture",
+    thisCouldExpressAs: ["Historical baseline fixture"],
+    itCanAlsoShowUpAs: ["Historical baseline fixture"],
+    supportiveReframe: "Historical baseline fixture",
+    signalSources: ["fixture"],
+    score,
+  };
+}

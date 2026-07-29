@@ -60,8 +60,8 @@ export default function HumanReflectionOverview({ report }: { report: SoulScopeR
 
       <section className={styles.patternStrip}>
         <article className={styles.patternCard}>
-          <p className={styles.noteStatus}>What Changed</p>
-          <p>{report.baselineComparison?.overallSummary ?? presentation.longitudinalMessage}</p>
+          <p className={styles.noteStatus}>Worth Noticing</p>
+          <p>{report.canonicalResult.narrative.worthNoticing}</p>
         </article>
       </section>
     </>

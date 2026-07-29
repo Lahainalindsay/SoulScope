@@ -1,11 +1,17 @@
 import type { AtlasSignatureModel } from "./atlasSignature";
+import { buildContinuousConstellationGeometry, type ContinuousConstellationGeometry } from "./canonicalConstellationEngine";
+import { buildCanonicalDimensions, CANONICAL_DIMENSION_ENGINE_VERSION, DIMENSION_REGISTRY_VERSION, type CanonicalDimensionRecord } from "./canonicalDimensionEngine";
+import { buildCrossConstellationInteractions, INTERACTION_ENGINE_VERSION, type CrossConstellationInteraction } from "./canonicalInteractionEngine";
+import { buildMeaningObjects, MEANING_ENGINE_VERSION, type MeaningObject } from "./canonicalMeaningEngine";
 import type { CanonicalPatternResult } from "./canonicalPattern";
+import { buildCanonicalResonanceSignature, CANONICAL_SIGNATURE_ENGINE_VERSION } from "./canonicalResonanceSignature";
 import type { ResonanceNarrative } from "./resonanceNarrativeEngineV3";
 import type { VoiceAnalysisResult } from "./voiceSpectrum";
 
 export const CANONICAL_RESULT_SCHEMA_VERSION = "soulscope-result-v1";
 export const CONSTELLATION_GEOMETRY_VERSION = "constellation-geometry-v1";
 export const DECISION_LEDGER_VERSION = "decision-ledger-v2";
+export const PHASE_B_CANONICAL_VERSION = "phase-b-canonical-v1";
 
 export type CanonicalEvidenceRecord = {
   evidenceId: string;
@@ -38,8 +44,18 @@ export type CanonicalDecisionRecord = {
   contradictoryEvidence: string[];
   missingEvidence: string[];
   confounds: string[];
-  candidateStates: CanonicalPatternResult["decisionLedger"]["alternatives"];
-  rejectedAlternatives: CanonicalPatternResult["decisionLedger"]["rejected"];
+  candidateStates: Array<{
+    id: string;
+    name: string;
+    confidence: number;
+    evidence: string[];
+    reason: string;
+  }>;
+  rejectedAlternatives: Array<{
+    id: string;
+    name: string;
+    reasons: string[];
+  }>;
   winningRule: string;
   publicationReason: string;
   ruleVersions: string[];
@@ -56,6 +72,12 @@ export type CanonicalSoulScopeResult = {
     records: CanonicalEvidenceRecord[];
   };
   dimensionVector: CanonicalPatternResult["dimensions"];
+  phaseBDimensions: {
+    immutable: true;
+    version: string;
+    registryVersion: string;
+    records: CanonicalDimensionRecord[];
+  };
   constellationGeometry: {
     version: string;
     stateVector: CanonicalPatternResult["stateVector"];
@@ -63,12 +85,27 @@ export type CanonicalSoulScopeResult = {
     confidenceMargin: number;
     outcome: CanonicalDecisionRecord["outcome"];
   };
+  phaseBConstellation: {
+    immutable: true;
+    geometry: ContinuousConstellationGeometry;
+  };
+  phaseBInteractions: {
+    immutable: true;
+    version: string;
+    records: CrossConstellationInteraction[];
+  };
+  meaningObjects: {
+    immutable: true;
+    version: string;
+    records: MeaningObject[];
+  };
   pattern: {
     id: string | null;
     displayName: string;
     family: CanonicalPatternResult["canonicalFamily"] | null;
     secondaryFamily: CanonicalPatternResult["secondaryFamily"];
     resultType: CanonicalPatternResult["resultType"];
+    sourceMeaningIds: string[];
   };
   decisionLedger: {
     immutable: true;
@@ -82,6 +119,12 @@ export type CanonicalSoulScopeResult = {
     patternEngine: string;
     namingMatrix: string;
     decisionLedger: string;
+    phaseB: string;
+    dimensionEngine: string;
+    dimensionRegistry: string;
+    interactionEngine: string;
+    meaningEngine: string;
+    resonanceSignature: string;
   };
 };
 
@@ -133,13 +176,109 @@ function acousticEvidence(scan: VoiceAnalysisResult): CanonicalEvidenceRecord[] 
 }
 
 function outcomeFor(
-  canonical: CanonicalPatternResult,
   evidence: CanonicalEvidenceRecord[],
+  phaseBConstellation: ContinuousConstellationGeometry,
+  phaseBInteractions: CrossConstellationInteraction[],
 ): CanonicalDecisionRecord["outcome"] {
   if (!evidence.length || evidence.every((record) => record.missingEvidence)) return "unresolved";
-  if (canonical.resultType === "composite") return "boundary_blend";
-  if (canonical.resultType === "single") return "canonical_state";
-  return "unresolved";
+  if (phaseBInteractions.some((interaction) => interaction.interactionId === "INT-008")) return "unresolved";
+  if (phaseBConstellation.boundaryBlend) return "boundary_blend";
+  return "canonical_state";
+}
+
+function patternNameFor(primaryMeaning: MeaningObject | undefined, outcome: CanonicalDecisionRecord["outcome"]) {
+  if (outcome === "unresolved") return "Unresolved";
+  if (!primaryMeaning) return "Supported local observations";
+  return primaryMeaning.primary_theme;
+}
+
+function patternResultTypeFor(outcome: CanonicalDecisionRecord["outcome"]): CanonicalPatternResult["resultType"] {
+  if (outcome === "unresolved") return "insufficient-evidence";
+  if (outcome === "boundary_blend") return "composite";
+  return "single";
+}
+
+function phaseBCandidates(meaningObjects: MeaningObject[]) {
+  return meaningObjects.map((meaning) => ({
+    id: meaning.meaning_id,
+    name: meaning.primary_theme,
+    confidence: meaning.confidence,
+    evidence: meaning.evidence_references,
+    reason: meaning.reflection_direction,
+  }));
+}
+
+function phaseBRejected(meaningObjects: MeaningObject[]) {
+  return meaningObjects.flatMap((meaning) => meaning.alternatives.map((alternative) => ({
+    id: alternative.meaning_id,
+    name: alternative.meaning_id,
+    reasons: [alternative.reason],
+  })));
+}
+
+function narrativeFromMeaning(
+  narrative: ResonanceNarrative,
+  primaryMeaning: MeaningObject | undefined,
+  outcome: CanonicalDecisionRecord["outcome"],
+  publicationReason: string,
+  dimensions: CanonicalDimensionRecord[],
+): ResonanceNarrative {
+  if (outcome === "unresolved") {
+    const dimensionValues = new Map<string, number>(dimensions.map((dimension) => [dimension.dimensionId, dimension.value]));
+    const localDimensions = primaryMeaning?.supporting_dimensions.length
+      ? ` Supported local dimensions: ${primaryMeaning.supporting_dimensions.map((id) => `${id}=${dimensionValues.get(id)?.toFixed(3) ?? "unresolved"}`).join(", ")}.`
+      : "";
+    const globalSuppressed = publicationReason.startsWith("Global pattern naming was suppressed");
+    return {
+      ...narrative,
+      introduction: globalSuppressed
+        ? "The available evidence supports local observations, but not a reliable global pattern conclusion."
+        : "The available evidence does not support a reliable pattern conclusion for this scan.",
+      beneathTheSurface: publicationReason,
+      howThisOftenFeels: [],
+      whatOthersMayNotice: [],
+      strengthToday: "No unsupported strength claim was published.",
+      worthNoticing: `A clearer recording or stronger calibration is needed before global interpretation.${localDimensions}`.trim(),
+      relationships: [],
+      pairStates: [],
+      higherOrderStates: [],
+      meaningGraph: {
+        ...narrative.meaningGraph,
+        nodes: [],
+        dominantNodeId: null,
+      },
+      generatedPattern: {
+        ...narrative.generatedPattern,
+        title: "Unresolved",
+        dominantState: "Insufficient evidence",
+        supportingQuality: "Abstention preserved",
+        ruleId: "canonical-abstention-rule",
+      },
+    };
+  }
+
+  const theme = primaryMeaning?.primary_theme ?? "Supported local observations";
+  const secondary = primaryMeaning?.secondary_theme
+    ? `The strongest interaction is ${primaryMeaning.secondary_theme.replaceAll("_", " ")}.`
+    : "The result summarizes the strongest supported geometry without adding unsupported certainty.";
+  const alternatives = primaryMeaning?.alternatives.length
+    ? `Alternatives remain recorded: ${primaryMeaning.alternatives.slice(0, 2).map((item) => item.meaning_id).join(", ")}.`
+    : "No stronger alternative cleared the canonical decision path.";
+
+  return {
+    ...narrative,
+    introduction: theme,
+    beneathTheSurface: secondary,
+    strengthToday: primaryMeaning?.reflection_direction ?? "Summarize the supported geometry without adding unsupported certainty.",
+    worthNoticing: alternatives,
+    generatedPattern: {
+      ...narrative.generatedPattern,
+      title: theme,
+      dominantState: theme,
+      supportingQuality: secondary,
+      ruleId: primaryMeaning?.rule_version ?? MEANING_ENGINE_VERSION,
+    },
+  };
 }
 
 export function buildCanonicalSoulScopeResult(args: {
@@ -150,65 +289,71 @@ export function buildCanonicalSoulScopeResult(args: {
   resonanceSignature: AtlasSignatureModel;
 }): CanonicalSoulScopeResult {
   const evidenceLedger = acousticEvidence(args.scan);
-  const outcome = outcomeFor(args.canonical, evidenceLedger);
+  const phaseBDimensions = buildCanonicalDimensions(evidenceLedger);
+  const phaseBConstellation = buildContinuousConstellationGeometry(phaseBDimensions);
+  const phaseBInteractions = buildCrossConstellationInteractions(phaseBDimensions, phaseBConstellation);
+  const meaningObjects = buildMeaningObjects(phaseBDimensions, phaseBConstellation, phaseBInteractions);
+  const outcome = outcomeFor(evidenceLedger, phaseBConstellation, phaseBInteractions);
+  const primaryMeaning = meaningObjects[0];
   const extractorVersions = Array.from(new Set(evidenceLedger.map((record) => record.extractorVersion)));
   const confounds = Array.from(new Set([
     ...args.canonical.interpretationLimits,
     ...evidenceLedger.map((record) => record.rejectionReason).filter((reason): reason is string => Boolean(reason)),
   ]));
   const unresolved = outcome === "unresolved";
+  const allEvidenceMissing = !evidenceLedger.length || evidenceLedger.every((record) => record.missingEvidence);
   const publicationReason = unresolved
-    ? args.canonical.resultType === "insufficient-evidence"
-      ? "Evidence quality, completeness, or calibration was insufficient for a supported state."
-      : "Multiple candidate states remained too close to publish a forced winner."
+    ? !allEvidenceMissing && phaseBInteractions.some((interaction) => interaction.interactionId === "INT-008")
+      ? "Global pattern naming was suppressed because at least two constellations remained unresolved."
+      : "Evidence quality, completeness, or calibration was insufficient for a supported state."
     : outcome === "boundary_blend"
       ? "Two adjacent supported states remained materially plausible, so their boundary blend was preserved."
-      : "One supported state cleared the configured evidence and confidence boundaries.";
+      : "A Meaning Object produced from Phase B dimensions and interactions cleared the canonical evidence path.";
   const decision: CanonicalDecisionRecord = {
     decisionId: `${args.scanId}:canonical-decision`,
     outcome,
-    selectedResult: unresolved ? null : args.canonical.canonicalPatternSignature,
-    supportingEvidence: args.canonical.decisionLedger.supportingEvidence,
-    contradictoryEvidence: args.canonical.decisionLedger.contradictoryEvidence,
+    selectedResult: unresolved ? null : primaryMeaning?.meaning_id ?? null,
+    supportingEvidence: Array.from(new Set([
+      ...(primaryMeaning?.evidence_references ?? []),
+      ...phaseBDimensions.flatMap((dimension) => dimension.supportingEvidence),
+      ...phaseBInteractions.flatMap((interaction) => interaction.evidenceReferences),
+    ])).sort(),
+    contradictoryEvidence: Array.from(new Set(phaseBDimensions.flatMap((dimension) => dimension.contradictoryEvidence))).sort(),
     missingEvidence: [
-      ...args.canonical.decisionLedger.missingEvidence,
+      ...phaseBDimensions.flatMap((dimension) => dimension.missingEvidence),
       ...evidenceLedger.filter((record) => record.missingEvidence).map((record) => record.evidenceId),
     ],
     confounds,
-    candidateStates: args.canonical.decisionLedger.alternatives,
-    rejectedAlternatives: args.canonical.decisionLedger.rejected,
-    winningRule: unresolved ? "abstention-rule" : args.canonical.namingMatrixVersion,
+    candidateStates: phaseBCandidates(meaningObjects),
+    rejectedAlternatives: [
+      ...phaseBRejected(meaningObjects),
+      {
+        id: `compatibility:${args.canonical.canonicalPatternSignature}`,
+        name: args.canonical.canonicalDisplayName,
+        reasons: ["Compatibility pattern result is retained for old data surfaces only and cannot determine published output."],
+      },
+    ],
+    winningRule: unresolved ? "abstention-rule" : primaryMeaning?.rule_version ?? MEANING_ENGINE_VERSION,
     publicationReason,
-    ruleVersions: [args.canonical.namingMatrixVersion, DECISION_LEDGER_VERSION],
+    ruleVersions: [
+      args.canonical.namingMatrixVersion,
+      DECISION_LEDGER_VERSION,
+      CANONICAL_DIMENSION_ENGINE_VERSION,
+      phaseBConstellation.version,
+      INTERACTION_ENGINE_VERSION,
+      MEANING_ENGINE_VERSION,
+    ],
     extractorVersions,
-    modelVersions: [args.canonical.engineVersion, args.narrative.engineVersion],
+    modelVersions: [args.canonical.engineVersion, args.narrative.engineVersion, PHASE_B_CANONICAL_VERSION],
   };
-  const narrative = unresolved
-    ? {
-        ...args.narrative,
-        introduction: "The available evidence does not support a reliable pattern conclusion for this scan.",
-        beneathTheSurface: publicationReason,
-        howThisOftenFeels: [],
-        whatOthersMayNotice: [],
-        strengthToday: "No unsupported strength claim was published.",
-        worthNoticing: "A clearer recording or stronger calibration is needed before interpretation.",
-        relationships: [],
-        pairStates: [],
-        higherOrderStates: [],
-        meaningGraph: {
-          ...args.narrative.meaningGraph,
-          nodes: [],
-          dominantNodeId: null,
-        },
-        generatedPattern: {
-          ...args.narrative.generatedPattern,
-          title: "Unresolved",
-          dominantState: "Insufficient evidence",
-          supportingQuality: "Abstention preserved",
-          ruleId: "canonical-abstention-rule",
-        },
-      }
-    : args.narrative;
+  const narrative = narrativeFromMeaning(args.narrative, primaryMeaning, outcome, publicationReason, phaseBDimensions);
+
+  const resonanceSignature = buildCanonicalResonanceSignature({
+    dimensions: phaseBDimensions,
+    geometry: phaseBConstellation,
+    interactions: phaseBInteractions,
+    meaningObjects,
+  });
 
   return deepFreeze({
     schemaVersion: CANONICAL_RESULT_SCHEMA_VERSION,
@@ -216,6 +361,12 @@ export function buildCanonicalSoulScopeResult(args: {
     createdAt: args.scan.scanMeta?.completedAt ?? new Date().toISOString(),
     evidenceLedger: { immutable: true, records: evidenceLedger },
     dimensionVector: args.canonical.dimensions,
+    phaseBDimensions: {
+      immutable: true,
+      version: CANONICAL_DIMENSION_ENGINE_VERSION,
+      registryVersion: DIMENSION_REGISTRY_VERSION,
+      records: phaseBDimensions,
+    },
     constellationGeometry: {
       version: CONSTELLATION_GEOMETRY_VERSION,
       stateVector: args.canonical.stateVector,
@@ -223,22 +374,40 @@ export function buildCanonicalSoulScopeResult(args: {
       confidenceMargin: args.canonical.confidenceMargin,
       outcome,
     },
+    phaseBConstellation: { immutable: true, geometry: phaseBConstellation },
+    phaseBInteractions: {
+      immutable: true,
+      version: INTERACTION_ENGINE_VERSION,
+      records: phaseBInteractions,
+    },
+    meaningObjects: {
+      immutable: true,
+      version: MEANING_ENGINE_VERSION,
+      records: meaningObjects,
+    },
     pattern: {
-      id: unresolved ? null : args.canonical.canonicalPatternSignature,
-      displayName: unresolved ? "Unresolved" : args.canonical.canonicalDisplayName,
-      family: unresolved ? null : args.canonical.canonicalFamily,
-      secondaryFamily: unresolved ? null : args.canonical.secondaryFamily,
-      resultType: args.canonical.resultType,
+      id: unresolved ? null : primaryMeaning?.meaning_id ?? null,
+      displayName: patternNameFor(primaryMeaning, outcome),
+      family: null,
+      secondaryFamily: null,
+      resultType: patternResultTypeFor(outcome),
+      sourceMeaningIds: meaningObjects.map((meaning) => meaning.meaning_id),
     },
     decisionLedger: { immutable: true, record: decision },
     narrative,
-    resonanceSignature: args.resonanceSignature,
+    resonanceSignature,
     versions: {
       canonicalResult: CANONICAL_RESULT_SCHEMA_VERSION,
       geometry: CONSTELLATION_GEOMETRY_VERSION,
       patternEngine: args.canonical.engineVersion,
       namingMatrix: args.canonical.namingMatrixVersion,
       decisionLedger: DECISION_LEDGER_VERSION,
+      phaseB: PHASE_B_CANONICAL_VERSION,
+      dimensionEngine: CANONICAL_DIMENSION_ENGINE_VERSION,
+      dimensionRegistry: DIMENSION_REGISTRY_VERSION,
+      interactionEngine: INTERACTION_ENGINE_VERSION,
+      meaningEngine: MEANING_ENGINE_VERSION,
+      resonanceSignature: CANONICAL_SIGNATURE_ENGINE_VERSION,
     },
   }) as CanonicalSoulScopeResult;
 }
