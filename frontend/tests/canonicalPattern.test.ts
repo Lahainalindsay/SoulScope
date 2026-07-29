@@ -123,7 +123,7 @@ function dynamic(overrides: Partial<StateVector> = {}, family: PatternFamily = "
       deviationScore: null,
       changedDimensions: [],
     },
-  };
+  } as DynamicPatternResult;
 }
 
 const primaryPattern: PatternMatch = {

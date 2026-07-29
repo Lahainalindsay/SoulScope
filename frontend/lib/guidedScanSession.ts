@@ -10,26 +10,6 @@ export type GuidedScanAnswer = {
   captureKind: "sustained_vowel" | "guided_speech";
 };
 
-export type GuidedScanCameraCapture = {
-  questionId: string;
-  title: string;
-  blinkRatePerMin: number;
-  facialTension: number;
-  eyeDilationProxy: number;
-  eyeOpenness: number;
-  trackingConfidence: number;
-  framesAnalyzed: number;
-};
-
-export type GuidedScanCameraBaseline = {
-  blinkRatePerMin: number;
-  facialTension: number;
-  eyeDilationProxy: number;
-  eyeOpenness: number;
-  trackingConfidence: number;
-  framesAnalyzed: number;
-};
-
 export type GuidedScanSubject = {
   subjectId: string | null;
   subjectLabel: string;
@@ -47,8 +27,6 @@ type GuidedScanSessionState = {
   startedAt: string | null;
   subject: GuidedScanSubject | null;
   answers: GuidedScanAnswerRecord[];
-  cameraCaptures: GuidedScanCameraCapture[];
-  cameraBaseline: GuidedScanCameraBaseline | null;
 };
 
 const STORAGE_KEY = "soulscope.guidedScanSession";
@@ -60,8 +38,6 @@ let state: GuidedScanSessionState = {
   startedAt: null,
   subject: null,
   answers: [],
-  cameraCaptures: [],
-  cameraBaseline: null,
 };
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -203,33 +179,6 @@ function hydrateState() {
               )
           )
         : [],
-      cameraCaptures: Array.isArray(parsed.cameraCaptures)
-        ? parsed.cameraCaptures.filter(
-            (capture): capture is GuidedScanCameraCapture =>
-              Boolean(
-                capture &&
-                  typeof capture.questionId === "string" &&
-                  typeof capture.title === "string" &&
-                  typeof capture.blinkRatePerMin === "number" &&
-                  typeof capture.facialTension === "number" &&
-                  typeof capture.eyeDilationProxy === "number" &&
-                  typeof capture.eyeOpenness === "number" &&
-                  typeof capture.trackingConfidence === "number" &&
-                  typeof capture.framesAnalyzed === "number"
-              )
-          )
-        : [],
-      cameraBaseline:
-        parsed.cameraBaseline &&
-        typeof parsed.cameraBaseline === "object" &&
-        typeof parsed.cameraBaseline.blinkRatePerMin === "number" &&
-        typeof parsed.cameraBaseline.facialTension === "number" &&
-        typeof parsed.cameraBaseline.eyeDilationProxy === "number" &&
-        typeof parsed.cameraBaseline.eyeOpenness === "number" &&
-        typeof parsed.cameraBaseline.trackingConfidence === "number" &&
-        typeof parsed.cameraBaseline.framesAnalyzed === "number"
-          ? parsed.cameraBaseline
-          : null,
     };
   } catch {
     window.sessionStorage.removeItem(STORAGE_KEY);
@@ -241,8 +190,6 @@ export function resetGuidedScanSession() {
     startedAt: new Date().toISOString(),
     subject: null,
     answers: [],
-    cameraCaptures: [],
-    cameraBaseline: null,
   };
 
   if (typeof window !== "undefined") {
@@ -318,16 +265,6 @@ export function setGuidedScanSubject(subject: GuidedScanSubject) {
   writeState();
 }
 
-export function getGuidedScanCameraCaptures() {
-  hydrateState();
-  return [...state.cameraCaptures];
-}
-
-export function getGuidedScanCameraBaseline() {
-  hydrateState();
-  return state.cameraBaseline;
-}
-
 export async function saveGuidedScanAnswer(stepIndex: number, blob: Blob, durationMs: number) {
   const question = GUIDED_SCAN_QUESTIONS[stepIndex];
   if (!question) {
@@ -366,42 +303,11 @@ export async function saveGuidedScanAnswer(stepIndex: number, blob: Blob, durati
   writeState();
 }
 
-export function saveGuidedScanCameraCapture(
-  stepIndex: number,
-  capture: Omit<GuidedScanCameraCapture, "questionId" | "title">
-) {
-  const question = GUIDED_SCAN_QUESTIONS[stepIndex];
-  if (!question) {
-    throw new Error("Unknown guided scan step.");
-  }
-
-  state.cameraCaptures = [
-    ...state.cameraCaptures.filter((entry) => entry.questionId !== question.id),
-    {
-      questionId: question.id,
-      title: question.title,
-      ...capture,
-    },
-  ].sort(
-    (a, b) =>
-      GUIDED_SCAN_QUESTIONS.findIndex((questionItem) => questionItem.id === a.questionId) -
-      GUIDED_SCAN_QUESTIONS.findIndex((questionItem) => questionItem.id === b.questionId)
-  );
-
-  writeState();
-}
-
-export function saveGuidedScanCameraBaseline(baseline: GuidedScanCameraBaseline) {
-  state.cameraBaseline = baseline;
-  writeState();
-}
-
 export async function clearGuidedScanAnswer(stepIndex: number) {
   const question = GUIDED_SCAN_QUESTIONS[stepIndex];
   if (!question) return;
 
   state.answers = state.answers.filter((answer) => answer.questionId !== question.id);
-  state.cameraCaptures = state.cameraCaptures.filter((capture) => capture.questionId !== question.id);
   writeState();
 
   try {

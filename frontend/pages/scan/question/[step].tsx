@@ -7,10 +7,10 @@ import {
   getGuidedScanProgress,
   saveGuidedScanAnswer,
 } from "../../../lib/guidedScanSession";
+import { nextGuidedScanRoute } from "../../../lib/guidedScanWorkflow";
 import { GUIDED_SCAN_QUESTIONS } from "../../../lib/scanProtocol";
 import styles from "./GuidedScanQuestion.module.css";
 
-type PendingAction = "next" | "finish" | null;
 const AUTO_START_DELAY_MS = 10000;
 const FIRST_PROMPT_SETTLE_MS = 3000;
 const BACKEND_WARMUP_URL = "/backend-api/openapi.json";
@@ -31,7 +31,6 @@ export default function GuidedScanQuestionPage() {
   const router = useRouter();
   const recorderRef = useRef<RecorderHandle | null>(null);
   const recordingStartedAtRef = useRef<number>(0);
-  const pendingActionRef = useRef<PendingAction>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +38,7 @@ export default function GuidedScanQuestionPage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [hasCompletedRecording, setHasCompletedRecording] = useState(false);
   const [isAutoStarting, setIsAutoStarting] = useState(true);
+  const [autoStartRemaining, setAutoStartRemaining] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
 
   const step = useMemo(() => {
@@ -49,12 +49,10 @@ export default function GuidedScanQuestionPage() {
 
   const questionIndex = step - 1;
   const question = GUIDED_SCAN_QUESTIONS[questionIndex];
-  const isLastQuestion = questionIndex === GUIDED_SCAN_QUESTIONS.length - 1;
   const recordingDurationMs = question?.durationMs ?? 10000;
   const recordingDurationSeconds = Math.max(1, Math.round(recordingDurationMs / 1000));
 
   useEffect(() => {
-    pendingActionRef.current = null;
     recordingStartedAtRef.current = 0;
     setIsRecording(false);
     setError(null);
@@ -62,6 +60,9 @@ export default function GuidedScanQuestionPage() {
     setLiveSample(null);
     setHasCompletedRecording(false);
     setIsAutoStarting(true);
+    setAutoStartRemaining(step === 1
+      ? Math.ceil(FIRST_PROMPT_SETTLE_MS / 1000)
+      : Math.ceil(AUTO_START_DELAY_MS / 1000));
     setIsSaving(false);
   }, [step]);
 
@@ -94,22 +95,31 @@ export default function GuidedScanQuestionPage() {
 
   useEffect(() => {
     if (!router.isReady || !question) return;
+    const delayMs = step === 1 ? FIRST_PROMPT_SETTLE_MS : AUTO_START_DELAY_MS;
+    const deadline = Date.now() + delayMs;
+    setAutoStartRemaining(Math.ceil(delayMs / 1000));
+
+    const countdown = window.setInterval(() => {
+      setAutoStartRemaining(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+    }, 250);
     const timer = window.setTimeout(() => {
-      pendingActionRef.current = isLastQuestion ? "finish" : "next";
+      window.clearInterval(countdown);
+      setAutoStartRemaining(0);
       recordingStartedAtRef.current = Date.now();
       setElapsedSeconds(0);
       setHasCompletedRecording(false);
       setError(null);
       setIsAutoStarting(false);
       recorderRef.current?.start();
-    }, step === 1 ? FIRST_PROMPT_SETTLE_MS : AUTO_START_DELAY_MS);
-    return () => window.clearTimeout(timer);
-  }, [isLastQuestion, question, router.isReady, step]);
+    }, delayMs);
+    return () => {
+      window.clearInterval(countdown);
+      window.clearTimeout(timer);
+    };
+  }, [question, router.isReady, step]);
 
   const handleComplete = async (blob: Blob) => {
     const durationMs = Math.max(0, Date.now() - recordingStartedAtRef.current);
-    const action = pendingActionRef.current;
-    pendingActionRef.current = null;
     setIsSaving(true);
     setError(null);
 
@@ -124,16 +134,7 @@ export default function GuidedScanQuestionPage() {
     }
 
     setIsSaving(false);
-
-    if (action === "finish") {
-      void router.push("/scan/analyzing");
-      return;
-    }
-    if (action === "next") {
-      void router.push(`/scan/question/${step + 1}`);
-      return;
-    }
-    setError("Recording stopped unexpectedly. Reload and retry this question.");
+    void router.push(nextGuidedScanRoute(step, GUIDED_SCAN_QUESTIONS.length));
   };
 
   if (!question) return null;
@@ -177,7 +178,13 @@ export default function GuidedScanQuestionPage() {
                 <div className={styles.recordStage}>
                   <div className={styles.scanStatusRow}>
                     <div className={styles.liveBadge}><span className={isRecording ? styles.liveDot : styles.idleDot} />{isRecording ? "Recording" : isSaving ? "Saving response" : hasCompletedRecording ? "Response captured" : "Ready"}</div>
-                    <div className={styles.timeBadge}>{isRecording ? `${remainingSeconds}s left` : `${recordingDurationSeconds}s`}</div>
+                    <div className={styles.timeBadge}>
+                      {isRecording
+                        ? `${remainingSeconds}s left`
+                        : isAutoStarting
+                          ? `Starting in ${autoStartRemaining}s`
+                          : `${recordingDurationSeconds}s`}
+                    </div>
                   </div>
 
                   <p className={styles.ctaHint}>
