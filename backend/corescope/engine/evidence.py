@@ -24,6 +24,8 @@ def build_acoustic_evidence_ledger(
             EvidenceRecord(
                 evidence_id=f"{source_capture_id}:{measurement.feature_id}:{measurement.feature_version}",
                 feature_source=measurement.feature_id,
+                measured_value=measurement.value,
+                units=measurement.unit,
                 observation=(
                     f"Measured {measurement.feature_id} at {measurement.value} {measurement.unit or ''}".strip()
                     if available
@@ -34,6 +36,16 @@ def build_acoustic_evidence_ledger(
                 quality=measurement.quality,
                 baseline=None,
                 confidence=measurement.confidence,
+                uncertainty=round(1.0 - measurement.confidence, 6),
+                provenance={
+                    "source_capture_id": source_capture_id,
+                    "capture_kind": measurement.capture_kind,
+                    "segment_start_ms": measurement.segment_start_ms,
+                    "segment_end_ms": measurement.segment_end_ms,
+                    "method": measurement.method,
+                    "extractor": measurement.extractor,
+                },
+                missing_evidence=not available,
                 support=[],
                 contradiction=[],
                 confounds=confounds,

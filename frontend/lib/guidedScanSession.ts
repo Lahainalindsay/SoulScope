@@ -33,6 +33,7 @@ const STORAGE_KEY = "soulscope.guidedScanSession";
 const DB_NAME = "soulscope-guided-scan";
 const DB_VERSION = 1;
 const AUDIO_STORE = "audio-blobs";
+const STORAGE_OPERATION_TIMEOUT_MS = 2500;
 
 let state: GuidedScanSessionState = {
   startedAt: null,
@@ -41,6 +42,26 @@ let state: GuidedScanSessionState = {
 };
 
 let dbPromise: Promise<IDBDatabase> | null = null;
+const sessionBlobs = new Map<string, Blob>();
+
+function withStorageTimeout<T>(operation: Promise<T>, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(
+      () => reject(new Error(`${label} timed out after ${STORAGE_OPERATION_TIMEOUT_MS}ms.`)),
+      STORAGE_OPERATION_TIMEOUT_MS,
+    );
+    operation.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
 
 function shouldDebugScan() {
   return typeof window !== "undefined" && window.localStorage.getItem("soulscope.debugScan") !== "0";
@@ -186,6 +207,7 @@ function hydrateState() {
 }
 
 export function resetGuidedScanSession() {
+  sessionBlobs.clear();
   state = {
     startedAt: new Date().toISOString(),
     subject: null,
@@ -213,7 +235,8 @@ export async function getGuidedScanAnswers() {
   const answers = await Promise.all(
     state.answers.map(async (answer) => {
       try {
-        const blob = await readBlob(answer.blobKey);
+        const blob = sessionBlobs.get(answer.blobKey)
+          ?? await withStorageTimeout(readBlob(answer.blobKey), `Reading ${answer.questionId}`);
         if (!blob) return null;
         if (shouldDebugScan()) {
           console.info("[SoulScope scan] hydrated answer blob", {
@@ -272,7 +295,10 @@ export async function saveGuidedScanAnswer(stepIndex: number, blob: Blob, durati
   }
 
   const blobKey = getBlobKey(question.id);
-  await writeBlob(blobKey, blob);
+  // Keep the active recording synchronously available before attempting
+  // IndexedDB. Safari can leave an IDB transaction pending indefinitely; a
+  // durable-storage stall must never trap the guided workflow on "Saving…".
+  sessionBlobs.set(blobKey, blob);
   if (shouldDebugScan()) {
     console.info("[SoulScope scan] saved answer blob", {
       questionId: question.id,
@@ -301,6 +327,15 @@ export async function saveGuidedScanAnswer(stepIndex: number, blob: Blob, durati
   );
 
   writeState();
+
+  try {
+    await withStorageTimeout(writeBlob(blobKey, blob), `Saving ${question.id}`);
+  } catch (error) {
+    // The in-memory copy remains authoritative for this uninterrupted guided
+    // session. A reload may require the user to repeat this prompt, but the
+    // current workflow can safely advance.
+    console.warn(`Guided scan audio is available for this session but was not written to browser storage.`, error);
+  }
 }
 
 export async function clearGuidedScanAnswer(stepIndex: number) {
@@ -309,6 +344,7 @@ export async function clearGuidedScanAnswer(stepIndex: number) {
 
   state.answers = state.answers.filter((answer) => answer.questionId !== question.id);
   writeState();
+  sessionBlobs.delete(getBlobKey(question.id));
 
   try {
     await deleteBlob(getBlobKey(question.id));

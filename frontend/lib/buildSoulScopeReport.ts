@@ -32,6 +32,11 @@ import {
   resolveCanonicalPattern,
   type CanonicalPatternResult,
 } from "./canonicalPattern";
+import { buildResonanceNarrative } from "./resonanceNarrativeEngineV3";
+import {
+  buildCanonicalSoulScopeResult,
+  type CanonicalSoulScopeResult,
+} from "./canonicalResult";
 
 export type SoulScopeReport = BaseSoulScopeReport & {
   patternExpression: PatternExpression;
@@ -47,6 +52,7 @@ export type SoulScopeReport = BaseSoulScopeReport & {
     signature: AtlasSignatureModel;
   };
   canonicalPattern: CanonicalPatternResult;
+  canonicalResult: CanonicalSoulScopeResult;
 };
 
 export type BuildSoulScopeReportOptions = {
@@ -95,59 +101,6 @@ function personalizeStoryCandidate(
     ...candidate,
     title: "What may be changing",
     summary: `${presentation.explanation[1]} ${baselineLine} ${qualityLine}`.trim(),
-  };
-}
-
-function coordinateAuthoritativePattern(
-  resolved: CanonicalPatternResult,
-  dynamicPattern: BaseSoulScopeReport["dynamicPattern"],
-): CanonicalPatternResult {
-  if (
-    resolved.resultType === "insufficient-evidence" ||
-    (resolved.canonicalFamily === dynamicPattern.family && resolved.canonicalDisplayName === dynamicPattern.displayName)
-  ) {
-    return resolved;
-  }
-
-  const signature = `family:${dynamicPattern.family}+${dynamicPattern.patternSignature}`;
-  return {
-    ...resolved,
-    canonicalPatternSignature: signature,
-    canonicalDisplayName: dynamicPattern.displayName,
-    canonicalFamily: dynamicPattern.family,
-    primaryFamily: dynamicPattern.family,
-    secondaryFamily: null,
-    resultType: "single",
-    confidence: dynamicPattern.confidence,
-    confidenceMargin: 0,
-    evidenceLedger: dynamicPattern.evidenceLedger,
-    dimensionLedger: dynamicPattern.dimensions,
-    stateVector: dynamicPattern.stateVector,
-    decisionLedger: {
-      ...resolved.decisionLedger,
-      selected: {
-        ...resolved.decisionLedger.selected,
-        displayName: dynamicPattern.displayName,
-        signature,
-        mode: "single",
-        primaryFamily: dynamicPattern.family,
-        secondaryFamily: null,
-        confidence: dynamicPattern.confidence,
-        confidenceMargin: 0,
-        nameSource: "fallback",
-      },
-      supportingEvidence: dynamicPattern.decisionLedger.alternatives[0]?.supportingEvidence ?? resolved.decisionLedger.supportingEvidence,
-      contradictoryEvidence: dynamicPattern.decisionLedger.alternatives[0]?.contradictoryEvidence ?? resolved.decisionLedger.contradictoryEvidence,
-      missingEvidence: dynamicPattern.decisionLedger.alternatives[0]?.missingEvidence ?? resolved.decisionLedger.missingEvidence,
-      notes: [
-        `The resonance coordinate engine selected ${dynamicPattern.displayName} in the ${dynamicPattern.family} territory.`,
-        "The coordinate decision is authoritative; legacy family scoring is retained for diagnostics only.",
-      ],
-    },
-    interpretationLimits: [
-      ...dynamicPattern.interpretationLimits,
-      "The displayed pattern name is determined by the resonance coordinate territory.",
-    ],
   };
 }
 
@@ -203,7 +156,21 @@ export function buildSoulScopeReport(
     },
     atlasPresentation,
   );
-  const canonicalPattern = coordinateAuthoritativePattern(resolvedCanonicalPattern, base.dynamicPattern);
+  // The canonical candidate/abstention decision is authoritative. The older
+  // coordinate result remains diagnostic input and may never overwrite it.
+  const canonicalPattern = resolvedCanonicalPattern;
+  const resonanceNarrative = buildResonanceNarrative(
+    domainResults,
+    canonicalPattern,
+    scanWithCompleteness.scanCompleteness,
+  );
+  const canonicalResult = buildCanonicalSoulScopeResult({
+    scanId: options.scanId ?? scan.scanMeta?.completedAt ?? "unsaved-scan",
+    scan,
+    canonical: canonicalPattern,
+    narrative: resonanceNarrative,
+    resonanceSignature: atlasSignature,
+  });
 
   const patternExpression: PatternExpression = canonicalPatternExpression(
     canonicalPattern,
@@ -250,6 +217,7 @@ export function buildSoulScopeReport(
     baselineComparison,
     presentation,
     canonicalPattern,
+    canonicalResult,
     scanCompleteness: scanWithCompleteness.scanCompleteness,
     observationPipeline,
     vocalStateProfile,

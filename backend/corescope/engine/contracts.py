@@ -26,11 +26,16 @@ class EvidenceRecord(ImmutableModel):
     evidence_id: str
     feature_source: str
     observation: str
+    measured_value: Optional[float] = None
+    units: Optional[str] = None
     direction: Direction
     magnitude: Optional[float] = None
     quality: str
     baseline: Optional[Dict[str, Any]] = None
     confidence: float = Field(ge=0.0, le=1.0)
+    uncertainty: float = Field(ge=0.0, le=1.0)
+    provenance: Dict[str, Any] = Field(default_factory=dict)
+    missing_evidence: bool = False
     support: List[str] = Field(default_factory=list)
     contradiction: List[str] = Field(default_factory=list)
     confounds: List[str] = Field(default_factory=list)
@@ -62,7 +67,16 @@ class DecisionLedger(ImmutableModel):
     scan_id: str
     evaluated_dimensions: List[str] = Field(default_factory=list)
     candidate_states: List[CandidateDecision] = Field(default_factory=list)
+    supporting_evidence: List[str] = Field(default_factory=list)
+    contradictory_evidence: List[str] = Field(default_factory=list)
+    missing_evidence: List[str] = Field(default_factory=list)
+    confounds: List[str] = Field(default_factory=list)
+    rejected_alternatives: List[str] = Field(default_factory=list)
     selected_result: Optional[str] = None
+    winning_rule: Optional[str] = None
+    publication_reason: str
     engine_version: str
     rule_version: str
+    extractor_versions: List[str] = Field(default_factory=list)
+    model_versions: List[str] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

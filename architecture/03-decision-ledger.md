@@ -4,9 +4,11 @@ The immutable Decision Ledger contract records evaluated dimensions, candidate
 states, winning and losing reasons, supporting and contradictory evidence,
 missing evidence, confounds, selected result, engine version, and rule version.
 
-Phase A defines the contract only. It does not generate a fake decision from
-acoustic measurements. Phase B must add explicit abstention and candidate
-evaluation rules before any new Constellation result is emitted.
+Phase A now emits this ledger for every completed guided scan. It records all
+candidate states, rejected alternatives, the winning or abstention rule,
+publication reason, rule versions, extractor versions, model versions, and the
+support/contradiction/missingness/confound sets.
 
-A valid future decision must reference Evidence Ledger IDs. Narrative and visual
-consumers must read the same selected canonical result and may not alter it.
+A decision resolves to `canonical_state`, `boundary_blend`, or `unresolved`.
+Low-quality or missing evidence and ambiguous candidates must abstain. Narrative
+and visual consumers read the same deeply frozen result and may not alter it.

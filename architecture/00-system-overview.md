@@ -9,12 +9,16 @@ extension points and may not create parallel reasoning paths.
 ## Canonical flow
 
 Recorded voice → acoustic extraction → Evidence Engine → immutable Evidence
-Ledger → Dimension Engine → later reasoning stages → immutable Decision Ledger
-→ one canonical scan result → reflection, signature, and narrative consumers.
+Ledger → Dimension Engine → continuous constellation geometry → canonical
+state, boundary blend, or unresolved result → interactions and pattern
+selection → immutable Decision Ledger → one deeply immutable result object →
+narrative and Resonance Signature consumers.
 
-Phase A implements the extraction-to-ledger boundary and permanent module
-boundaries. Constellation, interaction, meaning, synthesis, reflection, and
-signature mathematics remain intentionally unimplemented.
+The backend owns canonical acoustic extraction and per-capture Evidence Ledger
+records. The guided-scan frontend combines the three capture ledgers and
+performs the current versioned dimension, geometry, candidate, abstention,
+narrative, and signature stages. This split is explicit; neither consumer may
+read raw audio or create an independent conclusion.
 
 ## Invariants
 
@@ -25,3 +29,4 @@ signature mathematics remain intentionally unimplemented.
 5. Every persisted canonical scan carries engine, registry, feature, and rule
    versions.
 6. Historical compatibility is a read concern, never a second writable engine.
+7. Insufficient, contradictory, or tied evidence publishes `Unresolved`.

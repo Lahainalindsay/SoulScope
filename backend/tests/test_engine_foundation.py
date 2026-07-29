@@ -35,6 +35,11 @@ def test_evidence_ledger_is_deterministic_and_versioned():
     assert ledger.versions == CURRENT_ENGINE_VERSIONS
     assert ledger.records[0].evidence_id == "capture-1:voice.f0.median:1.0.0"
     assert ledger.records[0].magnitude == 180.0
+    assert ledger.records[0].measured_value == 180.0
+    assert ledger.records[0].units == "Hz"
+    assert ledger.records[0].uncertainty == 0.2
+    assert ledger.records[0].missing_evidence is False
+    assert ledger.records[0].provenance["source_capture_id"] == "capture-1"
 
 
 def test_missing_measurements_remain_unavailable_not_neutral():
@@ -47,6 +52,7 @@ def test_missing_measurements_remain_unavailable_not_neutral():
     assert record.direction == "unavailable"
     assert record.magnitude is None
     assert record.confounds == ["insufficient_signal"]
+    assert record.missing_evidence is True
 
 
 def test_evidence_records_are_immutable():

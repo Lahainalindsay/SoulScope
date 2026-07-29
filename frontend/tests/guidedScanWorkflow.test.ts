@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   firstIncompleteGuidedScanStep,
@@ -24,4 +25,11 @@ test("an incomplete guided workflow returns to its first missing prompt", () => 
 test("standalone calibration is not part of guided workflow state", () => {
   const guidedQuestionIds = ["baseline", "challenge", "hope"];
   assert.equal(firstIncompleteGuidedScanStep(["reference_signature"], guidedQuestionIds), 1);
+});
+
+test("guided audio persistence cannot hold prompt progression indefinitely", () => {
+  const source = readFileSync(new URL("../lib/guidedScanSession.ts", import.meta.url), "utf8");
+  assert.match(source, /sessionBlobs\.set\(blobKey, blob\)/);
+  assert.match(source, /withStorageTimeout\(writeBlob\(blobKey, blob\)/);
+  assert.match(source, /Safari can leave an IDB transaction pending indefinitely/);
 });

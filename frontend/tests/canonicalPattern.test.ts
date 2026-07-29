@@ -263,7 +263,7 @@ test("poor capture quality prevents overconfident classification", () => {
     },
   }, presentation);
 
-  assert.equal(result.canonicalDisplayName, "A Limited Reflection");
+  assert.equal(result.canonicalDisplayName, "Unresolved");
   assert.equal(result.decisionLedger.selected.mode, "insufficient-evidence");
   assert.ok(result.confidence <= 0.42);
 });
