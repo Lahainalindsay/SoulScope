@@ -13,14 +13,15 @@ export type SoulScopePreviewReport = SoulScopeReport & {
 export function applyResonanceNarrative(report: SoulScopeReport): SoulScopePreviewReport {
   const resonanceNarrative = report.canonicalResult.narrative;
   const canonicalNarrative = report.canonicalNarrative;
+  const phaseC = report.phaseCIntelligence;
 
   return {
     ...report,
     resonanceNarrative,
     primaryPattern: {
       ...report.primaryPattern,
-      name: canonicalNarrative.patternTitle,
-      theme: canonicalNarrative.reflection,
+      name: phaseC.headlineInsight.title,
+      theme: `${phaseC.headlineInsight.explanation} ${canonicalNarrative.reflection}`.trim(),
       explanation: canonicalNarrative.uncertaintyNote ?? canonicalNarrative.worthNoticing,
       whatThisMayFeelLike: report.presentation.dailyLife,
       supportiveFactors: [
@@ -33,13 +34,13 @@ export function applyResonanceNarrative(report: SoulScopeReport): SoulScopePrevi
         .slice(0, 3)
         .map((component) => `${component.domain}: ${component.band}`),
       whatNeedsAttention: canonicalNarrative.gentleNextStep,
-      confidence: report.primaryPattern.confidence,
+      confidence: phaseC.headlineInsight.confidence,
     },
     storyCandidates: report.storyCandidates.map((candidate, index) => ({
       ...candidate,
       title: index === 0 ? "Your resonance today" : candidate.title,
       summary: index === 0
-        ? canonicalNarrative.reflection
+        ? `${phaseC.headlineInsight.explanation} ${canonicalNarrative.reflection}`.trim()
         : index === 1
         ? canonicalNarrative.howThisMayShowUp
         : canonicalNarrative.worthNoticing,

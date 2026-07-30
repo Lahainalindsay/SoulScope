@@ -5,9 +5,14 @@ import styles from "./ResonanceResultsDashboard.module.css";
 export default function HumanReflectionOverview({ report }: { report: SoulScopeReport }) {
   const presentation = report.presentation;
   const narrative = report.canonicalNarrative;
+  const phaseC = report.phaseCIntelligence;
   const practices = [narrative.gentleNextStep];
   const [reflection, setReflection] = useState("");
-  const reflectionLines = [narrative.reflection];
+  const reflectionLines = [
+    phaseC.headlineInsight.explanation,
+    ...phaseC.reflectionMemory,
+    narrative.reflection,
+  ].filter(Boolean).slice(0, 3);
 
   return (
     <>

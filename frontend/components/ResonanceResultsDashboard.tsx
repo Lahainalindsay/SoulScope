@@ -37,6 +37,7 @@ export default function ResonanceResultsDashboard({
   const atlas = report.atlas;
   const canonicalResult = report.canonicalResult;
   const canonicalNarrative = report.canonicalNarrative;
+  const phaseC = report.phaseCIntelligence;
   const canonical = report.canonicalPattern;
   const [accuracy, setAccuracy] = useState("");
   const [lengthPreference, setLengthPreference] = useState("");
@@ -64,14 +65,15 @@ export default function ResonanceResultsDashboard({
           <ResonanceSignature
             data={canonicalResult.resonanceSignature.data}
             visualState={canonicalResult.resonanceSignature.visualState}
-            label={`Visual Resonance Signature representing the pattern relationships in this scan: ${canonicalNarrative.patternTitle}`}
+            label={`Visual Resonance Signature representing the pattern relationships in this scan: ${phaseC.headlineInsight.title}`}
           />
         </div>
       </section>
 
       <section className={styles.reflectionPanel}>
         <p className={styles.eyebrow}>Your Pattern</p>
-        <h2 className={styles.patternName}>{canonicalNarrative.patternTitle}</h2>
+        <h2 className={styles.patternName}>{phaseC.headlineInsight.title}</h2>
+        <p className={styles.noteStatus}>{canonicalNarrative.patternTitle}</p>
         {canonicalNarrative.patternSubtitle ? <p className={styles.noteStatus}>{canonicalNarrative.patternSubtitle}</p> : null}
         <p className={styles.reflection}>{canonicalNarrative.reflection}</p>
       </section>

@@ -174,8 +174,10 @@ test("published report language does not reintroduce baseline or legacy reasonin
     ...report.storyCandidates.map((candidate) => candidate.summary),
   ].join(" ");
 
-  assert.equal(report.primaryPattern.name, report.canonicalNarrative.patternTitle);
-  assert.equal(report.patternExpression.title, report.canonicalNarrative.patternTitle);
+  assert.equal(report.primaryPattern.name, report.phaseCIntelligence.headlineInsight.title);
+  assert.equal(report.patternExpression.title, report.phaseCIntelligence.headlineInsight.title);
+  assert.notEqual(report.phaseCIntelligence.headlineInsight.title.length, 0);
+  assert.notEqual(report.canonicalNarrative.patternTitle.length, 0);
   assert.equal(/recent scans|recent baseline|usual baseline|baseline range|appears (higher|lower|lighter) than/i.test(published), false);
   assert.equal(/Current expression:|Current observations suggest|differentiating evidence/i.test(published), false);
   assert.equal(/\b(?:COG|REG|CAP|EXP)-\d{3}\b|\bINT-\d{3}\b|meaning:[^\s]+|Boundary transition|boundary blend|strongest interaction|publicationReason|decision ledger|canonical pipeline/i.test(published), false);

@@ -1,6 +1,7 @@
 import type { SoulScopeReport } from "./buildSoulScopeReport";
 import type { LongitudinalAnalysis } from "./longitudinalIntelligence";
 import { selectLongitudinalMessage, type LongitudinalMessageKind } from "./patternKnowledge";
+import { buildPhaseCIntelligence } from "./phaseCInsightEngine";
 
 function messageKind(analysis: LongitudinalAnalysis): LongitudinalMessageKind {
   const recent = analysis.similarity.recent;
@@ -16,19 +17,33 @@ export function personalizeReportWithHistory(report: SoulScopeReport, analysis: 
   const historySeed = analysis.baselines.recent.sourceScanIds.join(":") || report.primaryPattern.id;
   const longitudinalMessage = selectLongitudinalMessage(report.primaryPattern.id, kind, historySeed);
   const trendLine = analysis.trends.find((trend) => trend.direction !== "stable")?.summary ?? "";
+  const phaseCIntelligence = buildPhaseCIntelligence(report.canonicalResult, analysis);
+  const memoryLine = phaseCIntelligence.reflectionMemory[0] ?? "";
 
   return {
     ...report,
+    phaseCIntelligence,
+    primaryPattern: {
+      ...report.primaryPattern,
+      name: phaseCIntelligence.headlineInsight.title,
+      theme: `${phaseCIntelligence.headlineInsight.explanation} ${report.canonicalNarrative.reflection}`.trim(),
+      confidence: phaseCIntelligence.headlineInsight.confidence,
+    },
+    patternExpression: {
+      ...report.patternExpression,
+      title: phaseCIntelligence.headlineInsight.title,
+      summary: `${phaseCIntelligence.headlineInsight.explanation} ${report.canonicalNarrative.reflection}`.trim(),
+    },
     presentation: {
       ...report.presentation,
       longitudinalMessage,
     },
     storyCandidates: report.storyCandidates.map((candidate) => {
       const historyText = candidate.style === "Direct"
-        ? trendLine
+        ? phaseCIntelligence.headlineInsight.explanation
         : candidate.style === "Supportive"
-        ? longitudinalMessage
-        : [longitudinalMessage, trendLine].filter(Boolean).join(" ");
+        ? [longitudinalMessage, memoryLine].filter(Boolean).join(" ")
+        : [phaseCIntelligence.headlineInsight.explanation, longitudinalMessage, trendLine].filter(Boolean).join(" ");
       return { ...candidate, summary: `${candidate.summary} ${historyText}`.trim() };
     }),
   };

@@ -36,6 +36,7 @@ import {
   type CanonicalSoulScopeResult,
 } from "./canonicalResult";
 import { buildCanonicalNarrative, type CanonicalNarrative } from "./canonicalNarrativeEngine";
+import { buildPhaseCIntelligence, type PhaseCIntelligence } from "./phaseCInsightEngine";
 
 export type SoulScopeReport = BaseSoulScopeReport & {
   patternExpression: PatternExpression;
@@ -53,6 +54,7 @@ export type SoulScopeReport = BaseSoulScopeReport & {
   canonicalPattern: CanonicalPatternResult;
   canonicalResult: CanonicalSoulScopeResult;
   canonicalNarrative: CanonicalNarrative;
+  phaseCIntelligence: PhaseCIntelligence;
 };
 
 export type BuildSoulScopeReportOptions = {
@@ -167,6 +169,7 @@ export function buildSoulScopeReport(
     resonanceSignature: atlasSignature,
   });
   const canonicalNarrative = buildCanonicalNarrative(canonicalResult);
+  const phaseCIntelligence = buildPhaseCIntelligence(canonicalResult);
   const resultIsUnresolved = canonicalResult.decisionLedger.record.outcome === "unresolved";
   const publishedEvidenceLines = canonicalResult.phaseBDimensions.records.some((dimension) => dimension.evidenceCoverage > 0)
     ? canonicalResult.phaseBDimensions.records
@@ -180,7 +183,7 @@ export function buildSoulScopeReport(
 
   const patternExpression: PatternExpression = {
     id: canonicalResult.pattern.id ?? "signals-still-resolving",
-    title: canonicalNarrative.patternTitle,
+    title: phaseCIntelligence.headlineInsight.title,
     summary: canonicalNarrative.reflection,
     matchedSignals: resultIsUnresolved
       ? canonicalResult.decisionLedger.record.missingEvidence.length
@@ -231,8 +234,8 @@ export function buildSoulScopeReport(
   ));
   const canonicalPrimaryPattern: PatternMatch = {
     ...primaryPattern,
-    name: canonicalNarrative.patternTitle,
-    theme: canonicalNarrative.reflection,
+    name: phaseCIntelligence.headlineInsight.title,
+    theme: `${phaseCIntelligence.headlineInsight.explanation} ${canonicalNarrative.reflection}`,
     explanation: canonicalNarrative.uncertaintyNote ?? canonicalNarrative.worthNoticing,
     whatThisMayFeelLike: presentation.dailyLife,
     supportiveFactors: resultIsUnresolved
@@ -266,6 +269,7 @@ export function buildSoulScopeReport(
     canonicalPattern,
     canonicalResult,
     canonicalNarrative,
+    phaseCIntelligence,
     scanCompleteness: scanWithCompleteness.scanCompleteness,
     observationPipeline,
     vocalStateProfile,
