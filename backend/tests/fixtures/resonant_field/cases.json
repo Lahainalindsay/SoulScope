@@ -1,0 +1,183 @@
+{
+  "axisIds": ["COG", "REG", "CAP", "EXP", "REL", "REC"],
+  "pointIds": ["primary", "supporting", "contradictory"],
+  "cases": [
+    {
+      "caseId": "evenly_balanced_result",
+      "resultId": "fixture-balanced",
+      "axes": [0.55, 0.54, 0.56, 0.53, 0.55, 0.54],
+      "axisConfidence": 0.86,
+      "uncertainty": 0.14,
+      "coverage": 0.88,
+      "points": [[0.56, 0.54, 0.18], [0.55, 0.53, 0.17], [0.57, 0.55, 0.19], [0.54, 0.52, 0.16], [0.56, 0.54, 0.18], [0.55, 0.53, 0.17]],
+      "overallConfidence": 0.84,
+      "unresolved": false,
+      "expectedGeometrySnapshot": {
+        "sourceCount": 18,
+        "symmetryOrder": 6,
+        "contourCount": 5,
+        "expectedDominantAxis": null,
+        "unresolvedLike": false
+      }
+    },
+    {
+      "caseId": "one_strongly_dominant_axis",
+      "resultId": "fixture-dominant",
+      "axes": [0.91, 0.42, 0.40, 0.39, 0.41, 0.43],
+      "axisConfidence": 0.88,
+      "uncertainty": 0.12,
+      "coverage": 0.9,
+      "points": [[0.94, 0.87, 0.1], [0.42, 0.4, 0.2], [0.41, 0.39, 0.21], [0.4, 0.38, 0.2], [0.42, 0.4, 0.2], [0.43, 0.41, 0.19]],
+      "overallConfidence": 0.86,
+      "unresolved": false,
+      "expectedGeometrySnapshot": {
+        "sourceCount": 18,
+        "symmetryOrder": 6,
+        "contourCount": 5,
+        "expectedDominantAxis": "COG",
+        "unresolvedLike": false
+      }
+    },
+    {
+      "caseId": "two_reinforcing_points",
+      "resultId": "fixture-reinforcing",
+      "axes": [0.47, 0.82, 0.79, 0.45, 0.48, 0.46],
+      "axisConfidence": 0.87,
+      "uncertainty": 0.13,
+      "coverage": 0.89,
+      "points": [[0.46, 0.44, 0.18], [0.84, 0.8, 0.09], [0.81, 0.77, 0.1], [0.45, 0.43, 0.19], [0.48, 0.46, 0.18], [0.47, 0.45, 0.18]],
+      "overallConfidence": 0.85,
+      "unresolved": false,
+      "expectedGeometrySnapshot": {
+        "sourceCount": 18,
+        "symmetryOrder": 6,
+        "contourCount": 5,
+        "expectedDominantAxis": "REG",
+        "unresolvedLike": false
+      }
+    },
+    {
+      "caseId": "two_contradictory_points",
+      "resultId": "fixture-contradictory",
+      "axes": [0.5, 0.52, 0.49, 0.83, 0.51, 0.5],
+      "axisConfidence": 0.82,
+      "uncertainty": 0.28,
+      "coverage": 0.76,
+      "points": [[0.5, 0.48, 0.22], [0.52, 0.5, 0.23], [0.49, 0.47, 0.22], [0.86, 0.72, 0.88], [0.5, 0.49, 0.23], [0.51, 0.49, 0.23]],
+      "overallConfidence": 0.73,
+      "unresolved": false,
+      "expectedGeometrySnapshot": {
+        "sourceCount": 18,
+        "symmetryOrder": 6,
+        "contourCount": 5,
+        "expectedDominantAxis": "EXP",
+        "unresolvedLike": false
+      }
+    },
+    {
+      "caseId": "low_confidence_result",
+      "resultId": "fixture-low-confidence",
+      "axes": [0.7, 0.69, 0.68, 0.66, 0.67, 0.65],
+      "axisConfidence": 0.31,
+      "uncertainty": 0.62,
+      "coverage": 0.42,
+      "points": [[0.71, 0.66, 0.18], [0.7, 0.65, 0.18], [0.69, 0.64, 0.18], [0.67, 0.62, 0.18], [0.68, 0.63, 0.18], [0.66, 0.61, 0.18]],
+      "overallConfidence": 0.32,
+      "unresolved": false,
+      "expectedGeometrySnapshot": {
+        "sourceCount": 18,
+        "symmetryOrder": 6,
+        "contourCount": 5,
+        "expectedDominantAxis": null,
+        "unresolvedLike": true
+      }
+    },
+    {
+      "caseId": "unresolved_result",
+      "resultId": "fixture-unresolved",
+      "axes": [0.58, 0.57, 0.56, 0.55, 0.56, 0.57],
+      "axisConfidence": 0.46,
+      "uncertainty": 0.74,
+      "coverage": 0.33,
+      "points": [[0.58, 0.55, 0.24], [0.57, 0.54, 0.24], [0.56, 0.53, 0.24], [0.55, 0.52, 0.24], [0.56, 0.53, 0.24], [0.57, 0.54, 0.24]],
+      "overallConfidence": 0.41,
+      "unresolved": true,
+      "expectedGeometrySnapshot": {
+        "sourceCount": 18,
+        "symmetryOrder": 6,
+        "contourCount": 5,
+        "expectedDominantAxis": null,
+        "unresolvedLike": true
+      }
+    },
+    {
+      "caseId": "repeated_historical_result",
+      "resultId": "fixture-repeat-1",
+      "axes": [0.62, 0.75, 0.7, 0.58, 0.6, 0.68],
+      "axisConfidence": 0.84,
+      "uncertainty": 0.16,
+      "coverage": 0.86,
+      "points": [[0.63, 0.59, 0.16], [0.77, 0.72, 0.12], [0.71, 0.67, 0.13], [0.58, 0.55, 0.16], [0.61, 0.58, 0.15], [0.69, 0.65, 0.13]],
+      "overallConfidence": 0.83,
+      "unresolved": false,
+      "expectedGeometrySnapshot": {
+        "sourceCount": 18,
+        "symmetryOrder": 6,
+        "contourCount": 5,
+        "expectedDominantAxis": "REG",
+        "unresolvedLike": false
+      }
+    },
+    {
+      "caseId": "sudden_recent_deviation",
+      "resultId": "fixture-deviation",
+      "axes": [0.28, 0.91, 0.31, 0.82, 0.34, 0.3],
+      "axisConfidence": 0.81,
+      "uncertainty": 0.2,
+      "coverage": 0.8,
+      "points": [[0.3, 0.27, 0.2], [0.92, 0.86, 0.09], [0.32, 0.29, 0.2], [0.84, 0.78, 0.1], [0.35, 0.31, 0.2], [0.31, 0.28, 0.2]],
+      "overallConfidence": 0.8,
+      "unresolved": false,
+      "expectedGeometrySnapshot": {
+        "sourceCount": 18,
+        "symmetryOrder": 6,
+        "contourCount": 5,
+        "expectedDominantAxis": "REG",
+        "unresolvedLike": false
+      }
+    },
+    {
+      "caseId": "gradual_recovery_over_time",
+      "resultId": "fixture-recovery-1",
+      "axes": [0.51, 0.61, 0.58, 0.5, 0.52, 0.74],
+      "axisConfidence": 0.83,
+      "uncertainty": 0.17,
+      "coverage": 0.84,
+      "points": [[0.52, 0.49, 0.17], [0.62, 0.59, 0.15], [0.59, 0.55, 0.16], [0.51, 0.48, 0.17], [0.53, 0.5, 0.17], [0.76, 0.7, 0.11]],
+      "overallConfidence": 0.82,
+      "unresolved": false,
+      "expectedGeometrySnapshot": {
+        "sourceCount": 18,
+        "symmetryOrder": 6,
+        "contourCount": 5,
+        "expectedDominantAxis": "REC",
+        "unresolvedLike": false
+      }
+    }
+  ],
+  "historySnapshots": {
+    "repeatedHistoricalResult": {
+      "expectedMinimumClusters": 1,
+      "expectedStructuralLayer": true,
+      "expectedLightLayer": true
+    },
+    "suddenRecentDeviation": {
+      "expectedMinimumClusters": 2,
+      "expectedRecentLightDominates": true
+    },
+    "gradualRecoveryOverTime": {
+      "expectedMinimumClusters": 1,
+      "expectedStructuralStrengthening": true
+    }
+  }
+}

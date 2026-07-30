@@ -1,1 +1,47 @@
-"""Reserved Resonance Signature Engine boundary."""
+"""Resonance Signature and resonant-field semantic geometry boundary."""
+
+from .field import (
+    HISTORY_AGGREGATION_VERSION,
+    RESONANT_FIELD_VERSION,
+    Bounds,
+    ContourProvenance,
+    GeometryCluster,
+    GeometryPoint,
+    HistoricalResonantField,
+    LightRegion,
+    ResonantAxis,
+    ResonantContour,
+    ResonantFieldGeometry,
+    ResonantFieldInput,
+    ResonantHistoryGeometry,
+    ResonantPlottedPoint,
+    ScalarFieldDefinition,
+    StructuralRegion,
+    SymmetryDefinition,
+    WaveSource,
+    build_resonant_field_geometry,
+    build_resonant_history_geometry,
+)
+
+__all__ = [
+    "HISTORY_AGGREGATION_VERSION",
+    "RESONANT_FIELD_VERSION",
+    "Bounds",
+    "ContourProvenance",
+    "GeometryCluster",
+    "GeometryPoint",
+    "HistoricalResonantField",
+    "LightRegion",
+    "ResonantAxis",
+    "ResonantContour",
+    "ResonantFieldGeometry",
+    "ResonantFieldInput",
+    "ResonantHistoryGeometry",
+    "ResonantPlottedPoint",
+    "ScalarFieldDefinition",
+    "StructuralRegion",
+    "SymmetryDefinition",
+    "WaveSource",
+    "build_resonant_field_geometry",
+    "build_resonant_history_geometry",
+]
