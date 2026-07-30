@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { buildCanonicalSoulScopeResult } from "../lib/canonicalResult";
 import { buildPhaseCIntelligence } from "../lib/phaseCInsightEngine";
@@ -119,4 +120,14 @@ test("Today's Story remains traceable to canonical evidence without changing dec
   assert.ok(story.trace.evidence.length > 0);
   assert.ok(story.trace.meanings.length > 0);
   assert.ok(story.trace.interactions.length > 0);
+});
+
+test("results dashboard hero renders Today's Story instead of canonical boundary fields", () => {
+  const source = readFileSync("components/ResonanceResultsDashboard.tsx", "utf8");
+  const heroSection = source.slice(source.indexOf("<section className={styles.reflectionPanel}>"), source.indexOf("<HumanReflectionOverview"));
+
+  assert.match(heroSection, /story\.title/);
+  assert.match(heroSection, /story\.essence/);
+  assert.match(heroSection, /story\.reflection/);
+  assert.doesNotMatch(heroSection, /phaseC\.headlineInsight|canonicalNarrative\.patternTitle|canonicalNarrative\.patternSubtitle|canonicalNarrative\.reflection|Your Pattern/);
 });

@@ -36,9 +36,7 @@ export default function ResonanceResultsDashboard({
   const orderedCandidates = orderStoryCandidates(report.storyCandidates, narrativePreference);
   const atlas = report.atlas;
   const canonicalResult = report.canonicalResult;
-  const canonicalNarrative = report.canonicalNarrative;
-  const phaseC = report.phaseCIntelligence;
-  const canonical = report.canonicalPattern;
+  const story = report.todaysStory;
   const [accuracy, setAccuracy] = useState("");
   const [lengthPreference, setLengthPreference] = useState("");
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string[]>>({});
@@ -65,17 +63,16 @@ export default function ResonanceResultsDashboard({
           <ResonanceSignature
             data={canonicalResult.resonanceSignature.data}
             visualState={canonicalResult.resonanceSignature.visualState}
-            label={`Visual Resonance Signature representing the pattern relationships in this scan: ${phaseC.headlineInsight.title}`}
+            label={`Visual Resonance Signature representing today's story: ${story.title}`}
           />
         </div>
       </section>
 
       <section className={styles.reflectionPanel}>
-        <p className={styles.eyebrow}>Your Pattern</p>
-        <h2 className={styles.patternName}>{phaseC.headlineInsight.title}</h2>
-        <p className={styles.noteStatus}>{canonicalNarrative.patternTitle}</p>
-        {canonicalNarrative.patternSubtitle ? <p className={styles.noteStatus}>{canonicalNarrative.patternSubtitle}</p> : null}
-        <p className={styles.reflection}>{canonicalNarrative.reflection}</p>
+        <p className={styles.eyebrow}>What SoulScope Noticed Today</p>
+        <h2 className={styles.patternName}>{story.title}</h2>
+        <p className={styles.noteStatus}>{story.essence}</p>
+        <p className={styles.reflection}>{story.reflection}</p>
       </section>
 
       <HumanReflectionOverview report={report} />
