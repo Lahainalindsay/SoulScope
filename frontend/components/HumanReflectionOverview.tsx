@@ -7,7 +7,8 @@ export default function HumanReflectionOverview({ report }: { report: SoulScopeR
   const narrative = report.canonicalNarrative;
   const phaseC = report.phaseCIntelligence;
   const practices = [narrative.gentleNextStep];
-  const discoveryCards = phaseC.relationshipIntelligence.discoveryCards;
+  const meaningfulDiscovery = phaseC.insightSynthesis.headline;
+  const discoveryCards = phaseC.insightSynthesis.discoveries.filter((discovery) => discovery.id !== meaningfulDiscovery?.id);
   const [reflection, setReflection] = useState("");
   const reflectionLines = [
     phaseC.headlineInsight.explanation,
@@ -28,6 +29,16 @@ export default function HumanReflectionOverview({ report }: { report: SoulScopeR
         </div>
       </section>
 
+      {meaningfulDiscovery && (
+        <section className={styles.patternStrip}>
+          <article className={styles.patternCard}>
+            <p className={styles.noteStatus}>Today&apos;s Most Meaningful Discovery</p>
+            <h3>{meaningfulDiscovery.title}</h3>
+            <p>{meaningfulDiscovery.summary}</p>
+          </article>
+        </section>
+      )}
+
       {discoveryCards.length > 0 && (
         <section className={styles.notesSection}>
           <div className={styles.notesHeader}>
@@ -35,9 +46,9 @@ export default function HumanReflectionOverview({ report }: { report: SoulScopeR
           </div>
           <div className={styles.topNotesGrid}>
             {discoveryCards.map((card) => (
-              <article key={card.relationshipId} className={styles.noteCard}>
+              <article key={card.id} className={styles.noteCard}>
                 <p className={styles.noteStatus}>{card.title}</p>
-                <p>{card.body}</p>
+                <p>{card.explanation}</p>
               </article>
             ))}
           </div>

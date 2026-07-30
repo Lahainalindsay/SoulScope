@@ -1,5 +1,6 @@
 import type { CanonicalDimensionRecord } from "./canonicalDimensionEngine";
 import type { CanonicalSoulScopeResult } from "./canonicalResult";
+import { buildInsightSynthesis, type InsightSynthesisResult } from "./insightSynthesisEngine";
 import type { LongitudinalAnalysis, LongitudinalScanSnapshot, TrendResult } from "./longitudinalIntelligence";
 import { buildRelationshipIntelligence, type RelationshipIntelligence } from "./relationshipIntelligence";
 
@@ -61,6 +62,7 @@ export type PhaseCIntelligence = {
     note: string;
   };
   relationshipIntelligence: RelationshipIntelligence;
+  insightSynthesis: InsightSynthesisResult;
 };
 
 const DOMAIN_DIMENSIONS: Record<string, string[]> = {
@@ -361,6 +363,14 @@ export function buildPhaseCIntelligence(
     .sort((left, right) => right.ranking.total - left.ranking.total || left.insightId.localeCompare(right.insightId))
     .slice(0, 3);
   const headlineInsight = insights[0] ?? currentStateInsight(result);
+  const insightSynthesis = buildInsightSynthesis({
+    phaseInsights: insights,
+    relationships: relationshipIntelligence.relationships,
+    meanings: result.meaningObjects.records,
+    longitudinal,
+    personalBaseline: longitudinal?.baselines.recent.available ? longitudinal.baselines.recent : null,
+    decisionId: result.decisionLedger.record.decisionId,
+  });
   return {
     version: PHASE_C_INSIGHT_ENGINE_VERSION,
     headlineInsight,
@@ -377,5 +387,6 @@ export function buildPhaseCIntelligence(
         : "No optional context was supplied for this scan.",
     },
     relationshipIntelligence,
+    insightSynthesis,
   };
 }
