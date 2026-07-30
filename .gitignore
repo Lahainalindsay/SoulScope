@@ -19,6 +19,7 @@ frontend/node_modules/
 frontend/.next/
 backend/.venv/
 backend/.private_audio/
+backend/dev_output/
 
 # Local secrets and generated recordings
 *.env
