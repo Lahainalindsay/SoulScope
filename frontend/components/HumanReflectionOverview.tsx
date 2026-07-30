@@ -3,17 +3,15 @@ import type { SoulScopeReport } from "../lib/buildSoulScopeReport";
 import styles from "./ResonanceResultsDashboard.module.css";
 
 export default function HumanReflectionOverview({ report }: { report: SoulScopeReport }) {
-  const presentation = report.presentation;
-  const narrative = report.canonicalNarrative;
   const phaseC = report.phaseCIntelligence;
-  const practices = [narrative.gentleNextStep];
+  const story = report.todaysStory;
+  const practices = [story.gentleNextStep];
   const meaningfulDiscovery = phaseC.insightSynthesis.headline;
   const discoveryCards = phaseC.insightSynthesis.discoveries.filter((discovery) => discovery.id !== meaningfulDiscovery?.id);
   const [reflection, setReflection] = useState("");
   const reflectionLines = [
-    phaseC.headlineInsight.explanation,
+    story.reflection,
     ...phaseC.reflectionMemory,
-    narrative.reflection,
   ].filter(Boolean).slice(0, 3);
 
   return (
@@ -60,7 +58,7 @@ export default function HumanReflectionOverview({ report }: { report: SoulScopeR
           <p className={styles.eyebrow}>How This May Show Up</p>
         </div>
         <div className={styles.topNotesGrid}>
-          {presentation.dailyLife.slice(0, 4).map((line) => (
+          {story.howThisMayShowUp.slice(0, 4).map((line) => (
             <article key={line} className={styles.noteCard}><p>{line}</p></article>
           ))}
         </div>
@@ -93,7 +91,7 @@ export default function HumanReflectionOverview({ report }: { report: SoulScopeR
       <section className={styles.patternStrip}>
         <article className={styles.patternCard}>
           <p className={styles.noteStatus}>Worth Noticing</p>
-          <p>{narrative.worthNoticing}</p>
+          <p>{story.worthNoticing}</p>
         </article>
       </section>
     </>

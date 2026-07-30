@@ -173,14 +173,24 @@ test("published report language does not reintroduce baseline or legacy reasonin
     ...report.presentation.dailyLife,
     ...report.storyCandidates.map((candidate) => candidate.summary),
   ].join(" ");
+  const visibleStory = [
+    report.todaysStory.title,
+    report.todaysStory.essence,
+    report.todaysStory.reflection,
+    ...report.todaysStory.howThisMayShowUp,
+    report.todaysStory.worthNoticing,
+    report.todaysStory.gentleNextStep,
+  ].join(" ");
 
-  assert.equal(report.primaryPattern.name, report.phaseCIntelligence.headlineInsight.title);
-  assert.equal(report.patternExpression.title, report.phaseCIntelligence.headlineInsight.title);
+  assert.equal(report.primaryPattern.name, report.todaysStory.title);
+  assert.equal(report.patternExpression.title, report.todaysStory.title);
+  assert.notEqual(report.todaysStory.title.length, 0);
   assert.notEqual(report.phaseCIntelligence.headlineInsight.title.length, 0);
   assert.notEqual(report.canonicalNarrative.patternTitle.length, 0);
   assert.equal(/recent scans|recent baseline|usual baseline|baseline range|appears (higher|lower|lighter) than/i.test(published), false);
   assert.equal(/Current expression:|Current observations suggest|differentiating evidence/i.test(published), false);
   assert.equal(/\b(?:COG|REG|CAP|EXP)-\d{3}\b|\bINT-\d{3}\b|meaning:[^\s]+|Boundary transition|boundary blend|strongest interaction|publicationReason|decision ledger|canonical pipeline/i.test(published), false);
+  assert.equal(/\bscan(?:s|ned|ning)?\b|candidate|neighboring pattern|similarly supported|boundary|geometry|decision ledger|canonical|Between\b/i.test(visibleStory), false);
 });
 
 test("fixture distribution does not collapse into one primary pattern", () => {

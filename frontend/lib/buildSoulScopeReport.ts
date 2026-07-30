@@ -37,6 +37,7 @@ import {
 } from "./canonicalResult";
 import { buildCanonicalNarrative, type CanonicalNarrative } from "./canonicalNarrativeEngine";
 import { buildPhaseCIntelligence, type PhaseCIntelligence } from "./phaseCInsightEngine";
+import { buildTodaysStory, type TodaysStory } from "./todaysStoryEngine";
 
 export type SoulScopeReport = BaseSoulScopeReport & {
   patternExpression: PatternExpression;
@@ -55,6 +56,7 @@ export type SoulScopeReport = BaseSoulScopeReport & {
   canonicalResult: CanonicalSoulScopeResult;
   canonicalNarrative: CanonicalNarrative;
   phaseCIntelligence: PhaseCIntelligence;
+  todaysStory: TodaysStory;
 };
 
 export type BuildSoulScopeReportOptions = {
@@ -170,6 +172,7 @@ export function buildSoulScopeReport(
   });
   const canonicalNarrative = buildCanonicalNarrative(canonicalResult);
   const phaseCIntelligence = buildPhaseCIntelligence(canonicalResult);
+  const todaysStory = buildTodaysStory(canonicalResult, phaseCIntelligence);
   const resultIsUnresolved = canonicalResult.decisionLedger.record.outcome === "unresolved";
   const publishedEvidenceLines = canonicalResult.phaseBDimensions.records.some((dimension) => dimension.evidenceCoverage > 0)
     ? canonicalResult.phaseBDimensions.records
@@ -183,8 +186,8 @@ export function buildSoulScopeReport(
 
   const patternExpression: PatternExpression = {
     id: canonicalResult.pattern.id ?? "signals-still-resolving",
-    title: phaseCIntelligence.headlineInsight.title,
-    summary: canonicalNarrative.reflection,
+    title: todaysStory.title,
+    summary: todaysStory.reflection,
     matchedSignals: resultIsUnresolved
       ? canonicalResult.decisionLedger.record.missingEvidence.length
         ? ["Some evidence was unavailable, so the reflection stays broad."]
@@ -195,35 +198,26 @@ export function buildSoulScopeReport(
   const modifiers = buildPatternModifiers(scan, domainResults).slice(0, limited ? 2 : 6);
   const presentation = {
     ...canonicalPresentation(canonicalPattern, atlasPresentation),
-    summary: canonicalNarrative.patternSubtitle
-      ? `${canonicalNarrative.patternSubtitle} ${canonicalNarrative.reflection}`
-      : canonicalNarrative.reflection,
+    summary: todaysStory.reflection,
     explanation: [
-      canonicalNarrative.reflection,
-      canonicalNarrative.uncertaintyNote ?? canonicalNarrative.worthNoticing,
+      todaysStory.reflection,
+      todaysStory.worthNoticing,
     ],
     observedBullets: [
-      canonicalNarrative.worthNoticing,
-      canonicalNarrative.uncertaintyNote ?? "This reflection keeps uncertainty visible where the evidence is less settled.",
+      todaysStory.essence,
+      todaysStory.worthNoticing,
       `Confidence: ${canonicalNarrative.confidenceLabel}.`,
     ],
-    dailyLife: resultIsUnresolved
-      ? [
-          canonicalNarrative.howThisMayShowUp,
-          "Some signals were present, but the available evidence was limited.",
-          canonicalNarrative.gentleNextStep,
-          "This result preserves uncertainty instead of substituting a neutral pattern.",
-        ]
-      : [
-          canonicalNarrative.howThisMayShowUp,
-          canonicalNarrative.worthNoticing,
-          canonicalNarrative.gentleNextStep,
-          canonicalNarrative.uncertaintyNote ?? "The reflection should stay connected to the conditions of this scan.",
-        ],
+    dailyLife: [
+      todaysStory.howThisMayShowUp[0] ?? todaysStory.essence,
+      todaysStory.howThisMayShowUp[1] ?? todaysStory.worthNoticing,
+      todaysStory.howThisMayShowUp[2] ?? todaysStory.gentleNextStep,
+      todaysStory.howThisMayShowUp[3] ?? todaysStory.worthNoticing,
+    ],
     reflectionQuestion: resultIsUnresolved
-      ? "What feels most worth noticing before you scan again?"
-      : canonicalNarrative.gentleNextStep,
-    longitudinalMessage: "No longitudinal change claim was published from this scan.",
+      ? todaysStory.gentleNextStep
+      : todaysStory.gentleNextStep,
+    longitudinalMessage: todaysStory.worthNoticing,
   } satisfies PatternPresentation;
   const storyCandidates = base.storyCandidates.map((candidate) => personalizeStoryCandidate(
     candidate,
@@ -234,20 +228,19 @@ export function buildSoulScopeReport(
   ));
   const canonicalPrimaryPattern: PatternMatch = {
     ...primaryPattern,
-    name: phaseCIntelligence.headlineInsight.title,
-    theme: `${phaseCIntelligence.headlineInsight.explanation} ${canonicalNarrative.reflection}`,
-    explanation: canonicalNarrative.uncertaintyNote ?? canonicalNarrative.worthNoticing,
+    name: todaysStory.title,
+    theme: todaysStory.reflection,
+    explanation: todaysStory.worthNoticing,
     whatThisMayFeelLike: presentation.dailyLife,
     supportiveFactors: resultIsUnresolved
       ? [
-          canonicalNarrative.worthNoticing,
-          canonicalNarrative.gentleNextStep,
-          "Unknown parts of the scan are left open rather than filled in.",
+          todaysStory.worthNoticing,
+          todaysStory.gentleNextStep,
+          "Unknown parts of the moment are left open rather than filled in.",
         ]
       : [
-          canonicalNarrative.howThisMayShowUp,
-          canonicalNarrative.worthNoticing,
-          canonicalNarrative.gentleNextStep,
+          ...todaysStory.howThisMayShowUp.slice(0, 2),
+          todaysStory.gentleNextStep,
         ],
     whatIsWorkingHardest: canonicalResult.decisionLedger.record.supportingEvidence.length
       ? canonicalResult.decisionLedger.record.supportingEvidence.slice(0, 3).map((item) => item.replaceAll("-", " "))
@@ -270,6 +263,7 @@ export function buildSoulScopeReport(
     canonicalResult,
     canonicalNarrative,
     phaseCIntelligence,
+    todaysStory,
     scanCompleteness: scanWithCompleteness.scanCompleteness,
     observationPipeline,
     vocalStateProfile,

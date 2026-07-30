@@ -1,49 +1,51 @@
 import type { SoulScopeReport } from "./buildSoulScopeReport";
 import type { LongitudinalAnalysis, LongitudinalScanSnapshot } from "./longitudinalIntelligence";
-import { selectLongitudinalMessage, type LongitudinalMessageKind } from "./patternKnowledge";
 import { buildPhaseCIntelligence } from "./phaseCInsightEngine";
-
-function messageKind(analysis: LongitudinalAnalysis): LongitudinalMessageKind {
-  const recent = analysis.similarity.recent;
-  if (!recent.available) return "firstObservation";
-  if (recent.category === "Noticeably Different" || recent.category === "Significant Shift") return "noticeablyDifferent";
-  if (analysis.observationStability.some((item) => item.stability === "consistent")) return "consistent";
-  if (analysis.observationStability.some((item) => item.stability === "recurring")) return "recurring";
-  return "emerging";
-}
+import { buildTodaysStory } from "./todaysStoryEngine";
 
 export function personalizeReportWithHistory(report: SoulScopeReport, analysis: LongitudinalAnalysis, history: LongitudinalScanSnapshot[] = []): SoulScopeReport {
-  const kind = messageKind(analysis);
-  const historySeed = analysis.baselines.recent.sourceScanIds.join(":") || report.primaryPattern.id;
-  const longitudinalMessage = selectLongitudinalMessage(report.primaryPattern.id, kind, historySeed);
-  const trendLine = analysis.trends.find((trend) => trend.direction !== "stable")?.summary ?? "";
   const phaseCIntelligence = buildPhaseCIntelligence(report.canonicalResult, analysis, [], history);
-  const memoryLine = phaseCIntelligence.reflectionMemory[0] ?? "";
+  const todaysStory = buildTodaysStory(report.canonicalResult, phaseCIntelligence);
 
   return {
     ...report,
     phaseCIntelligence,
+    todaysStory,
     primaryPattern: {
       ...report.primaryPattern,
-      name: phaseCIntelligence.headlineInsight.title,
-      theme: `${phaseCIntelligence.headlineInsight.explanation} ${report.canonicalNarrative.reflection}`.trim(),
+      name: todaysStory.title,
+      theme: todaysStory.reflection,
       confidence: phaseCIntelligence.headlineInsight.confidence,
     },
     patternExpression: {
       ...report.patternExpression,
-      title: phaseCIntelligence.headlineInsight.title,
-      summary: `${phaseCIntelligence.headlineInsight.explanation} ${report.canonicalNarrative.reflection}`.trim(),
+      title: todaysStory.title,
+      summary: todaysStory.reflection,
     },
     presentation: {
       ...report.presentation,
-      longitudinalMessage,
+      summary: todaysStory.reflection,
+      explanation: [todaysStory.reflection, todaysStory.worthNoticing],
+      observedBullets: [
+        todaysStory.essence,
+        todaysStory.worthNoticing,
+        report.presentation.observedBullets[2] ?? "Confidence remains connected to the evidence available today.",
+      ],
+      dailyLife: [
+        todaysStory.howThisMayShowUp[0] ?? todaysStory.essence,
+        todaysStory.howThisMayShowUp[1] ?? todaysStory.worthNoticing,
+        todaysStory.howThisMayShowUp[2] ?? todaysStory.gentleNextStep,
+        todaysStory.howThisMayShowUp[3] ?? todaysStory.worthNoticing,
+      ],
+      reflectionQuestion: todaysStory.gentleNextStep,
+      longitudinalMessage: todaysStory.worthNoticing,
     },
     storyCandidates: report.storyCandidates.map((candidate) => {
       const historyText = candidate.style === "Direct"
-        ? phaseCIntelligence.headlineInsight.explanation
+        ? todaysStory.essence
         : candidate.style === "Supportive"
-        ? [longitudinalMessage, memoryLine].filter(Boolean).join(" ")
-        : [phaseCIntelligence.headlineInsight.explanation, longitudinalMessage, trendLine].filter(Boolean).join(" ");
+        ? todaysStory.worthNoticing
+        : todaysStory.gentleNextStep;
       return { ...candidate, summary: `${candidate.summary} ${historyText}`.trim() };
     }),
   };
