@@ -74,7 +74,7 @@ export async function getScanResultViewModel(client: SupabaseClient, scanId: str
   };
   const longitudinal = buildLongitudinalAnalysis(current, history);
   const hydrated = hydrateReportFromV2(buildSoulScopeReport(scan, { scanId }), { patterns, reflections, domains, diagnostics });
-  const personalized = personalizeReportWithHistory(hydrated, longitudinal);
+  const personalized = personalizeReportWithHistory(hydrated, longitudinal, history);
   const report = applyResonanceNarrative(personalized);
   return { session, scan, report, selectedPreference, narrativePreference, observations, evidence: includeEvidence ? allEvidence : [], baselines, longitudinal };
 }

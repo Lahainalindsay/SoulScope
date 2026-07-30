@@ -1,6 +1,7 @@
 import type { CanonicalDimensionRecord } from "./canonicalDimensionEngine";
 import type { CanonicalSoulScopeResult } from "./canonicalResult";
-import type { LongitudinalAnalysis, TrendResult } from "./longitudinalIntelligence";
+import type { LongitudinalAnalysis, LongitudinalScanSnapshot, TrendResult } from "./longitudinalIntelligence";
+import { buildRelationshipIntelligence, type RelationshipIntelligence } from "./relationshipIntelligence";
 
 export const PHASE_C_INSIGHT_ENGINE_VERSION = "phase-c-insight-engine-v0.1";
 
@@ -59,6 +60,7 @@ export type PhaseCIntelligence = {
     entries: string[];
     note: string;
   };
+  relationshipIntelligence: RelationshipIntelligence;
 };
 
 const DOMAIN_DIMENSIONS: Record<string, string[]> = {
@@ -266,6 +268,23 @@ function relationshipInsight(result: CanonicalSoulScopeResult) {
   });
 }
 
+function dimensionsForRelationship(result: CanonicalSoulScopeResult, variables: string[], evidence: string[]) {
+  const mappedDimensionIds = new Set(variables.flatMap((variable) => {
+    if (variable.includes("recovery_restoration")) return DOMAIN_DIMENSIONS.recovery_restoration;
+    if (variable.includes("focus_mental_demand")) return DOMAIN_DIMENSIONS.focus_mental_demand;
+    if (variable.includes("expression_communication")) return DOMAIN_DIMENSIONS.expression_communication;
+    if (variable.includes("regulation_stability")) return DOMAIN_DIMENSIONS.regulation_stability;
+    if (variable.includes("recovery")) return ["REG-P4", "CAP-P4"];
+    if (variable.includes("expression")) return ["EXP-P1", "EXP-P2"];
+    if (variable.includes("regulation")) return ["REG-P2", "REG-P3"];
+    if (variable.includes("mental_demand") || variable.includes("organization")) return ["COG-P1", "COG-P4"];
+    return [];
+  }));
+  const byEvidence = result.phaseBDimensions.records.filter((dimension) => evidence.some((id) => dimension.supportingEvidence.includes(id)));
+  const byVariable = result.phaseBDimensions.records.filter((dimension) => mappedDimensionIds.has(dimension.dimensionId));
+  return Array.from(new Map([...byEvidence, ...byVariable].map((dimension) => [dimension.dimensionId, dimension])).values());
+}
+
 function patternEvolution(longitudinal?: LongitudinalAnalysis): PhaseCIntelligence["patternEvolution"] {
   if (!longitudinal?.patternEvolution.available) {
     return { available: false, status: "Emerging", summary: "More scan history is needed before pattern evolution can be described." };
@@ -306,9 +325,35 @@ export function buildPhaseCIntelligence(
   result: CanonicalSoulScopeResult,
   longitudinal?: LongitudinalAnalysis,
   contextEntries: string[] = [],
+  history: LongitudinalScanSnapshot[] = [],
 ): PhaseCIntelligence {
+  const relationshipIntelligence = buildRelationshipIntelligence({
+    canonicalResult: result,
+    history,
+    personalBaseline: longitudinal?.baselines.recent.available ? longitudinal.baselines.recent : null,
+    contextEntries,
+  });
   const candidates = [
     ...trendInsights(result, longitudinal),
+    ...relationshipIntelligence.relationships.slice(0, 2).map((relationship) => makeInsight({
+      id: `phase-c:${relationship.id}`,
+      title: relationship.title,
+      explanation: relationship.explanation,
+      dimensions: dimensionsForRelationship(result, relationship.variables, relationship.evidence),
+      supportingHistory: [
+        `${relationship.historicalSupport.observationCount} observations`,
+        `${relationship.historicalSupport.consistency} consistency`,
+        ...relationship.exceptions,
+      ],
+      decisionId: result.decisionLedger.record.decisionId,
+      ranking: insightRanking({
+        novelty: relationship.relationshipType === "contextual_association" ? 0.75 : 0.62,
+        confidence: relationship.confidence,
+        stability: relationship.historicalSupport.consistency,
+        magnitude: relationship.confidence,
+        personalSignificance: 0.9,
+      }),
+    })),
     relationshipInsight(result),
     currentStateInsight(result),
   ].filter((item): item is PhaseCInsightObject => Boolean(item));
@@ -331,5 +376,6 @@ export function buildPhaseCIntelligence(
         ? "Context is stored as metadata for future comparison; it does not override measured evidence."
         : "No optional context was supplied for this scan.",
     },
+    relationshipIntelligence,
   };
 }

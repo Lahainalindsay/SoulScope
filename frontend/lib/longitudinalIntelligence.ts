@@ -21,6 +21,7 @@ export interface LongitudinalScanSnapshot {
   primaryPatternId?: string;
   signalDistribution?: number[];
   resonanceDistribution?: number[];
+  context?: string[];
 }
 
 export interface RollingBaseline {

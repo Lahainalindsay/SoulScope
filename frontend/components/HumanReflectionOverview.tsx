@@ -7,6 +7,7 @@ export default function HumanReflectionOverview({ report }: { report: SoulScopeR
   const narrative = report.canonicalNarrative;
   const phaseC = report.phaseCIntelligence;
   const practices = [narrative.gentleNextStep];
+  const discoveryCards = phaseC.relationshipIntelligence.discoveryCards;
   const [reflection, setReflection] = useState("");
   const reflectionLines = [
     phaseC.headlineInsight.explanation,
@@ -26,6 +27,22 @@ export default function HumanReflectionOverview({ report }: { report: SoulScopeR
           ))}
         </div>
       </section>
+
+      {discoveryCards.length > 0 && (
+        <section className={styles.notesSection}>
+          <div className={styles.notesHeader}>
+            <p className={styles.eyebrow}>Things You&apos;re Discovering</p>
+          </div>
+          <div className={styles.topNotesGrid}>
+            {discoveryCards.map((card) => (
+              <article key={card.relationshipId} className={styles.noteCard}>
+                <p className={styles.noteStatus}>{card.title}</p>
+                <p>{card.body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className={styles.notesSection}>
         <div className={styles.notesHeader}>

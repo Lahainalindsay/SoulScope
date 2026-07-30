@@ -1,5 +1,5 @@
 import type { SoulScopeReport } from "./buildSoulScopeReport";
-import type { LongitudinalAnalysis } from "./longitudinalIntelligence";
+import type { LongitudinalAnalysis, LongitudinalScanSnapshot } from "./longitudinalIntelligence";
 import { selectLongitudinalMessage, type LongitudinalMessageKind } from "./patternKnowledge";
 import { buildPhaseCIntelligence } from "./phaseCInsightEngine";
 
@@ -12,12 +12,12 @@ function messageKind(analysis: LongitudinalAnalysis): LongitudinalMessageKind {
   return "emerging";
 }
 
-export function personalizeReportWithHistory(report: SoulScopeReport, analysis: LongitudinalAnalysis): SoulScopeReport {
+export function personalizeReportWithHistory(report: SoulScopeReport, analysis: LongitudinalAnalysis, history: LongitudinalScanSnapshot[] = []): SoulScopeReport {
   const kind = messageKind(analysis);
   const historySeed = analysis.baselines.recent.sourceScanIds.join(":") || report.primaryPattern.id;
   const longitudinalMessage = selectLongitudinalMessage(report.primaryPattern.id, kind, historySeed);
   const trendLine = analysis.trends.find((trend) => trend.direction !== "stable")?.summary ?? "";
-  const phaseCIntelligence = buildPhaseCIntelligence(report.canonicalResult, analysis);
+  const phaseCIntelligence = buildPhaseCIntelligence(report.canonicalResult, analysis, [], history);
   const memoryLine = phaseCIntelligence.reflectionMemory[0] ?? "";
 
   return {
