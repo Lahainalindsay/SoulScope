@@ -1,9 +1,10 @@
 import { useState } from "react";
 import HumanReflectionOverview from "./HumanReflectionOverview";
-import ResonanceSignature from "./ResonanceSignature";
+import ResonanceSignature from "./resonanceSignature/ResonanceSignature";
 import { ATLAS_EVIDENCE, ATLAS_SUBPATTERNS } from "../lib/patternAtlas";
 import { type SoulScopeReport } from "../lib/buildSoulScopeReport";
 import { orderStoryCandidates, type NarrativePreference } from "../lib/patternPersonalization";
+import { mapCanonicalResultToSignatureInput } from "../lib/resonanceSignature";
 import styles from "./ResonanceResultsDashboard.module.css";
 
 type ResonanceResultsDashboardProps = {
@@ -36,6 +37,7 @@ export default function ResonanceResultsDashboard({
   const orderedCandidates = orderStoryCandidates(report.storyCandidates, narrativePreference);
   const atlas = report.atlas;
   const canonicalResult = report.canonicalResult;
+  const signatureInput = mapCanonicalResultToSignatureInput(canonicalResult);
   const story = report.todaysStory;
   const [accuracy, setAccuracy] = useState("");
   const [lengthPreference, setLengthPreference] = useState("");
@@ -61,9 +63,10 @@ export default function ResonanceResultsDashboard({
         </div>
         <div className={styles.signatureFrame}>
           <ResonanceSignature
-            data={canonicalResult.resonanceSignature.data}
-            visualState={canonicalResult.resonanceSignature.visualState}
-            label={`Visual Resonance Signature representing today's story: ${story.title}`}
+            input={signatureInput}
+            motion="reveal"
+            showGuides
+            showBaselineGhost
           />
         </div>
       </section>

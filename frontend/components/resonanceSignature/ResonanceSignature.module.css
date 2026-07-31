@@ -1,0 +1,39 @@
+.shell {
+  aspect-ratio: 1;
+  background: #020509;
+  contain: layout paint style;
+  overflow: hidden;
+}
+
+.svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.reveal [data-layer="radial-guides"] {
+  animation: signatureFade 700ms ease-out both;
+}
+
+.reveal [data-layer="outer-bloom"] {
+  animation: signatureFade 1200ms 350ms ease-out both;
+}
+
+.reveal [data-layer="contours"] {
+  animation: signatureFade 1600ms 700ms ease-out both;
+}
+
+.reveal [data-layer="convergence-nodes"] {
+  animation: signatureFade 900ms 1400ms ease-out both;
+}
+
+@keyframes signatureFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal [data-layer] {
+    animation: none;
+  }
+}
