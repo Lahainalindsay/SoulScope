@@ -122,6 +122,8 @@ export type SignatureContour = Readonly<{
   level: number;
   path: string;
   constellationId: SignatureConstellationId | "global" | "contradiction";
+  tier: "A" | "B" | "C" | "D";
+  importance: number;
   confidence: number;
   coverage: number;
   contradiction: number;

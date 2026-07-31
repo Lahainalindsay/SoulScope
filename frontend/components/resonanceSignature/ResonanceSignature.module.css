@@ -1,8 +1,8 @@
 .shell {
   aspect-ratio: 1;
-  background: #020509;
+  background: #01040a;
   contain: layout paint style;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .svg {

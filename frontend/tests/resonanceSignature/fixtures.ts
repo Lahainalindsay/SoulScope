@@ -30,7 +30,7 @@ export function fixtureInput(overrides: Partial<ResonanceSignatureInputV1> = {})
     contractVersion: "soulscope.resonance-signature.v1",
     scanId: "fixture-scan",
     resultVersion: "fixture-result-v1",
-    rendererVersion: "soulscope-signature-renderer-v1.0.0",
+    rendererVersion: "soulscope-signature-renderer-v1.1.0",
     overallConfidence: 0.82,
     overallCoverage: 0.86,
     overallCoherence: 0.78,
@@ -67,4 +67,120 @@ export function withDimension(input: ResonanceSignatureInputV1, dimensionId: str
       },
     },
   };
+}
+
+function tuneConstellation(input: ResonanceSignatureInputV1, constellationId: SignatureConstellationId, patch: {
+  confidence?: number;
+  evidenceCoverage?: number;
+  contradiction?: number;
+  coherence?: number;
+  meanDelta?: number;
+  unresolvedDimensionIndex?: number;
+}): ResonanceSignatureInputV1 {
+  const constellation = input.constellations[constellationId];
+  return {
+    ...input,
+    constellations: {
+      ...input.constellations,
+      [constellationId]: {
+        ...constellation,
+        confidence: patch.confidence ?? constellation.confidence,
+        evidenceCoverage: patch.evidenceCoverage ?? constellation.evidenceCoverage,
+        contradiction: patch.contradiction ?? constellation.contradiction,
+        coherence: patch.coherence ?? constellation.coherence,
+        dimensions: constellation.dimensions.map((dimension, index) => {
+          if (patch.unresolvedDimensionIndex === index) {
+            return {
+              ...dimension,
+              mean: null,
+              lowerBound: null,
+              upperBound: null,
+              confidence: 0.1,
+              evidenceCoverage: 0.2,
+              unresolved: true,
+            };
+          }
+          const mean = Math.max(0, Math.min(1, (dimension.mean ?? 0.5) + (patch.meanDelta ?? 0)));
+          return {
+            ...dimension,
+            mean,
+            lowerBound: Math.max(0, mean - 0.08),
+            upperBound: Math.min(1, mean + 0.08),
+            confidence: patch.confidence ?? dimension.confidence,
+            evidenceCoverage: patch.evidenceCoverage ?? dimension.evidenceCoverage,
+            contradiction: patch.contradiction ?? dimension.contradiction,
+            coherence: patch.coherence ?? dimension.coherence,
+          };
+        }),
+      },
+    },
+  };
+}
+
+export function buildVisualFixtures() {
+  const balanced = fixtureInput({ scanId: "fixture-balanced", overallConfidence: 0.9, overallCoverage: 0.9, overallCoherence: 0.88, baselineTrust: 0.74 });
+  const dominant = (id: SignatureConstellationId) => tuneConstellation(fixtureInput({ scanId: `fixture-${id.toLowerCase()}-dominant` }), id, {
+    confidence: 0.96,
+    evidenceCoverage: 0.93,
+    coherence: 0.9,
+    meanDelta: 0.22,
+  });
+  const lowConfidence = fixtureInput({
+    scanId: "fixture-low-confidence",
+    overallConfidence: 0.32,
+    constellations: Object.fromEntries(CONSTELLATIONS.map((id) => [id, {
+      ...fixtureInput().constellations[id],
+      confidence: 0.3,
+      dimensions: fixtureInput().constellations[id].dimensions.map((dimension) => ({ ...dimension, confidence: 0.28 })),
+    }])) as unknown as ResonanceSignatureInputV1["constellations"],
+  });
+  const sparseEvidence = fixtureInput({
+    scanId: "fixture-sparse-evidence",
+    overallCoverage: 0.28,
+    constellations: Object.fromEntries(CONSTELLATIONS.map((id) => [id, {
+      ...fixtureInput().constellations[id],
+      evidenceCoverage: 0.24,
+      dimensions: fixtureInput().constellations[id].dimensions.map((dimension) => ({ ...dimension, evidenceCoverage: 0.2 })),
+    }])) as unknown as ResonanceSignatureInputV1["constellations"],
+  });
+  return {
+    balancedHighConfidence: balanced,
+    cogDominant: dominant("COG"),
+    regDominant: dominant("REG"),
+    capDominant: dominant("CAP"),
+    expDominant: dominant("EXP"),
+    highlyAsymmetric: {
+      ...fixtureInput({ scanId: "fixture-highly-asymmetric", overallCoherence: 0.62 }),
+      constellations: {
+        ...fixtureInput().constellations,
+        COG: {
+          ...fixtureInput().constellations.COG,
+          dimensions: fixtureInput().constellations.COG.dimensions.map((dimension) => ({ ...dimension, momentum: -0.88 })),
+        },
+        CAP: {
+          ...fixtureInput().constellations.CAP,
+          dimensions: fixtureInput().constellations.CAP.dimensions.map((dimension) => ({ ...dimension, momentum: 0.86 })),
+        },
+      },
+    },
+    highContradiction: tuneConstellation(fixtureInput({ scanId: "fixture-high-contradiction" }), "EXP", {
+      contradiction: 0.9,
+      coherence: 0.24,
+    }),
+    lowConfidence,
+    unresolvedDimension: tuneConstellation(fixtureInput({ scanId: "fixture-unresolved-dimension" }), "CAP", {
+      unresolvedDimensionIndex: 2,
+    }),
+    sparseEvidence,
+    highCoherence: fixtureInput({
+      scanId: "fixture-high-coherence",
+      overallCoherence: 0.96,
+      constellations: Object.fromEntries(CONSTELLATIONS.map((id) => [id, {
+        ...fixtureInput().constellations[id],
+        coherence: 0.95,
+        dimensions: fixtureInput().constellations[id].dimensions.map((dimension) => ({ ...dimension, coherence: 0.95 })),
+      }])) as unknown as ResonanceSignatureInputV1["constellations"],
+    }),
+    realSuppliedScan: fixtureInput({ scanId: "fixture-real-supplied-scan", resultVersion: "fixture-real-scan-v1" }),
+  } as const;
 }

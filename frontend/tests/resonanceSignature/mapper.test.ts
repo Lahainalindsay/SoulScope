@@ -136,3 +136,10 @@ test("mapper consumes calibrated engine contradiction strength", () => {
   }));
   assert.equal(input.constellations.EXP.dimensions[3].contradiction, 0.12);
 });
+
+test("mapping does not mutate canonical result payload", () => {
+  const result = resultWith();
+  const before = JSON.stringify(result);
+  mapCanonicalResultToSignatureInput(result);
+  assert.equal(JSON.stringify(result), before);
+});

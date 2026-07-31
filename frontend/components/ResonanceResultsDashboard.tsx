@@ -64,6 +64,7 @@ export default function ResonanceResultsDashboard({
         <div className={styles.signatureFrame}>
           <ResonanceSignature
             input={signatureInput}
+            size={920}
             motion="reveal"
             showGuides
             showBaselineGhost
