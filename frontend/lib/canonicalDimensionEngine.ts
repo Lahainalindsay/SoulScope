@@ -35,6 +35,8 @@ export type CanonicalDimensionRecord = {
   confidence: number;
   uncertainty: number;
   evidenceCoverage: number;
+  resolved: boolean;
+  contradictionStrength: number;
   baselineTrust: BaselineTrust;
   supportingEvidence: string[];
   contradictoryEvidence: string[];
@@ -289,6 +291,24 @@ function weightedAverage(values: Array<{ value: number; weight: number }>) {
   return values.reduce((sum, item) => sum + item.value * item.weight, 0) / totalWeight;
 }
 
+function contradictionStrengthFor(args: {
+  terms: Array<{ value: number; weight: number; confidence: number }>;
+  value: number;
+  coveredFamilies: Set<string>;
+  contradictoryEvidence: string[];
+}) {
+  if (!args.contradictoryEvidence.length) return 0;
+  const disagreements = args.terms
+    .map((term) => Math.max(0, Math.abs(term.value - args.value) - 0.42) * term.confidence)
+    .filter((value) => value > 0);
+  const magnitude = disagreements.length ? Math.min(1, weightedAverage(disagreements.map((value) => ({ value, weight: 1 }))) / 0.58) : 0.2;
+  const independence = Math.min(1, args.coveredFamilies.size / 4);
+  const reliability = args.terms.length
+    ? weightedAverage(args.terms.map((term) => ({ value: term.confidence, weight: term.weight })))
+    : 0;
+  return round(magnitude * 0.5 + reliability * 0.3 + independence * 0.2);
+}
+
 function featureKeyFromEvidenceId(evidenceId: string) {
   const found = Object.entries(FEATURE_ALIASES).find(([, ids]) =>
     ids.some((id) => evidenceId.includes(id)),
@@ -335,6 +355,12 @@ export function buildCanonicalDimensions(evidence: CanonicalEvidenceRecord[]): C
     if (terms.some((term) => Math.abs(term.value - value) > 0.42)) {
       contradictoryEvidence.push(`${rule.id}:wide_feature_disagreement`);
     }
+    const contradictionStrength = contradictionStrengthFor({ terms, value, coveredFamilies, contradictoryEvidence });
+    const intervalWidth = Math.min(1, uncertainty);
+    const resolved = evidenceCoverage >= 0.5
+      && confidence >= 0.2
+      && intervalWidth <= 0.8
+      && contradictionStrength < 0.72;
 
     return {
       dimensionId: rule.id,
@@ -351,6 +377,8 @@ export function buildCanonicalDimensions(evidence: CanonicalEvidenceRecord[]): C
       confidence,
       uncertainty,
       evidenceCoverage,
+      resolved,
+      contradictionStrength,
       baselineTrust: "absent",
       supportingEvidence: Array.from(new Set(terms.map((term) => term.evidenceId))).sort(),
       contradictoryEvidence,

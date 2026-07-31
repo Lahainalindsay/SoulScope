@@ -2,6 +2,7 @@ export * from "./types";
 export * from "./schema";
 export * from "./mapper";
 export * from "./normalize";
+export * from "./acousticVisualRegistry.v1";
 export * from "./registry";
 export * from "./seed";
 export * from "./scalarField";

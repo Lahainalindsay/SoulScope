@@ -1,5 +1,6 @@
 import type { CanonicalSoulScopeResult } from "../canonicalResult";
 import type { CanonicalDimensionRecord, ConstellationId } from "../canonicalDimensionEngine";
+import { ACOUSTIC_VISUAL_REGISTRY_V1, type AcousticVisualRegistryEntry } from "./acousticVisualRegistry.v1";
 import { RENDERER_VERSION } from "./registry";
 import { validateResonanceSignatureInput } from "./schema";
 import type { AcousticVisualInputs, ResonanceSignatureInputV1, SignatureConstellationId, SignatureDimension } from "./types";
@@ -14,13 +15,21 @@ function round(value: number) {
   return Number(clamp01(value).toFixed(3));
 }
 
+function clampSigned(value: number) {
+  return Math.max(-1, Math.min(1, Number.isFinite(value) ? value : 0));
+}
+
+function roundSigned(value: number) {
+  return Number(clampSigned(value).toFixed(3));
+}
+
 function mean(values: number[]) {
   const valid = values.filter(Number.isFinite);
   return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : 0;
 }
 
 function contradictionFor(dimension: CanonicalDimensionRecord) {
-  return round(Math.min(1, dimension.contradictoryEvidence.length * 0.28));
+  return round(dimension.contradictionStrength);
 }
 
 function baselineTrustValue(dimensions: CanonicalDimensionRecord[]) {
@@ -34,7 +43,7 @@ function baselineTrustValue(dimensions: CanonicalDimensionRecord[]) {
 }
 
 function dimensionToInput(dimension: CanonicalDimensionRecord, momentum: number | null): SignatureDimension {
-  const unresolved = dimension.evidenceCoverage < 0.5 || dimension.confidence < 0.2 || dimension.missingEvidence.length > 0;
+  const unresolved = !dimension.resolved;
   return Object.freeze({
     dimensionId: dimension.dimensionId,
     mean: unresolved ? null : round(dimension.posterior.mean),
@@ -53,33 +62,31 @@ function normalizedEvidence(result: CanonicalSoulScopeResult, featureId: string)
   const records = result.evidenceLedger.records.filter((record) => record.featureId === featureId && !record.missingEvidence && record.measuredValue !== null);
   if (!records.length) return null;
   const value = mean(records.map((record) => Number(record.measuredValue)));
-  const bounds: Record<string, [number, number]> = {
-    "voice.f0.range_semitones": [2, 16],
-    "voice.pitch_stability": [0.25, 0.92],
-    "voice.harmonic_richness": [0.15, 0.95],
-    "voice.spectral_flatness": [0.02, 0.35],
-    "voice.phonation_time_ratio": [0.2, 0.9],
-    "voice.pause.duration_mean": [180, 1400],
-  };
-  const [low, high] = bounds[featureId] ?? [0, 1];
+  const entry = Object.values(ACOUSTIC_VISUAL_REGISTRY_V1).find((item) => item.featureId === featureId);
+  const { low, high } = entry?.normalizationRange ?? { low: 0, high: 1 };
   return round((value - low) / Math.max(0.000001, high - low));
+}
+
+function normalizedRegistryEvidence(result: CanonicalSoulScopeResult, entry: AcousticVisualRegistryEntry) {
+  return normalizedEvidence(result, entry.featureId);
 }
 
 function acousticInputs(result: CanonicalSoulScopeResult): AcousticVisualInputs {
   return Object.freeze({
-    pitchRange: normalizedEvidence(result, "voice.f0.range_semitones"),
-    pitchStability: normalizedEvidence(result, "voice.pitch_stability"),
-    harmonicRichness: normalizedEvidence(result, "voice.harmonic_richness"),
-    spectralFlatness: normalizedEvidence(result, "voice.spectral_flatness"),
-    phonationRatio: normalizedEvidence(result, "voice.phonation_time_ratio"),
-    pauseDensity: normalizedEvidence(result, "voice.pause.duration_mean"),
+    pitchRange: normalizedRegistryEvidence(result, ACOUSTIC_VISUAL_REGISTRY_V1.pitchRange),
+    pitchStability: normalizedRegistryEvidence(result, ACOUSTIC_VISUAL_REGISTRY_V1.pitchStability),
+    harmonicRichness: normalizedRegistryEvidence(result, ACOUSTIC_VISUAL_REGISTRY_V1.harmonicRichness),
+    spectralFlatness: normalizedRegistryEvidence(result, ACOUSTIC_VISUAL_REGISTRY_V1.spectralFlatness),
+    phonationRatio: normalizedRegistryEvidence(result, ACOUSTIC_VISUAL_REGISTRY_V1.phonationRatio),
+    pauseDensity: normalizedRegistryEvidence(result, ACOUSTIC_VISUAL_REGISTRY_V1.pauseDensity),
+    pauseDurationMean: normalizedRegistryEvidence(result, ACOUSTIC_VISUAL_REGISTRY_V1.pauseDurationMean),
   });
 }
 
 function constellationMomentum(result: CanonicalSoulScopeResult, constellation: ConstellationId) {
   const movement = result.phaseBConstellation.geometry.constellations[constellation].temporalMovement;
   if (!movement.available) return null;
-  return round(mean(Object.values(movement.vector)));
+  return roundSigned(mean(Object.values(movement.vector)));
 }
 
 export function mapCanonicalResultToSignatureInput(result: CanonicalSoulScopeResult, rendererVersion = RENDERER_VERSION): ResonanceSignatureInputV1 {

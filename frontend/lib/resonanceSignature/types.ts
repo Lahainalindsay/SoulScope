@@ -33,6 +33,7 @@ export type AcousticVisualInputs = Readonly<{
   jitter?: number | null;
   shimmer?: number | null;
   pauseDensity?: number | null;
+  pauseDurationMean?: number | null;
   phonationRatio?: number | null;
   formantStability?: number | null;
 }>;

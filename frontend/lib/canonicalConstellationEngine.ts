@@ -184,7 +184,7 @@ function distance(dimensions: CanonicalDimensionRecord[], target: StateRegion["t
 function descriptors(points: CanonicalDimensionRecord[]) {
   const values = points.map((point) => point.value);
   const uncertainties = points.map((point) => point.uncertainty);
-  const contradiction = points.some((point) => point.contradictoryEvidence.length > 0) ? 0.18 : 0;
+  const contradiction = mean(points.map((point) => point.contradictionStrength));
   const magnitude = mean(values);
   const dominance = Math.max(...values) - mean(values.filter((item) => item !== Math.max(...values)));
   return {
