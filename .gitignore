@@ -12,6 +12,26 @@ Thumbs.db
 .cache/
 .mypy_cache/
 .pytest_cache/
+*.tsbuildinfo
+
+# Editor backups
+*.save
+*.swp
+*.swo
+*.bak
+*.tmp
+*~
+
+# Build and generated output
+dist/
+build/
+coverage/
+frontend/dist/
+frontend/build/
+frontend/coverage/
+
+# Supabase CLI temp files
+supabase/.temp/
 
 # Node/npm leftovers
 node_modules/
