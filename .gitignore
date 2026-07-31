@@ -12,6 +12,16 @@ Thumbs.db
 .cache/
 .mypy_cache/
 .pytest_cache/
+*.tsbuildinfo
+
+# Editor backups
+*.save
+*.swp
+*.swo
+*~
+
+# Supabase CLI temp files
+supabase/.temp/
 
 # Node/npm leftovers
 node_modules/
