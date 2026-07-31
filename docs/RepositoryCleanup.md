@@ -220,11 +220,12 @@ This file: `docs/RepositoryCleanup.md`
 
 ## Recommended Actions
 
-- [ ] Run `git-filter-repo --path supabase/.temp --invert-paths` to remove Supabase temp files from all history (especially `pooler-url` which contains a database connection URL). Coordinate with all active contributors before rewriting history.
+- [x] Run `git-filter-repo` to purge history — plan documented in `docs/HistoryRewrite.md` (Phase 0.5)
+- [ ] Execute history rewrite and force-push. Coordinate with all contributors before rewriting.
 - [ ] After history rewrite, force-push and re-protect the `main` branch.
-- [ ] Add a `.gitattributes` file to enforce `text=auto eol=lf` for consistent line endings.
-- [ ] Consider adding a `SECURITY.md` with a responsible disclosure policy.
-- [ ] Add branch protection rules to `main`: require PR reviews, require CI to pass, disallow force push.
+- [x] Add a `.gitattributes` file to enforce `text=auto eol=lf` for consistent line endings. (Phase 0.5)
+- [x] Add `SECURITY.md` with a responsible disclosure policy. (Phase 0.5)
+- [ ] Add branch protection rules to `main`: require PR reviews, require CI to pass, disallow force push. (requires owner action — see `docs/BranchAudit.md`)
 - [ ] Rotate the Supabase anon key as a precaution (even though the committed value appears to be a placeholder, the project URL is confirmed real).
 
 ## Future Improvements
@@ -232,4 +233,33 @@ This file: `docs/RepositoryCleanup.md`
 - [ ] Add `pre-commit` hooks or `detect-secrets` to prevent accidental credential commits.
 - [ ] Add a `CODEOWNERS` file to assign review ownership.
 - [ ] Add `CONTRIBUTING.md` if the project will accept external contributions.
-- [ ] Consider adding a `.env.example` at the repository root (not just in `frontend/`) to document all required environment variables for backend setup.
+- [x] `frontend/.env.local.example` updated to document all required frontend variables. (Phase 0.5)
+
+---
+
+## Phase 0.5 Addendum
+
+**Date:** 2026-07-31
+
+Phase 0.5 completed all remaining recommendations from Phase 0. See the new documentation files for full details:
+
+- `docs/BranchAudit.md` — branch inventory, CI workflow fix, branch protection recommendations
+- `docs/DocumentationAudit.md` — full audit of all documentation
+- `docs/HistoryRewrite.md` — exact commands for history rewrite
+- `docs/RepositoryHealth.md` — final health score and all outstanding recommendations
+
+### Phase 0.5 Changes
+
+| Change | File | Reason |
+|--------|------|--------|
+| Updated | `.gitignore` | Added `*.bak`, `*.tmp`, `coverage/`, `dist/`, `build/` patterns |
+| Created | `.gitattributes` | LF line endings, binary asset markers |
+| Created | `SECURITY.md` | Responsible disclosure policy |
+| Updated | `frontend/.env.local.example` | Added `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| Fixed | `.github/workflows/pr-validation.yml` | Removed dead branch `codex/evidence-observation-pipeline` from CI triggers |
+| Archived | `IMPLEMENTATION_SUMMARY.md` → `docs/archive/` | Early-stage prototype notes, no longer needed at root |
+| Created | `docs/BranchAudit.md` | Branch inventory and protection recommendations |
+| Created | `docs/DocumentationAudit.md` | Full documentation audit |
+| Created | `docs/HistoryRewrite.md` | History rewrite plan with exact commands |
+| Created | `docs/RepositoryHealth.md` | Repository health score and metrics |
+

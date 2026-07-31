@@ -18,7 +18,17 @@ Thumbs.db
 *.save
 *.swp
 *.swo
+*.bak
+*.tmp
 *~
+
+# Build and generated output
+dist/
+build/
+coverage/
+frontend/dist/
+frontend/build/
+frontend/coverage/
 
 # Supabase CLI temp files
 supabase/.temp/
