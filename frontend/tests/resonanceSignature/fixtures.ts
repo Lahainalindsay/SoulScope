@@ -132,7 +132,7 @@ export function buildVisualFixtures() {
       ...fixtureInput().constellations[id],
       confidence: 0.3,
       dimensions: fixtureInput().constellations[id].dimensions.map((dimension) => ({ ...dimension, confidence: 0.28 })),
-    }])) as ResonanceSignatureInputV1["constellations"],
+    }])) as unknown as ResonanceSignatureInputV1["constellations"],
   });
   const sparseEvidence = fixtureInput({
     scanId: "fixture-sparse-evidence",
@@ -141,7 +141,7 @@ export function buildVisualFixtures() {
       ...fixtureInput().constellations[id],
       evidenceCoverage: 0.24,
       dimensions: fixtureInput().constellations[id].dimensions.map((dimension) => ({ ...dimension, evidenceCoverage: 0.2 })),
-    }])) as ResonanceSignatureInputV1["constellations"],
+    }])) as unknown as ResonanceSignatureInputV1["constellations"],
   });
   return {
     balancedHighConfidence: balanced,
@@ -179,7 +179,7 @@ export function buildVisualFixtures() {
         ...fixtureInput().constellations[id],
         coherence: 0.95,
         dimensions: fixtureInput().constellations[id].dimensions.map((dimension) => ({ ...dimension, coherence: 0.95 })),
-      }])) as ResonanceSignatureInputV1["constellations"],
+      }])) as unknown as ResonanceSignatureInputV1["constellations"],
     }),
     realSuppliedScan: fixtureInput({ scanId: "fixture-real-supplied-scan", resultVersion: "fixture-real-scan-v1" }),
   } as const;

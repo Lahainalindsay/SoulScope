@@ -102,7 +102,7 @@ function fixtureSet() {
         },
       },
     } },
-    { label: "8) Low confidence", input: { ...baseFixture("low-confidence"), overallConfidence: 0.34, constellations: Object.fromEntries(CONSTELLATIONS.map((id) => [id, { ...baseFixture("low-confidence").constellations[id], confidence: 0.32, dimensions: baseFixture("low-confidence").constellations[id].dimensions.map((dimension) => ({ ...dimension, confidence: 0.3 })) }])) as ResonanceSignatureInputV1["constellations"] } },
+    { label: "8) Low confidence", input: { ...baseFixture("low-confidence"), overallConfidence: 0.34, constellations: Object.fromEntries(CONSTELLATIONS.map((id) => [id, { ...baseFixture("low-confidence").constellations[id], confidence: 0.32, dimensions: baseFixture("low-confidence").constellations[id].dimensions.map((dimension) => ({ ...dimension, confidence: 0.3 })) }])) as unknown as ResonanceSignatureInputV1["constellations"] } },
     { label: "9) Unresolved dimension", input: {
       ...baseFixture("unresolved-dimension"),
       constellations: {
@@ -121,8 +121,8 @@ function fixtureSet() {
         },
       },
     } },
-    { label: "10) Sparse evidence", input: { ...baseFixture("sparse-evidence"), overallCoverage: 0.28, constellations: Object.fromEntries(CONSTELLATIONS.map((id) => [id, { ...baseFixture("sparse-evidence").constellations[id], evidenceCoverage: 0.28, dimensions: baseFixture("sparse-evidence").constellations[id].dimensions.map((dimension) => ({ ...dimension, evidenceCoverage: 0.24 })) }])) as ResonanceSignatureInputV1["constellations"] } },
-    { label: "11) High coherence", input: { ...baseFixture("high-coherence"), overallCoherence: 0.95, constellations: Object.fromEntries(CONSTELLATIONS.map((id) => [id, { ...baseFixture("high-coherence").constellations[id], coherence: 0.94, dimensions: baseFixture("high-coherence").constellations[id].dimensions.map((dimension) => ({ ...dimension, coherence: 0.94 })) }])) as ResonanceSignatureInputV1["constellations"] } },
+    { label: "10) Sparse evidence", input: { ...baseFixture("sparse-evidence"), overallCoverage: 0.28, constellations: Object.fromEntries(CONSTELLATIONS.map((id) => [id, { ...baseFixture("sparse-evidence").constellations[id], evidenceCoverage: 0.28, dimensions: baseFixture("sparse-evidence").constellations[id].dimensions.map((dimension) => ({ ...dimension, evidenceCoverage: 0.24 })) }])) as unknown as ResonanceSignatureInputV1["constellations"] } },
+    { label: "11) High coherence", input: { ...baseFixture("high-coherence"), overallCoherence: 0.95, constellations: Object.fromEntries(CONSTELLATIONS.map((id) => [id, { ...baseFixture("high-coherence").constellations[id], coherence: 0.94, dimensions: baseFixture("high-coherence").constellations[id].dimensions.map((dimension) => ({ ...dimension, coherence: 0.94 })) }])) as unknown as ResonanceSignatureInputV1["constellations"] } },
     { label: "12) Real supplied scan proxy", input: { ...balanced, scanId: "real-supplied-scan", resultVersion: "real-scan-proxy-v1" } },
   ];
 }
