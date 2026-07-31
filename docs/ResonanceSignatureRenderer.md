@@ -25,10 +25,10 @@ SVG uses `viewBox="0 0 1200 1200"`, center `600,600`, maximum field radius `500`
 
 Constellation anchors:
 
-- `COG`: 315 degrees
-- `REG`: 45 degrees
-- `CAP`: 225 degrees
-- `EXP`: 135 degrees
+- `COG`: 270 degrees (north / upper)
+- `REG`: 0 degrees (east / right)
+- `CAP`: 90 degrees (south / lower)
+- `EXP`: 180 degrees (west / left)
 
 Each constellation starts as a field family, but contours are extracted from one unified scalar field.
 
@@ -67,16 +67,26 @@ No `Math.random()`, current time, or device entropy is used.
 
 `scalarField.ts` samples a fixed grid. `marchingSquares.ts` extracts deterministic contour segments at renderer-version thresholds. `contours.ts` sorts paths stably and rounds coordinates to three decimals.
 
+Contours are ranked by `confidence × evidenceCoverage × continuity × multiSourceSupport × coherence` and rendered in four deterministic tiers:
+
+- Tier A convergence spine (brightest, thickest)
+- Tier B primary constellation contours
+- Tier C secondary contours
+- Tier D uncertainty/background traces
+
 ## SVG Layers
 
 Serialized SVG uses stable groups:
 
 - `radial-guides`
 - `outer-bloom`
+- `contour-support`
 - `contours`
 - `convergence-nodes`
+- `confidence-overlay`
+- `missingness-overlay`
 
-Bloom is a duplicate stroke layer at low opacity; geometry remains crisp.
+Each contour is rendered in three passes (bloom/support/core) to preserve crisp geometry with restrained glow.
 
 ## Manifest
 
@@ -92,4 +102,6 @@ The component renders a single labeled SVG. Explanatory labels and dashboard cop
 
 ## Versioning
 
-Renderer changes must update `RENDERER_VERSION` in `registry.ts` when visual geometry or mappings change. Tests assert seed, scalar checksum, SVG structure, missingness, contradiction, and sensitivity.
+Renderer v1.1.0 introduces directional field separation, central harmonic convergence, contour tiering, and denser convergence nodes while preserving immutable input mappings and determinism.
+
+Renderer changes must update `RENDERER_VERSION` in `registry.ts` when visual geometry or mappings change. Tests assert seed, scalar checksum, directional family separation, convergence behavior, missingness, contradiction, and sensitivity.

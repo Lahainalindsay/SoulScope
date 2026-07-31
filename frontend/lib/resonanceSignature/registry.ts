@@ -1,12 +1,12 @@
 import type { SignatureConstellationId } from "./types";
 
-export const RENDERER_VERSION = "soulscope-signature-renderer-v1.0.0";
+export const RENDERER_VERSION = "soulscope-signature-renderer-v1.1.0";
 export const VIEWBOX_SIZE = 1200;
 export const CENTER = 600;
 export const MAX_FIELD_RADIUS = 500;
 export const SAFE_VISUAL_RADIUS = 455;
 export const SCALAR_GRID_SIZE = 96;
-export const CONTOUR_THRESHOLDS = [0.18, 0.26, 0.34, 0.42, 0.5, 0.58, 0.66] as const;
+export const CONTOUR_THRESHOLDS = [0.14, 0.22, 0.3, 0.38, 0.46, 0.54, 0.62, 0.7, 0.78] as const;
 
 export type DimensionVisualRegistryEntry = Readonly<{
   dimensionId: string;
@@ -22,10 +22,10 @@ export type DimensionVisualRegistryEntry = Readonly<{
 }>;
 
 export const CONSTELLATION_ANCHORS: Record<SignatureConstellationId, number> = {
-  COG: 315,
-  REG: 45,
-  CAP: 225,
-  EXP: 135,
+  COG: 270,
+  REG: 0,
+  CAP: 90,
+  EXP: 180,
 };
 
 const ids = {
