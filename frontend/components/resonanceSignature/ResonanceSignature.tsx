@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { generateSignature } from "../../../packages/resonance-renderer/src";
 import {
   normalizeSignatureInput,
   serializeSignatureSvg,
@@ -8,7 +9,8 @@ import {
 import styles from "./ResonanceSignature.module.css";
 
 export type ResonanceSignatureProps = {
-  input: ResonanceSignatureInputV1;
+  input?: ResonanceSignatureInputV1;
+  resultObject?: unknown;
   size?: number;
   showGuides?: boolean;
   showBaselineGhost?: boolean;
@@ -24,6 +26,7 @@ export type ResonanceSignatureProps = {
 
 function ResonanceSignatureComponent({
   input,
+  resultObject,
   size = 640,
   showGuides = true,
   showBaselineGhost = false,
@@ -37,6 +40,15 @@ function ResonanceSignatureComponent({
   className = "",
 }: ResonanceSignatureProps) {
   const output = useMemo(() => {
+    if (resultObject) {
+      const signature = generateSignature(resultObject);
+      return {
+        seed: signature.signatureId,
+        scalarChecksum: signature.field.checksum,
+        svg: signature.svg,
+      };
+    }
+    if (!input) throw new Error("ResonanceSignature requires either resultObject or input.");
     const validated = validateResonanceSignatureInput(input);
     const normalized = normalizeSignatureInput(validated);
     return serializeSignatureSvg(normalized, {
@@ -49,7 +61,7 @@ function ResonanceSignatureComponent({
       showMissingnessOverlay,
       grayscale,
     });
-  }, [grayscale, input, isolateConstellation, showBaselineGhost, showBloom, showConfidenceOverlay, showGuides, showMissingnessOverlay, showNodes]);
+  }, [grayscale, input, isolateConstellation, resultObject, showBaselineGhost, showBloom, showConfidenceOverlay, showGuides, showMissingnessOverlay, showNodes]);
 
   return (
     <div
