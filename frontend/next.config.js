@@ -2,6 +2,9 @@
 const backendBaseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || "https://soulscope.onrender.com").replace(/\/+$/, "");
 
 const nextConfig = {
+  experimental: {
+    externalDir: true,
+  },
   async rewrites() {
     return [
       {
